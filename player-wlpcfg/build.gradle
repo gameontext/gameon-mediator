@@ -57,7 +57,8 @@ task createNewContainer(type: DockerCreateContainer) {
 			"TWITTER_CONSUMER_KEY=" + System.getenv('TWITTER_CONSUMER_KEY'),
 			"TWITTER_CONSUMER_SECRET=" + System.getenv('TWITTER_CONSUMER_SECRET'),
 			"FACEBOOK_APP_ID=" + System.getenv('FACEBOOK_APP_ID'),
-			"FACEBOOK_APP_SECRET=" + System.getenv('FACEBOOK_APP_SECRET')
+			"FACEBOOK_APP_SECRET=" + System.getenv('FACEBOOK_APP_SECRET'),
+			"WEBAPP_BASE=" + System.getenv('WEBAPP_BASE')
 		]
 }
 
