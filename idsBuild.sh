@@ -18,7 +18,10 @@ echo Building projects using gradle...
 ./gradlew build 
 echo Building and Starting Concierge Docker Image...
 cd player-wlpcfg
-../gradlew --continue buildDockerImage removeCurrentContainer startNewContainer
+../gradlew buildDockerImage 
+../gradlew stopCurrentContainer 
+../gradlew removeCurrentContainer
+../gradlew startNewContainer
 echo Removing JDK, cause there's no reason that's an artifact...
 cd ..
 rm -rf jdk1.8.0_65
