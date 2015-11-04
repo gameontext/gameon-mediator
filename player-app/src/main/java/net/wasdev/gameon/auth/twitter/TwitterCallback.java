@@ -13,15 +13,26 @@ import twitter4j.TwitterException;
 import twitter4j.auth.AccessToken;
 import twitter4j.auth.RequestToken;
 
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+
 /**
  * Servlet implementation class TwitterCallback
  */
 @WebServlet("/TwitterCallback")
 public class TwitterCallback extends HttpServlet {
 	private static final long serialVersionUID = 1L;
+	private String webappBase;
 
 	public TwitterCallback() {
 		super();
+		System.out.println("Twitter callback servlet starting up and looking for webapp base url.");
+		try {
+			this.webappBase = (String) new InitialContext().lookup("webappBase");
+			System.out.println("Twitter callback servlet found web app base: " + this.webappBase);
+		} catch (NamingException e) {
+			System.err.println("Error finding webapp base URL; please set this in your environment variables!");
+		}
 	}
 
 	@Override
@@ -54,7 +65,7 @@ public class TwitterCallback extends HttpServlet {
 			throw new ServletException(e);
 		}
 
-		response.sendRedirect(request.getContextPath() + "/#/login/callback/"+auth);
+		response.sendRedirect(webappBase + "/#/login/callback/"+auth);
 	}
 
 

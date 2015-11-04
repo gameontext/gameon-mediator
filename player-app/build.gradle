@@ -1,17 +1,3 @@
-plugins {
-  id "com.moowork.grunt" version "0.11"
-}
-
-node {
-    version = '4.1.2'
-    download = false
-}
-
-// Install the bower components for front-end library management
-task bowerInstall(dependsOn: 'npmInstall', type: Exec)  {
-    commandLine "node_modules/bower/bin/bower", 'install'
-}
-
 apply plugin: 'war'
 apply plugin: 'eclipse-wtp'
 
@@ -42,9 +28,6 @@ task exportLibs(type: Copy) {
   from configurations.runtime
   include "*mongo*.jar"
 }
-
-build.dependsOn(exportLibs)
-build.dependsOn(bowerInstall)
 
 // Set the Eclipse facets to use 3.1 of the Dynamic Web Module which requires Java 1.7 (at least)
 // Also include JAX-RS and javascript

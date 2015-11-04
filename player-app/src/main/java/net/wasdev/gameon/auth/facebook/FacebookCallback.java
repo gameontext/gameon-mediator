@@ -13,12 +13,23 @@ import com.restfb.DefaultWebRequestor;
 import com.restfb.FacebookClient;
 import com.restfb.WebRequestor;
 
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+
+
 @WebServlet("/FacebookCallback")
 public class FacebookCallback extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
+	private String webappBase;
+
 	public FacebookCallback() {
 		super();
+		try {
+			this.webappBase = (String) new InitialContext().lookup("webappBase");
+		} catch (NamingException e) {
+			System.err.println("Error finding webapp base URL; please set this in your environment variables!");
+		}
 	}
 
 	/**
@@ -67,7 +78,7 @@ public class FacebookCallback extends HttpServlet {
 		//debug.
 		System.out.println(auth);
 
-		response.sendRedirect(request.getContextPath() + "/#/login/callback/"+auth);
+		response.sendRedirect(webappBase + "/#/login/callback/"+auth);
 	}
 
 
