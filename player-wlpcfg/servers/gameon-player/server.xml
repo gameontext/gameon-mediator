@@ -38,6 +38,7 @@
   <jndiEntry jndiName="jwtKeyStoreAlias" value="default"/>
   
   <jndiEntry jndiName="conciergeUrl" value="${env.CONCIERGE_URL}"/>
+  <jndiEntry jndiName="webappBase" value="${env.WEBAPP_BASE}"/>
   <logging traceSpecification="*=info:com.ibm.ws.wsoc.*=all" />
 
   <!-- Twitter Application Info... -->
