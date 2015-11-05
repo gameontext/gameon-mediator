@@ -7,4 +7,6 @@ RUN rm /opt/ibm/wlp/usr/servers/defaultServer/server.env
 
 RUN /opt/ibm/wlp/bin/featureManager install mongodb-2.0 --acceptLicense
 
-CMD ["/opt/ibm/wlp/bin/server", "run", "defaultServer"]
+COPY ./startup.sh /opt/startup.sh
+
+CMD ["/opt/startup.sh"]
