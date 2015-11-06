@@ -6,5 +6,6 @@ TWITTER_CONSUMER_KEY=undefined
 TWITTER_CONSUMER_SECRET=undefined
 FACEBOOK_APP_ID=undefined
 FACEBOOK_APP_SECRET=undefined
-LICENSE=accept
 WEBAPP_BASE=/app
+PLAYER_URL=http://localhost:9080/play/players
+LICENSE=accept
