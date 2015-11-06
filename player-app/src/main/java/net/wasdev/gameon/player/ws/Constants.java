@@ -29,6 +29,8 @@ public interface Constants {
 	String PLAYER = "player";
 	String PLAYER_LOCATION = "playerLocation";
 	String SOS = "sos";
+	String CLIENT_READY = "ready";
+	String CLIENT_ACK = "ack";
 
 	String FIRST_ROOM = "TheFirstRoom";
 	String FIRST_ROOM_DESC = "You've entered a vaguely squarish room, with walls of an indeterminate color.";
@@ -58,9 +60,13 @@ public interface Constants {
 	String USER_ID = "userId";
 	String CONTENT = "content";
 
-	String NETHER_REGION = "player,%s,{\"type\": \"event\",\"content\": {\"*\": \"You feel a strange sensation, and suddenly find yourself in a nebulous, gray area with no apparent usable doors.\"},\"bookmark\": 0}";
-	String LIFE_RING = "player,%s,{\"type\": \"exit\",\"content\": \"In a desperate plea for rescue, you stick out your <a href='http://everything2.com/title/Electronic+Thumb' target='_blank'>Electric Thumb</a> and hope for the best.\",\"bookmark\": 0}";
+	String NETHER_REGION = "{\"type\": \"event\",\"content\": {\"*\": \"You feel a strange sensation, and suddenly find yourself in a nebulous, gray area with no apparent usable doors.\"},\"bookmark\": 0}";
+	String SPLINCHED = "{\"type\": \"event\",\"content\": {\"*\": \"Ow! You were splinched! After a brief jolt (getting unsplinched isn't comfortable), you're all back together again. At least, all instances of you are in the same room.\"},\"bookmark\": 0}";
+	String BAD_RIDE = "{\"type\": \"event\",\"content\": {\"*\": \"There is a sudden jerk, and you feel as though a hook somewhere behind your navel was yanking you ... somewhere. <br /><br />What just happened? Something bad, whatever it was, and now you notice you're in a different place than you were.\"},\"bookmark\": 0}";
+	String LIFE_RING = "{\"type\": \"exit\",\"content\": \"In a desperate plea for rescue, you stick out your <a href='http://everything2.com/title/Electronic+Thumb' target='_blank'>Electric Thumb</a> and hope for the best.\",\"bookmark\": 0}";
 
-	String JOIN = "player,%s,{\"type\": \"joinpart\",\"content\": \"enter %s\",\"bookmark\": 0}";
-	String PART = "player,%s,{\"type\": \"joinpart\",\"content\": \"exit %s\",\"bookmark\": 0}";
+	String HIBYE = "{\"username\": \"%s\",\"userId\": \"%s\"}";
+	String LOOK = "{\"username\": \"%s\",\"userId\": \"%s\",\"content\": \"/look\"}";
+	String JOIN = "{\"type\": \"joinpart\",\"content\": \"enter %s\",\"bookmark\": 0}";
+	String PART = "{\"type\": \"joinpart\",\"content\": \"exit %s\",\"bookmark\": 0}";
 }

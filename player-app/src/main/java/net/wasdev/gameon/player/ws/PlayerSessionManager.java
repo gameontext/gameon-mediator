@@ -15,7 +15,6 @@
  *******************************************************************************/
 package net.wasdev.gameon.player.ws;
 
-import java.io.StringReader;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,14 +25,15 @@ import java.util.logging.Level;
 
 import javax.annotation.Resource;
 import javax.enterprise.concurrent.ManagedScheduledExecutorService;
-import javax.enterprise.concurrent.ManagedThreadFactory;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.json.Json;
 import javax.json.JsonObject;
-import javax.json.JsonReader;
 import javax.websocket.Session;
 
+/**
+ * @author elh
+ *
+ */
 /**
  * @author elh
  *
@@ -46,14 +46,19 @@ public class PlayerSessionManager implements Runnable {
 	@Resource
 	protected ManagedScheduledExecutorService executor;
 
-	/** CDI injection of Java EE7 Managed thread factory */
-	@Resource
-	protected ManagedThreadFactory threadFactory;
+	/** CDI injection of Connection Utilities (consistent send/receive/error handling) */
+	@Inject
+	ConnectionUtils connectionUtils;
+
+	/** CDI injection of client for Concierge */
+	@Inject
+	ConciergeClient concierge;
+
+	/** CDI injection of client for Player CRUD operations */
+	@Inject
+	PlayerClient playerClient;
 
 	private AtomicReference<ScheduledFuture<?>> reaper = new AtomicReference<ScheduledFuture<?>>(null);
-
-	@Inject
-	protected ConciergeClient concierge;
 
 	@Override
 	public void run() {
@@ -109,27 +114,29 @@ public class PlayerSessionManager implements Runnable {
 	 * @param clientCache Information from the client: updated room, last message seen
 	 * @return a new or resumed PlayerSession
 	 */
-	public PlayerConnectionMediator startSession(Session clientSession, String userName, String localStorageData) {
+	public PlayerConnectionMediator startSession(Session clientSession, String userName, RoutedMessage message) {
 
-		JsonReader jsonReader = Json.createReader(new StringReader(localStorageData));
-		JsonObject sessionData = jsonReader.readObject();
+		JsonObject sessionData = message.getParsedBody();
 
 		String mediatorId = sessionData.getString(Constants.MEDIATOR_ID, null);
-		String roomId = sessionData.getString(Constants.ROOM_ID, null);
 		String username = sessionData.getString(Constants.USERNAME, null);
-		long lastmessage = sessionData.getInt(Constants.BOOKMARK, 0);
+
+		String roomId = message.getOptionalValue(Constants.ROOM_ID, null);
+		long lastmessage = message.getOptionalValue(Constants.BOOKMARK, 0);
 
 		PlayerConnectionMediator playerSession = null;
 		if ( mediatorId != null ) {
 			playerSession = suspendedSessions.remove(mediatorId);
-			Log.log(Level.FINER, this, "Resuming session session {0} for user {1}", playerSession, userName);
-		}
-		if ( playerSession == null ) {
-			playerSession = new PlayerConnectionMediator(userName, username, threadFactory, concierge);
-			Log.log(Level.FINER, this, "Created new session {0} for user {1}", playerSession, userName);
 		}
 
-		playerSession.initializeConnection(clientSession, roomId, lastmessage);
+		if ( playerSession == null ) {
+			playerSession = new PlayerConnectionMediator(userName, username, concierge, playerClient, connectionUtils);
+			Log.log(Level.FINER, this, "Created new session {0} for user {1}", playerSession, userName);
+		} else {
+			Log.log(Level.FINER, this, "Resuming session session {0} for user {1}", playerSession, userName);
+		}
+
+		playerSession.connect(clientSession, roomId, lastmessage);
 		return playerSession;
 	}
 
@@ -138,11 +145,11 @@ public class PlayerSessionManager implements Runnable {
 	 *
 	 * @see PlayerServerEndpoint#onClose(String, Session, javax.websocket.CloseReason)
 	 */
-	public void suspendSession(PlayerConnectionMediator session) {
-		Log.log(Level.FINER, this, "Suspending session {0}", session);
-		if ( session != null ) {
-			suspendedSessions.put(session.getId(), session);
-			session.disconnect();
+	public void suspendSession(PlayerConnectionMediator playerSession) {
+		Log.log(Level.FINER, this, "Suspending session {0}", playerSession);
+		if ( playerSession != null ) {
+			suspendedSessions.put(playerSession.getId(), playerSession);
+			playerSession.disconnect();
 
 			if ( reaper.get() == null ) {
 				updateReaper();

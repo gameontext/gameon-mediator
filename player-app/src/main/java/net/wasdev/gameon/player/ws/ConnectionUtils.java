@@ -17,53 +17,99 @@ package net.wasdev.gameon.player.ws;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.net.URI;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
+import javax.annotation.Resource;
+import javax.enterprise.concurrent.ManagedThreadFactory;
+import javax.enterprise.context.ApplicationScoped;
+import javax.websocket.ClientEndpointConfig;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
+import javax.websocket.ContainerProvider;
+import javax.websocket.DeploymentException;
+import javax.websocket.EncodeException;
+import javax.websocket.Endpoint;
+import javax.websocket.RemoteEndpoint.Basic;
 import javax.websocket.Session;
+import javax.websocket.WebSocketContainer;
 
 /**
- * @author elh
- *
  */
+@ApplicationScoped
 public class ConnectionUtils {
+
+	/** CDI injection of Java EE7 Managed thread factory */
+	@Resource
+	protected ManagedThreadFactory threadFactory;
 
 	/**
 	 * Simple text based broadcast.
 	 *
-	 * @param session
-	 * @param id
-	 * @param message
+	 * @param session Target session (used to find all related sessions)
+	 * @param message {@link RoutedMessage} to send
+	 * @see #sendMessage(Session, RoutedMessage)
 	 */
-	public static void broadcast(Session session, String message) {
+	public void broadcast(Session session, RoutedMessage message) {
 		for (Session s : session.getOpenSessions()) {
-			sendText(s, message);
+			sendMessage(s, message);
 		}
 	}
 
 	/**
-	 * @param session
-	 * @param payload
+	 * Try sending the {@link RoutedMessage} using {@link Session#getBasicRemote()}, {@link Basic#sendObject(Object)}.
+	 *
+	 * @param session Session to send the message on
+	 * @param message {@link RoutedMessage} to send
+	 * @return true if send was successful, or false if it failed
 	 */
-	public static boolean sendText(Session session, String payload) {
+	public boolean sendMessage(Session session, RoutedMessage message) {
 		if (session.isOpen()) {
 			try {
-				session.getBasicRemote().sendText(payload);
+				session.getBasicRemote().sendObject(message);
 				return true;
-			} catch (IOException e) {
-				ConnectionUtils.tryToClose(session, new CloseReason(CloseCodes.UNEXPECTED_CONDITION, e.toString()));
+			} catch (EncodeException e) {
+				Log.log(Level.FINEST, session, "Unexpected condition writing message", e);
+				// Something was wrong encoding this message, but the connection is
+				// likely just fine.
+			} catch (IOException ioe) {
+				// An IOException, on the other hand, suggests the connection is in a bad state
+				Log.log(Level.FINEST, session, "Unexpected condition writing message", ioe);
+				tryToClose(session, new CloseReason(CloseCodes.UNEXPECTED_CONDITION, ioe.toString()));
 			}
 		}
 		return false;
 	}
 
-	public static Session getNextOpenSession(Session session) {
+	/**
+	 * @param session
+	 * @return
+	 */
+	public Session getNextOpenSession(Session session) {
 		for (Session s : session.getOpenSessions()) {
 			if ( s.isOpen() && s != session ) // real is the same instance check
 				return s;
 		}
 		return null;
+	}
+
+	/**
+	 * Create an outbound/client websocket connection
+	 *
+	 * @param endpoint Programmatic websocket endpoint instance
+	 * @param cec Client websocket endpoint configuration
+	 * @param uriServerEP target websocket uri
+	 *
+	 * @return Established websocket session
+	 * @throws DeploymentException if the configuration is invalid
+	 * @throws IOException if there was a network or protocol issue
+	 */
+	public Session connectToServer(Endpoint endpoint, ClientEndpointConfig cec, URI uriServerEP) throws DeploymentException, IOException {
+		WebSocketContainer c = ContainerProvider.getWebSocketContainer();
+		return c.connectToServer(endpoint, cec, uriServerEP);
 	}
 
 	/**
@@ -74,7 +120,7 @@ public class ConnectionUtils {
 	 * @param reason
 	 *            {@link CloseReason} the WebSocket is closing.
 	 */
-	public static final void tryToClose(Session s, CloseReason reason) {
+	public void tryToClose(Session s, CloseReason reason) {
 		try {
 			s.close(reason);
 		} catch (IOException e) {
@@ -87,7 +133,7 @@ public class ConnectionUtils {
 	 *
 	 * @param c
 	 */
-	public static final void tryToClose(Closeable c) {
+	public void tryToClose(Closeable c) {
 		if (c != null) {
 			try {
 				c.close();
@@ -96,25 +142,84 @@ public class ConnectionUtils {
 		}
 	}
 
+
 	/**
-	 * Strip off segments by leading comma, stop
-	 * as soon as a { is reached (beginning of JSON payload)
-	 * @param message Message to split
-	 * @return Array containing parts of original message
+	 * Utility method to drain a queue: will write all pending sessions (as they arrive)
+	 * to the websocket. Assumes a connection break will result in the onClose method being
+	 * driven elsewhere.
+	 *
+	 * @param id
+	 * @param pending
+	 * @param targetSession
+	 * @return
 	 */
-	public static final String[] splitRouting(String message) {
-		ArrayList<String> list = new ArrayList<>();
-
-		int brace = message.indexOf('{');
-		int i = 0;
-		int j = message.indexOf(',');
-		while (j > 0 && j < brace) {
-			list.add(message.substring(i, j).trim());
-			i = j+1;
-			j = message.indexOf(',', i);
-		}
-		list.add(message.substring(i).trim());
-
-		return list.toArray(new String[]{});
+	public Drain drain(String id, LinkedBlockingDeque<RoutedMessage> pending, Session targetSession) {
+		Drain d = new Drain(id, pending, targetSession, this);
+		threadFactory.newThread(d).start();
+		return d;
 	}
+
+	static class Drain implements Runnable {
+		private final CountDownLatch ended = new CountDownLatch(1);
+		private final Session targetSession;
+		private final LinkedBlockingDeque<RoutedMessage> pendingMessages;
+		private final String id;
+		private Thread t;
+		private ConnectionUtils connectionUtils;
+
+		private volatile boolean keepGoing = true;
+
+		public Drain(String id, LinkedBlockingDeque<RoutedMessage> pending, Session targetSession, ConnectionUtils connectionUtils) {
+			this.id = id;
+			this.targetSession = targetSession;
+			this.pendingMessages = pending;
+			this.connectionUtils = connectionUtils;
+		}
+
+		@Override
+		public void run() {
+			t = Thread.currentThread();
+
+			boolean interrupted = false;
+
+			// Dedicated thread sending messages to the room as fast
+			// as it can take them: maybe we batch these someday.
+			while( keepGoing ) {
+				try {
+					RoutedMessage message = pendingMessages.take();
+					Log.log(Level.FINEST, this, "Sending to {0} ({1}): {2}", id, targetSession.isOpen(), message);
+
+					if ( !connectionUtils.sendMessage(targetSession, message) ) {
+						// If the send failed, tuck the message back in the head of the queue.
+						pendingMessages.offerFirst(message);
+					}
+				} catch (InterruptedException ex) {
+					interrupted = true;
+				}
+			}
+			Log.log(Level.FINER, this, "END {0}", id);
+
+			// reset interrupted flag
+			if ( interrupted )
+				Thread.currentThread().interrupt();
+
+			ended.countDown();
+		}
+
+		public void stop() {
+			keepGoing = false;
+
+			// Interrupt the other thread
+			if ( t != null )
+				t.interrupt();
+
+			// Wait for the interrupted thread to finish
+			try {
+				ended.await(400, TimeUnit.MILLISECONDS);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+		}
+	}
+
 }

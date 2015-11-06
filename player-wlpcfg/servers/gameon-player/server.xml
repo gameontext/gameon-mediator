@@ -39,6 +39,8 @@
   
   <jndiEntry jndiName="conciergeUrl" value="${env.CONCIERGE_URL}"/>
   <jndiEntry jndiName="webappBase" value="${env.WEBAPP_BASE}"/>
+  <jndiEntry jndiName="playerUrl" value="${env.PLAYER_URL}"/>
+  
   <logging traceSpecification="*=info:com.ibm.ws.wsoc.*=all" />
 
   <!-- Twitter Application Info... -->

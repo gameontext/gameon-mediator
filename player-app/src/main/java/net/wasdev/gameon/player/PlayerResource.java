@@ -18,6 +18,10 @@ package net.wasdev.gameon.player;
 import java.io.IOException;
 
 import javax.annotation.Resource;
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
@@ -43,52 +47,82 @@ import com.mongodb.DBObject;
 @Path("/{id}")
 public class PlayerResource {
 	@Context Providers ps;
-	
+
 	@Resource(name = "mongo/playerDB")
 	protected DB playerDB;
-		
-    @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    public Player getPlayerInformation(@PathParam("id") String id) throws IOException { 	
+
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	public Player getPlayerInformation(@PathParam("id") String id) throws IOException {
+		DBObject player = findPlayer(null, id);
+		Player p = Player.fromDBObject(ps, player);
+		return p;
+	}
+
+	@PUT
+	public Response updatePlayer(@PathParam("id") String id, Player newPlayer) throws IOException {
 		DBCollection players = playerDB.getCollection("players");
-    	DBObject query = new BasicDBObject("id",id);
-    	DBCursor cursor = players.find(query);
-    	if(!cursor.hasNext()){
-    		//will be mapped to 404 by the PlayerExceptionMapper
-    		throw new PlayerNotFoundException("user id not found : "+id);
-    	}       	
-    	DBObject player = cursor.one();  
-    	Player p = Player.fromDBObject(ps, player);   	
-    	return p;
-    }
-    
-    @PUT
-    public Response updatePlayer(@PathParam("id") String id, Player newPlayer) throws IOException { 	
+		DBObject player = findPlayer(players, id);
+		DBObject nPlayer = newPlayer.toDBObject(ps);
+
+		players.update(player, nPlayer);
+		return Response.status(204).build();
+	}
+
+	@DELETE
+	public Response removePlayer(@PathParam("id") String id) {
 		DBCollection players = playerDB.getCollection("players");
-    	DBObject query = new BasicDBObject("id",id);
-    	DBCursor cursor = players.find(query);
-    	if(!cursor.hasNext()){
-    		//will be mapped to 404 by the PlayerExceptionMapper
-    		throw new PlayerNotFoundException("user id not found : "+id);
-    	}        	
-    	DBObject player = cursor.one(); 
-    	DBObject nPlayer = newPlayer.toDBObject(ps);
-    	   	
-    	players.update(player, nPlayer);
-    	return Response.status(204).build();
-    }
-    
-    @DELETE
-    public Response removePlayer(@PathParam("id") String id) { 	
+		DBObject player = findPlayer(players, id);
+
+		players.remove(player);
+		return Response.status(200).build();
+	}
+
+	@PUT
+	@Path("/location")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response updatePlayerLocation(@PathParam("id") String id, JsonObject update) throws IOException {
 		DBCollection players = playerDB.getCollection("players");
-    	DBObject query = new BasicDBObject("id",id);
-    	DBCursor cursor = players.find(query);
-    	if(!cursor.hasNext()){
-    		//will be mapped to 404 by the PlayerExceptionMapper
-    		throw new PlayerNotFoundException("user id not found : "+id);
-    	}        	
-    	DBObject player = cursor.one();  
-    	players.remove(player);
-    	return Response.status(200).build();
-    }
+		DBObject player = findPlayer(players, id);
+		Player p = Player.fromDBObject(ps, player);
+
+		String oldLocation = update.getString("old");
+		String newLocation = update.getString("new");
+		String currentLocation = p.getLocation();
+
+		// try setting to the new location
+		int rc;
+		JsonObjectBuilder result = Json.createObjectBuilder();
+
+		if ( currentLocation.equals(oldLocation)) {
+			p.setLocation(newLocation);
+			try {
+				players.update(player, p.toDBObject(ps));
+				rc = 200;
+				result.add("location", newLocation);
+			} catch (IOException e) {
+				rc = 500;
+				result.add("location", currentLocation);
+			}
+		} else {
+			rc = 409;
+			result.add("location", currentLocation);
+		}
+
+		return Response.status(rc).entity(result.build()).build();
+	}
+
+	private DBObject findPlayer(DBCollection players, String id) {
+		if ( players == null ) {
+			players = playerDB.getCollection("players");
+		}
+		DBObject query = new BasicDBObject("id",id);
+		DBCursor cursor = players.find(query);
+		if(!cursor.hasNext()){
+			//will be mapped to 404 by the PlayerExceptionMapper
+			throw new PlayerNotFoundException("user id not found : "+id);
+		}
+		return cursor.one();
+	}
 }
