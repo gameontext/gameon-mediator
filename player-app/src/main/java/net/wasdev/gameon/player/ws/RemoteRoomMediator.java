@@ -17,105 +17,129 @@ package net.wasdev.gameon.player.ws;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.List;
+import java.util.Arrays;
 import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.ThreadFactory;
 import java.util.logging.Level;
 
+import javax.websocket.ClientEndpointConfig;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
-import javax.websocket.ContainerProvider;
 import javax.websocket.DeploymentException;
+import javax.websocket.Endpoint;
+import javax.websocket.EndpointConfig;
+import javax.websocket.MessageHandler;
 import javax.websocket.Session;
-import javax.websocket.WebSocketContainer;
 
-public class RemoteRoomMediator implements Runnable, RoomMediator {
+import net.wasdev.gameon.player.ws.ConciergeClient.RoomEndpointList;
+import net.wasdev.gameon.player.ws.ConnectionUtils.Drain;
 
-	private final String roomId;
-	private final List<String> targetUrls;
-	private final ThreadFactory threadFactory;
+public class RemoteRoomMediator implements RoomMediator {
+
+	private final RoomEndpointList endpointInfo;
+	private final ConnectionUtils connectionUtils;
 
 	private Session roomSession;
-	private Thread roomThread;
+
 	private PlayerConnectionMediator playerSession;
-	private volatile boolean keepGoing = true;
+	private Drain drainToRoom = null;
 
 	/** Queue of messages destined for the client device */
-	private final LinkedBlockingDeque<String> toRoom = new LinkedBlockingDeque<String>();
+	private final LinkedBlockingDeque<RoutedMessage> toRoom = new LinkedBlockingDeque<RoutedMessage>();
 
 	/**
-	 * @param roomId
 	 * @param threadFactory
 	 */
-	public RemoteRoomMediator(String roomId, List<String> targetUrls, ThreadFactory threadFactory) {
-		this.roomId = roomId;
-		this.targetUrls = targetUrls;
-		this.threadFactory = threadFactory;
+	public RemoteRoomMediator(RoomEndpointList roomEndpointList, ConnectionUtils connectionUtils) {
+		this.endpointInfo = roomEndpointList;
+		this.connectionUtils = connectionUtils;
 	}
 
 	@Override
 	public String getId() {
-		return roomId;
+		return endpointInfo.getRoomId();
+	}
+
+	@Override
+	public String getName() {
+		return endpointInfo.getRoomName();
 	}
 
 	/**
-	 * Route data to/from the room's websocket session
-	 * @param routing
+	 * Attempt to establish the connection to the remote room (if not already established)
+	 * @see net.wasdev.gameon.player.ws.RoomMediator#connect()
 	 */
 	@Override
-	public void route(String[] routing) {
-		if ( routing[0].startsWith(Constants.PLAYER)) {
-			playerSession.sendToClient(routing);
-		} else {
-			toRoom.offer(String.join(",", routing));
+	public boolean connect() {
+		if ( roomSession != null && roomSession.isOpen() ) {
+			return true;
 		}
-		// TODO: Capacity?
-	}
 
-	/**
-	 * Dedicated thread writing to the client connection
-	 */
-	@Override
-	public void run() {
-		// Dedicated thread sending messages back to the client as fast
-		// as it can take them: maybe we batch these someday.
-		while( keepGoing ) {
+		Log.log(Level.FINE, this, "Creating connection to room {0}", endpointInfo);
+		final ClientEndpointConfig cec = ClientEndpointConfig.Builder.create()
+				.decoders(Arrays.asList(RoutedMessageDecoder.class))
+				.encoders(Arrays.asList(RoutedMessageEncoder.class))
+				.build();
+
+		for(String urlString : endpointInfo.getEndpoints() ) {
+			// try each in turn, return as soon as we successfully connect
+			URI uriServerEP = URI.create(urlString);
+
 			try {
-				String message = toRoom.take();
-				Log.log(Level.FINEST, roomSession, "Sending to room ({0}): {1}", roomSession.isOpen(), message);
+				// Create the new outbound session with a programmatic endpoint
+				Session s = connectionUtils.connectToServer(new Endpoint() {
 
-				if ( !ConnectionUtils.sendText(roomSession, message) ) {
-					// If the send failed, tuck the message back in the head of the queue.
-					toRoom.offerFirst(message);
-					keepGoing = false;
-				}
-			} catch (InterruptedException ex) {
-				if ( keepGoing ) {
-					Thread.interrupted();
-				}
+					@Override
+					public void onOpen(Session session, EndpointConfig config) {
+						// let the room mediator know the connection was opened
+						connectionOpened(session);
+
+						// Add message handler
+						session.addMessageHandler(new MessageHandler.Whole<RoutedMessage>() {
+							@Override
+							public void onMessage(RoutedMessage message) {
+								Log.log(Level.FINEST, session, "received from room {0}: {1}", getId(), message);
+								playerSession.sendToClient(message);
+							}
+						});
+					}
+
+					@Override
+					public void onClose(Session session, CloseReason closeReason) {
+						// let the room mediator know the connection was closed
+						connectionClosed(closeReason);
+					}
+
+					@Override
+					public void onError(Session session, Throwable thr) {
+						Log.log(Level.FINEST, this, "BADNESS " + session.getUserProperties(), thr);
+
+						connectionUtils.tryToClose(session,
+								new CloseReason(CloseReason.CloseCodes.UNEXPECTED_CONDITION, thr.toString()));
+					}
+				}, cec, uriServerEP);
+				Log.log(Level.FINEST, s, "CONNECTED to room {0}", endpointInfo.getRoomId());
+
+				return true;
+			} catch (DeploymentException e) {
+				Log.log(Level.FINER, this, "Deployment exception creating connection to room " + endpointInfo.getRoomId(), e);
+			} catch (IOException e) {
+				Log.log(Level.FINER, this, "I/O exception creating connection to room " + endpointInfo.getRoomId(), e);
 			}
 		}
-		Log.log(Level.FINER, this, "END room writer thread {0}", this);
-		roomThread = null;
+
+		return false;
 	}
 
-
 	/**
+	 * Subscribe to the room: both open the websocket AND start routing incoming
+	 * messages to the player session.
+	 *
 	 * @param playerSession
 	 */
 	@Override
 	public boolean subscribe(PlayerConnectionMediator playerSession, long lastMessage) {
 		this.playerSession = playerSession;
-
-		if ( connect() ) {
-			// set up delivery thread to send messages to the room
-			// as they arrive
-			roomThread = threadFactory.newThread(this);
-			roomThread.start();
-			return true;
-		}
-
-		return false;
+		return true;
 	}
 
 	/**
@@ -125,66 +149,62 @@ public class RemoteRoomMediator implements Runnable, RoomMediator {
 	public void unsubscribe(PlayerConnectionMediator playerSession) {
 		this.playerSession = null;
 
-		// Clean up the room session
-		// (player leaving the room or client connection destroyed)
-		if ( roomThread != null )
-			roomThread.interrupt();
-
-		toRoom.clear();
-		ConnectionUtils.tryToClose(roomSession);
 	}
 
 	/**
-	 *
-	 */
-	private boolean connect() {
-		if ( roomSession != null && roomSession.isOpen() ) {
-			return true;
-		}
-
-		WebSocketContainer c = ContainerProvider.getWebSocketContainer();
-		Log.log(Level.FINE, this, "Creating connection to room {0}", roomId);
-
-		for(String urlString : targetUrls ) {
-			// try each in turn, return as soon as we successfully connect
-			URI uriServerEP = URI.create(urlString);
-			try {
-				Session s = c.connectToServer(RoomClientEndpoint.class, uriServerEP);
-				Log.log(Level.FINEST, s, "CONNECTED to room {0}", roomId);
-
-				// YAY! Connected!
-				RoomMediator.setRoom(s, this);
-				roomSession = s;
-				return true;
-			} catch (DeploymentException e) {
-				Log.log(Level.FINER, this, "Deployment exception creating connection to room " + roomId, e);
-			} catch (IOException e) {
-				Log.log(Level.FINER, this, "I/O exception creating connection to room " + roomId, e);
-			}
-		}
-
-		return false;
-	}
-
-	/**
-	 * Called by onClose method from the room.
-	 * If the connection was closed
+	 * Stop the writer, and close the WebSocket connection to the room
+	 * @see net.wasdev.gameon.player.ws.RoomMediator#disconnect(net.wasdev.gameon.player.ws.PlayerConnectionMediator)
 	 */
 	@Override
-	public void connectionClosed(CloseReason reason) {
-		Log.log(Level.FINER, this, "connection closed {0}: {1}", roomId, reason);
+	public void disconnect() {
+		connectionUtils.tryToClose(roomSession);
+		toRoom.clear();
+	}
 
-		// This is driven by onClose from the room.
-		// If the connection was closed due to an error, we should try to reconnect,
-		// which will include a potential re-route to somewhere else if the room
-		// can't be re-connected.
-		if ( !reason.getCloseCode().equals(CloseCodes.NORMAL_CLOSURE)) {
-			playerSession.reconnectToRoom();
+	/**
+	 * Send a message on to the room
+	 * @see net.wasdev.gameon.player.ws.RoomMediator#send(net.wasdev.gameon.player.ws.RoutedMessage)
+	 */
+	@Override
+	public void send(RoutedMessage message) {
+		// make sure we're only dealing with messages for the room,
+		if ( message.isForRoom(this) ){
+			// TODO: Capacity?
+			toRoom.offer(message);
+		} else {
+			Log.log(Level.FINEST, this, "send -- Dropping message {0}", message);
+		}
+	}
+
+	/**
+	 * Called when the connection to the room has been established
+	 */
+	private void connectionOpened(Session roomSession) {
+		Log.log(Level.FINER, this, "ROOM CONNECTION OPEN {0}: {1}", endpointInfo.getRoomId());
+
+		this.roomSession = roomSession;
+
+		// set up delivery thread to send messages to the room as they arrive
+		drainToRoom = connectionUtils.drain("TO ROOM[" + endpointInfo.getRoomId() + "]", toRoom, roomSession);
+	}
+
+	/**
+	 * Called when the connection to the room has closed.
+	 * If the connection closed badly, try to open again.
+	 */
+	private void connectionClosed(CloseReason reason) {
+		Log.log(Level.FINER, this, "ROOM CONNECTION CLOSED {0}: {1}", endpointInfo.getRoomId(), reason);
+
+		if ( drainToRoom != null)
+			drainToRoom.stop();
+
+		if ( playerSession != null && !reason.getCloseCode().equals(CloseCodes.NORMAL_CLOSURE) ) {
+			connect();
 		}
 	}
 
 	@Override
 	public String toString() {
-		return this.getClass().getName() + "[roomId=" + roomId +"]";
+		return this.getClass().getName() + "[roomId=" + endpointInfo.getRoomId() +"]";
 	}
 }

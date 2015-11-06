@@ -15,15 +15,12 @@
  *******************************************************************************/
 package net.wasdev.gameon.player.ws;
 
-import java.io.StringReader;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import javax.json.JsonReader;
-import javax.websocket.CloseReason;
 
 /**
  *
@@ -43,15 +40,43 @@ public class FirstRoom implements RoomMediator {
 	}
 
 	@Override
-	public void route(String[] routing) {
-		Log.log(Level.FINEST, this, "TheFirstRoom received: {0}", String.join(",", routing));
+	public String getId() {
+		return Constants.FIRST_ROOM;
+	}
 
-		JsonReader jsonReader = Json.createReader(new StringReader(routing[2]));
-		JsonObject sourceMessage = jsonReader.readObject();
+	@Override
+	public String getName() {
+		return Constants.FIRST_ROOM;
+	}
+
+	@Override
+	public boolean connect() {
+		return true;
+	}
+
+	@Override
+	public boolean subscribe(PlayerConnectionMediator playerSession, long lastmessage) {
+		this.session = playerSession;
+		return true;
+	}
+
+	@Override
+	public void unsubscribe(PlayerConnectionMediator playerSession) {
+	}
+
+	@Override
+	public void disconnect() {
+	}
+
+	@Override
+	public void send(RoutedMessage message) {
+		Log.log(Level.FINEST, this, "TheFirstRoom received: {0}", message);
+
+		JsonObject sourceMessage = message.getParsedBody();
 
 		JsonObjectBuilder builder = Json.createObjectBuilder();
 		builder.add(Constants.BOOKMARK, counter.incrementAndGet());
-		switch(routing[0]) {
+		switch(message.getFlowTarget()) {
 			case Constants.ROOM_HELLO :
 				buildLocationResponse(builder);
 				break;
@@ -69,7 +94,7 @@ public class FirstRoom implements RoomMediator {
 		if ( response.containsKey(Constants.EXIT_ID) ) {
 			target = Constants.PLAYER_LOCATION;
 		}
-		session.sendToClient(new String[] {target, sourceMessage.getString(Constants.USER_ID), response.toString()});
+		session.sendToClient(RoutedMessage.createMessage(target, sourceMessage.getString(Constants.USER_ID), response));
 	}
 
 	protected void parseCommand(JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
@@ -129,25 +154,6 @@ public class FirstRoom implements RoomMediator {
 		content.add("D", "Trap-door in the floor (<b>/go D</b>)");
 
 		return content.build();
-	}
-
-	@Override
-	public boolean subscribe(PlayerConnectionMediator playerSession, long lastmessage) {
-		this.session = playerSession;
-		return true;
-	}
-
-	@Override
-	public void unsubscribe(PlayerConnectionMediator playerSession) {
-	}
-
-	@Override
-	public String getId() {
-		return Constants.FIRST_ROOM;
-	}
-
-	@Override
-	public void connectionClosed(CloseReason reason) {
 	}
 
 }

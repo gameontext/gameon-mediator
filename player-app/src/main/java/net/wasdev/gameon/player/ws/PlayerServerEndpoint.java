@@ -37,11 +37,19 @@ import javax.websocket.server.ServerEndpoint;
  * player's devices if connected to more than one.
  *
  */
-@ServerEndpoint(value = "/ws1/{userId}")
+@ServerEndpoint(value = "/ws1/{userId}",
+decoders = RoutedMessageDecoder.class,
+encoders = RoutedMessageEncoder.class)
 public class PlayerServerEndpoint {
 
+	/** CDI injection of player session manager */
 	@Inject
 	PlayerSessionManager playerSessionManager;
+
+	/** CDI injection of Connection Utilities (consistent send/receive/error handling) */
+	@Inject
+	ConnectionUtils connectionUtils;
+
 
 	/**
 	 * Called when a new connection has been established to this endpoint.
@@ -52,6 +60,10 @@ public class PlayerServerEndpoint {
 	@OnOpen
 	public void onOpen(@PathParam("userId") String userId, Session session, EndpointConfig ec) {
 		Log.log(Level.FINER, session, "client open - {0}", userId);
+
+		System.out.println(session);
+		System.out.println(session.getQueryString());
+		System.out.println(session.getUserProperties());
 	}
 
 	/**
@@ -62,7 +74,7 @@ public class PlayerServerEndpoint {
 	 */
 	@OnClose
 	public void onClose(@PathParam("userId") String userId, Session session, CloseReason reason) {
-		Log.log(Level.FINER, session, "client closed - {0}", userId);
+		Log.log(Level.FINER, session, "client closed - {0}: {1}", userId, reason);
 
 		PlayerConnectionMediator ps = playerSessionManager.getPlayerSession(session);
 		playerSessionManager.suspendSession(ps);
@@ -76,23 +88,25 @@ public class PlayerServerEndpoint {
 	 * @throws IOException
 	 */
 	@OnMessage
-	public void onMessage(@PathParam("userId") String userId, String message, Session session) throws IOException {
+	public void onMessage(@PathParam("userId") String userId, RoutedMessage message, Session session) throws IOException {
 		Log.log(Level.FINEST, session, "received from client {0}: {1}", userId, message);
 
-		String[] routing = ConnectionUtils.splitRouting(message);
-		switch(routing[0]) {
-			case "ready" : {
+		switch(message.getFlowTarget()) {
+			case Constants.CLIENT_READY : {
 				// create a new or resume an existing player session
-				String savedSession = routing.length > 1 ? routing[1] : "";
-				PlayerConnectionMediator ps = playerSessionManager.startSession(session, userId, savedSession);
+				PlayerConnectionMediator ps = playerSessionManager.startSession(session, userId, message);
 				playerSessionManager.setPlayerSession(session, ps);
 				break;
 			}
 			default : {
 				PlayerConnectionMediator ps = playerSessionManager.getPlayerSession(session);
-				//after a restart we may get messages for websockets we don't associate to sessions (yet)
-				if(ps!=null){
-					ps.sendToRoom(routing);
+
+				// after a restart we may get messages before we've re-established a
+				// session or connection to a room. These are dropped.
+				if( ps == null) {
+					Log.log(Level.FINEST, session, "no session, dropping message from client {0}: {1}", userId, message);
+				} else {
+					ps.sendToRoom(message);
 				}
 				break;
 			}
@@ -102,8 +116,8 @@ public class PlayerServerEndpoint {
 	@OnError
 	public void onError(@PathParam("userId") String userId, Session session, Throwable t) {
 		Log.log(Level.FINER, session, "oops for client "+userId+" connection", t);
-		t.printStackTrace();
-		ConnectionUtils.tryToClose(session,
+
+		connectionUtils.tryToClose(session,
 				new CloseReason(CloseReason.CloseCodes.UNEXPECTED_CONDITION, t.getClass().getName()));
 	}
 }

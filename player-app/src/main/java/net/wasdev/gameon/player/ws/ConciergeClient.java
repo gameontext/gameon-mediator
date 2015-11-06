@@ -21,15 +21,13 @@ import java.util.List;
 import java.util.logging.Level;
 
 import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
-import javax.enterprise.concurrent.ManagedThreadFactory;
 import javax.enterprise.context.ApplicationScoped;
+import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
+import javax.json.JsonReader;
 import javax.json.JsonString;
 import javax.json.JsonValue;
-import javax.json.Json;
-import javax.json.JsonReader;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.ws.rs.ProcessingException;
@@ -47,17 +45,9 @@ import javax.ws.rs.core.Response;
 @ApplicationScoped
 public class ConciergeClient {
 
-	/**
-	 * CDI injection of Java EE7 Managed thread factory: passed on to Rooms, which are created
-	 * here based on the room type.
-	 */
-	@Resource
-	protected ManagedThreadFactory threadFactory;
-
 	private String conciergeLocation;
-
-	Client client;
-	WebTarget root;
+	private Client client;
+	private WebTarget root;
 
 	@PostConstruct
 	public void initClient() {
@@ -71,55 +61,22 @@ public class ConciergeClient {
 		Log.log(Level.FINER, this, "Concierge initialized with {0}", conciergeLocation);
 	}
 
-	public RoomMediator checkin(PlayerConnectionMediator playerSession, RoomMediator currentRoom, String roomId) {
-		if ( currentRoom == null && (roomId == null || roomId.isEmpty() || Constants.FIRST_ROOM.equals(roomId)) ) {
-			// NEWBIE!!
-			return new FirstRoom(true);
-		}
-
-		if ( currentRoom != null ) {
-			if ( currentRoom.getId().equals(roomId)) {
-				// Room session resume
-				return currentRoom;
-			} else {
-				// The player moved rooms somewhere along the way
-				// we need to make sure we detach the old session
-				currentRoom.unsubscribe(playerSession);
-			}
-		}
-
-		RoomEndpointList endpointList = getRoomEndpoints(roomId);
-		if ( endpointList == null ) {
-			// Safe fallback (session reset)
-			return new FirstRoom();
-		} else {
-			// Create a new room
-			RemoteRoomMediator room = new RemoteRoomMediator(roomId, endpointList.getEndpoints(), threadFactory);
-			return room;
-		}
-	}
-
-
 	/**
-	 * @param currentRoom
-	 * @return
+	 * Query the concierge: given the current room and the selected exit, where do we go?
+	 * @param currentRoom Current room mediator
+	 * @return new Room Id
 	 */
-	public RoomMediator changeRooms(RoomMediator currentRoom, String exit) {
+	public RoomEndpointList findNextRoom(RoomMediator currentRoom, String exit) {
 		RoomEndpointList roomEndpoints = null;
 
 		if ( exit == null ) {
-			// SOS!! randomly grab a new room (start over with starting rooms)
+			// SOS or First Room: randomly grab a new room (start over with starting rooms)
 			roomEndpoints = getRoomEndpoints();
 		} else {
 			roomEndpoints = getRoomEndpoints(currentRoom.getId(), exit);
 		}
 
-		if ( roomEndpoints == null ) {
-			// safe fallback
-			return new FirstRoom();
-		} else {
-			return new RemoteRoomMediator(roomEndpoints.getRoomId(), roomEndpoints.getEndpoints(), threadFactory);
-		}
+		return roomEndpoints;
 	}
 
 	public RoomEndpointList getRoomEndpoints() {
@@ -137,39 +94,54 @@ public class ConciergeClient {
 		return getRoomList(target);
 	}
 
+	/**
+	 * Get the list of viable endpoints for the specified room
+	 * @param target
+	 * @return
+	 */
 	protected RoomEndpointList getRoomList(WebTarget target) {
 		Log.log(Level.FINER, this, "making request to {0} for room", target.getUri().toString());
 		try {
-            //pojo magic binding wasn't working..for some requests only it would complain it couldn't find the reader for the object
+			//pojo magic binding wasn't working..for some requests only it would complain it couldn't find the reader for the object
 			//so we'll do it the hard way until we figure out why..
-			
-			//TODO: debug why we can't use pojo bindings for room change requests.. 
-			
-            String resultStr = target.request(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).header("Content-type", "application/json").get(String.class);
-            JsonReader reader = Json.createReader(new StringReader(resultStr));
-            JsonObject result = reader.readObject();
-            JsonObject rel = (JsonObject)result.get("rel");
-            if(rel!=null){
-	            RoomEndpointList res = new RoomEndpointList();
-	            JsonString id = rel.getJsonString("roomId");
-	            res.setRoomId(id.getString());
-	            JsonArray exits = rel.getJsonArray("endpoints");
-	            ArrayList<String> strexits = new ArrayList<String>();
-	            if(exits!=null){
-	                    for(JsonValue e : exits){                    	
-	                    		JsonString s = (JsonString)e;
-	                            strexits.add(s.getString());
-	                    }
-	            }
-	            res.setEndpoints(strexits);
-	            return res;
-            }else{
-            	Log.log(Level.FINER, this, "Room list was lacking any rel element uri: {0} result: {1}",
-            			target.getUri().toString(),
-    					resultStr);
-            }
 
-            return null;
+			//TODO: debug why we can't use pojo bindings for room change requests..
+
+			// Make GET request using the specified target (see methods above)
+			String resultStr = target.request(MediaType.APPLICATION_JSON)
+					.accept(MediaType.APPLICATION_JSON)
+					.header("Content-type", "application/json")
+					.get(String.class);
+
+			JsonReader reader = Json.createReader(new StringReader(resultStr));
+			JsonObject result = reader.readObject();
+
+			JsonObject rel = (JsonObject)result.get("rel"); // room endpoint list
+			if( rel != null ) {
+				RoomEndpointList res = new RoomEndpointList();
+
+				JsonString id = rel.getJsonString("roomId");
+				res.setRoomId(id.getString());
+
+				JsonArray exits = rel.getJsonArray("endpoints");
+				ArrayList<String> strexits = new ArrayList<String>();
+				if(exits!=null){
+					for(JsonValue e : exits){
+						JsonString s = (JsonString)e;
+						strexits.add(s.getString());
+					}
+				}
+				res.setEndpoints(strexits);
+
+				return res;
+			} else {
+				Log.log(Level.FINER, this, "Room list was lacking any rel element uri: {0} result: {1}",
+						target.getUri().toString(),
+						resultStr);
+			}
+
+			// Sadly, no endpoints found!
+			return null;
 		} catch (ResponseProcessingException rpe) {
 			Response response = rpe.getResponse();
 			Log.log(Level.FINER, this, "Exception fetching room list uri: {0} resp code: {1} data: {2}",
@@ -180,12 +152,14 @@ public class ConciergeClient {
 		} catch ( ProcessingException|WebApplicationException ex ) {
 			Log.log(Level.FINEST, this, "Exception fetching room list ("+target.getUri().toString()+")", ex);
 		}
+
+		// Sadly, badness happened while trying to get the endpoints
 		return null;
 	}
 
-	static class RoomEndpointListWrapper {
+	public static class RoomEndpointListWrapper {
 		RoomEndpointList rel;
-		
+
 		public RoomEndpointListWrapper(){}
 
 		public RoomEndpointList getRel() {
@@ -197,12 +171,12 @@ public class ConciergeClient {
 		}
 	}
 
-	static class RoomEndpointList {
+	public static class RoomEndpointList {
 		String roomId;
 		List<String> endpoints;
 
 		public RoomEndpointList(){}
-		
+
 		/**
 		 * @return the roomId
 		 */
@@ -229,6 +203,13 @@ public class ConciergeClient {
 		 */
 		public void setEndpoints(List<String> endpoints) {
 			this.endpoints = endpoints;
+		}
+
+		/**
+		 * @return
+		 */
+		public String getRoomName() {
+			return roomId;
 		}
 	}
 }
