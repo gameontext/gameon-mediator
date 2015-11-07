@@ -189,8 +189,13 @@ public class ConnectionUtils {
 					RoutedMessage message = pendingMessages.take();
 					Log.log(Level.FINEST, this, "Sending to {0} ({1}): {2}", id, targetSession.isOpen(), message);
 
-					if ( !connectionUtils.sendMessage(targetSession, message) ) {
-						// If the send failed, tuck the message back in the head of the queue.
+					try {
+						if ( !connectionUtils.sendMessage(targetSession, message) ) {
+							// If the send failed, tuck the message back in the head of the queue.
+							pendingMessages.offerFirst(message);
+						}
+					} catch (IllegalStateException e ) {
+						// write not allowed because another in progress. Try again.
 						pendingMessages.offerFirst(message);
 					}
 				} catch (InterruptedException ex) {
