@@ -103,6 +103,9 @@ public class PlayerSessionManager implements Runnable {
 	 * @return cached PlayerSession
 	 */
 	public PlayerConnectionMediator getPlayerSession(Session session) {
+		if ( session == null || session.getUserProperties() == null )
+			return null;
+
 		return (PlayerConnectionMediator) session.getUserProperties().get(PlayerConnectionMediator.class.getName());
 	}
 

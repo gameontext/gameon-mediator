@@ -80,6 +80,12 @@ public class PlayerConnectionMediator {
 	}
 
 	/**
+	 * @return User ID of this session
+	 */
+	public String getUserId() {
+		return userId;
+	}
+	/**
 	 * Re-establish connection between the mediator and the player.
 	 * Check the facts, make sure we are safe to resume, otherwise warp the player
 	 * back to first room with no fuss.
@@ -278,10 +284,7 @@ public class PlayerConnectionMediator {
 	 * @return current room mediator if it matches, or a new one if not.
 	 */
 	protected RoomMediator findRoom(String roomId) {
-		if ( currentRoom == null && (roomId == null || roomId.isEmpty() || Constants.FIRST_ROOM.equals(roomId)) ) {
-			// NEWBIE!!
-			return new FirstRoom(true);
-		}
+		Log.log(Level.FINEST, this, "findRoom  {0} {1}", roomId, currentRoom);
 
 		if ( currentRoom != null ) {
 			if ( currentRoom.getId().equals(roomId)) {
@@ -293,6 +296,11 @@ public class PlayerConnectionMediator {
 				currentRoom.unsubscribe(this);
 			}
 		}
+
+		if ( roomId == null || roomId.isEmpty() || Constants.FIRST_ROOM.equals(roomId) ) {
+			return new FirstRoom((roomId == null || roomId.isEmpty()));
+		}
+
 
 		return createMediator(concierge.getRoomEndpoints(roomId));
 	}

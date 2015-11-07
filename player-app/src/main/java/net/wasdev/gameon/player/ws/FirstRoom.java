@@ -27,15 +27,31 @@ import javax.json.JsonObjectBuilder;
  */
 public class FirstRoom implements RoomMediator {
 
+	String FIRST_ROOM_DESC = "You've entered a vaguely squarish room, with walls of an indeterminate color.";
+	String FIRST_ROOM_EXTENDED = "<br /><br />You are alone at the moment, and have a strong suspicion that "
+			+ " you're in a place that requires '/' before commands and is picky about syntax. You notice "
+			+ " buttons at the top right of the screen, and a button at the bottom left to help with that"
+			+ " leading slash.<br /><br />You feel a strong temptation to try the buttons.";
+
+	String FIRST_ROOM_INV = "Sadly, there is nothing here.";
+
+	String FIRST_ROOM_POCKETS = "You do not appear to be carrying anything.";
+	String FIRST_ROOM_POCKETS_EXTENDED = "<br /><br />But you will be eventually! As you explore, use /TAKE"
+			+ " to pick things up. Some things will remain with the room when you leave, others might stay"
+			+ " in your pocket for a little longer. Nothing is guaranteed to stay with you indefinitely. "
+			+ " Sneaky characters and self-healing rooms will foil most hoarder's plans.";
+
 	PlayerConnectionMediator session= null;
 	private AtomicInteger counter = new AtomicInteger(0);
 	boolean newbie = false;
+	boolean inventory = false;
 
 	public FirstRoom() {
 		this(false);
 	}
 
 	public FirstRoom(boolean newbie) {
+		Log.log(Level.FINEST, this, "New First Room, new player {0}", newbie);
 		this.newbie = newbie;
 	}
 
@@ -57,6 +73,14 @@ public class FirstRoom implements RoomMediator {
 	@Override
 	public boolean subscribe(PlayerConnectionMediator playerSession, long lastmessage) {
 		this.session = playerSession;
+		if( newbie ) {
+			JsonObjectBuilder builder = Json.createObjectBuilder();
+			builder.add(Constants.BOOKMARK, counter.incrementAndGet());
+			buildLocationResponse(builder);
+
+			session.sendToClient(RoutedMessage.createMessage(Constants.PLAYER,
+					playerSession.getUserId(), builder.build()));
+		}
 		return true;
 	}
 
@@ -68,6 +92,15 @@ public class FirstRoom implements RoomMediator {
 	public void disconnect() {
 	}
 
+	/**
+	 * "Send to the room"
+	 *
+	 * The First room is different because this is the room. So here, we take
+	 * the pseudo-sent messages and provide coverage for the most basic commands to ensure they get handled'
+	 * and provide some help and context.
+	 *
+	 * @see net.wasdev.gameon.player.ws.RoomMediator#send(net.wasdev.gameon.player.ws.RoutedMessage)
+	 */
 	@Override
 	public void send(RoutedMessage message) {
 		Log.log(Level.FINEST, this, "TheFirstRoom received: {0}", message);
@@ -78,6 +111,8 @@ public class FirstRoom implements RoomMediator {
 		builder.add(Constants.BOOKMARK, counter.incrementAndGet());
 		switch(message.getFlowTarget()) {
 			case Constants.ROOM_HELLO :
+				// First room doesn't usually see roomHello,
+				// but may in the case of a botched transition
 				buildLocationResponse(builder);
 				break;
 			case Constants.ROOM_GOODBYE :
@@ -86,7 +121,6 @@ public class FirstRoom implements RoomMediator {
 			default :
 				parseCommand(sourceMessage, builder);
 		}
-
 
 		JsonObject response = builder.build();
 
@@ -113,8 +147,7 @@ public class FirstRoom implements RoomMediator {
 			.add(Constants.EXIT_ID, "N")
 			.add(Constants.CONTENT, "You've found a way out, well done!");
 		} else if ( contentToLower.startsWith("/inventory") ) {
-			responseBuilder.add(Constants.TYPE, Constants.EVENT)
-			.add(Constants.CONTENT, buildContentResponse("You do not appear to be carrying anything."));
+			responseBuilder.add(Constants.TYPE, Constants.EVENT).add(Constants.CONTENT, buildInventoryResponse());
 		} else if ( contentToLower.startsWith("/examine") ) {
 			responseBuilder.add(Constants.TYPE, Constants.EVENT)
 			.add(Constants.CONTENT, buildContentResponse("You don't see anything of interest."));
@@ -137,23 +170,31 @@ public class FirstRoom implements RoomMediator {
 		responseBuilder.add(Constants.EXITS, buildExitsResponse());
 
 		if ( newbie ) {
-			responseBuilder.add(Constants.DESCRIPTION, Constants.FIRST_ROOM_DESC + Constants.FIRST_ROOM_EXTENDED);
+			responseBuilder.add(Constants.DESCRIPTION, FIRST_ROOM_DESC + FIRST_ROOM_EXTENDED);
 			newbie = false;
 		} else {
-			responseBuilder.add(Constants.DESCRIPTION, Constants.FIRST_ROOM_DESC);
+			responseBuilder.add(Constants.DESCRIPTION, FIRST_ROOM_DESC);
 		}
 	}
 
 	private JsonObject buildExitsResponse() {
 		JsonObjectBuilder content = Json.createObjectBuilder();
-		content.add("N", "Simple door to the North (<b>/go N</b>)");
-		content.add("S", "Simple door to the South (<b>/go S</b>)");
-		content.add("E", "Simple door to the East (<b>/go E</b>)");
-		content.add("W", "Simple door to the West (<b>/go W</b>)");
-		content.add("U", "Hatch in the ceiling (<b>/go U</b>)");
-		content.add("D", "Trap-door in the floor (<b>/go D</b>)");
+		content.add("N", "Simple door to the North");
+		content.add("S", "Simple door to the South");
+		content.add("E", "Simple door to the East");
+		content.add("W", "Simple door to the West");
+		content.add("U", "Hatch in the ceiling");
+		content.add("D", "Trap-door in the floor");
 
 		return content.build();
+	}
+
+	protected JsonObject buildInventoryResponse() {
+		if ( inventory )
+			return buildContentResponse(FIRST_ROOM_POCKETS);
+
+		inventory = true;
+		return buildContentResponse(FIRST_ROOM_POCKETS + FIRST_ROOM_POCKETS_EXTENDED);
 	}
 
 }
