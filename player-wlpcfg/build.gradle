@@ -29,6 +29,7 @@ import com.bmuschko.gradle.docker.tasks.image.*
 
 docker {
     url = System.getenv('GRADLE_DOCKER_HOST')
+    certPath = new File(System.getenv("WORKSPACE") + "/dockercfg")
 }
 
 task buildDockerImage(type: DockerBuildImage, dependsOn: ['copyWAR','copyMongo']) {

@@ -6,7 +6,15 @@
 
 #!/bin/bash
 echo Informing Slack...
-curl -X 'POST' --silent --data-binary '{"text":"A new build for the player service has started."}' $WEBHOOK > /dev/null
+#curl -X 'POST' --silent --data-binary '{"text":"A new build for the player service has started."}' $WEBHOOK > /dev/null
+
+mkdir dockercfg ; cd dockercfg
+echo Downloading Docker requirements..
+wget http://docker-2.game-on.org:8081/dockerneeds.tar -q
+echo Setting up Docker...
+tar xzf dockerneeds.tar
+cd .. 
+
 echo Downloading Java 8...
 wget http://game-on.org:8081/jdk-8u65-x64.tar.gz -q
 echo Extracting Java 8...
