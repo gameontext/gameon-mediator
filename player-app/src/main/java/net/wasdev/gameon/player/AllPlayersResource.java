@@ -77,6 +77,7 @@ public class AllPlayersResource {
 
 		System.out.println("player "+player.toString());
 		
+		System.out.println("ps == null? " + (null == ps))
 		DBObject playerToStore = player.toDBObject(ps);
 		players.insert(playerToStore);
 
