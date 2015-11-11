@@ -1,8 +1,10 @@
 # Game On! 
 
+[![Codacy Badge](https://api.codacy.com/project/badge/grade/1fc932713e474ba0bb9593a9cdcb8e35)](https://www.codacy.com/app/gameontext/gameon-player)
+
 Game On! is a both a sample application, and throwback text adventure.
 
-VERY MUCH a work in progress
+VERY MUCH a work in progress 
 
 This project is generated with [yo angular generator](https://github.com/yeoman/generator-angular)
 version 0.12.1.
