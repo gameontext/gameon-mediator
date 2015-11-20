@@ -10,13 +10,13 @@ curl -X 'POST' --silent --data-binary '{"text":"A new build for the player servi
 
 mkdir dockercfg ; cd dockercfg
 echo Downloading Docker requirements..
-wget --user=admin --password=$ADMIN_PASSWORD https://game-on.org/repository/dockerneeds.tar -q
+wget --user=admin --password=$ADMIN_PASSWORD https://$BUILD_DOCKER_HOST:8443/dockerneeds.tar -q
 echo Setting up Docker...
 tar xzf dockerneeds.tar
 cd .. 
 
 echo Downloading Java 8...
-wget --user=admin --password=$ADMIN_PASSWORD https://game-on.org/repository/jdk-8u65-x64.tar.gz -q
+wget --user=admin --password=$ADMIN_PASSWORD https://$BUILD_DOCKER_HOST:8443/jdk-8u65-x64.tar.gz -q
 echo Extracting Java 8...
 tar xzf jdk-8u65-x64.tar.gz
 echo And removing the tarball...
