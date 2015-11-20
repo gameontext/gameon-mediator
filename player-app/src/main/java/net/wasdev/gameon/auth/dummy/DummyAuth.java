@@ -33,7 +33,7 @@ public class DummyAuth extends HttpServlet {
 		}
 
         //redirect the user to facebook to be authenticated.
-        response.sendRedirect(webappBase + "/#/login/callback/DUMMY::"+s);
+        response.sendRedirect(webappBase + "/login/callback/DUMMY::"+s);
 	}
 
 

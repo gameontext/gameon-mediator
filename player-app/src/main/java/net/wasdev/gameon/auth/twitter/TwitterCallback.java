@@ -65,7 +65,7 @@ public class TwitterCallback extends HttpServlet {
 			throw new ServletException(e);
 		}
 
-		response.sendRedirect(webappBase + "/#/login/callback/"+auth);
+		response.sendRedirect(webappBase + "/login/callback/"+auth);
 	}
 
 

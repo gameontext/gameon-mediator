@@ -78,7 +78,7 @@ public class FacebookCallback extends HttpServlet {
 		//debug.
 		System.out.println(auth);
 
-		response.sendRedirect(webappBase + "/#/login/callback/"+auth);
+		response.sendRedirect(webappBase + "/login/callback/"+auth);
 	}
 
 
