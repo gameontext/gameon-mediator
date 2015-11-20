@@ -26,6 +26,8 @@ echo Building projects using gradle...
 ./gradlew build 
 echo Building and Starting Concierge Docker Image...
 cd player-wlpcfg
+sed -i s/PLACEHOLDER_ADMIN_PASSWORD/$ADMIN_PASSWORD/g ./Dockerfile
+
 ../gradlew buildDockerImage 
 ../gradlew stopCurrentContainer 
 ../gradlew removeCurrentContainer

@@ -3,7 +3,7 @@ FROM websphere-liberty:latest
 MAINTAINER Ben Smith
 
 ADD https://download.elastic.co/logstash-forwarder/binaries/logstash-forwarder_linux_amd64 /opt/forwarder
-ADD https://admin:admin@game-on.org:8443/logstashneeds.tar /opt/logstashneeds.tar
+ADD https://admin:PLACEHOLDER_ADMIN_PASSWORD@game-on.org:8443/logstashneeds.tar /opt/logstashneeds.tar
 
 ADD ./servers/gameon-player /opt/ibm/wlp/usr/servers/defaultServer/
 RUN rm /opt/ibm/wlp/usr/servers/defaultServer/server.env ; \
