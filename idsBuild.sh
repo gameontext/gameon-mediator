@@ -10,7 +10,7 @@ curl -X 'POST' --silent --data-binary '{"text":"A new build for the player servi
 
 mkdir dockercfg ; cd dockercfg
 echo Downloading Docker requirements..
-wget http://game-on.org:8081/dockerneeds.tar -q
+wget --user=admin --password=$ADMIN_PASSWORD https://game-on.org/repository/dockerneeds.tar -q
 echo Setting up Docker...
 tar xzf dockerneeds.tar
 cd .. 
