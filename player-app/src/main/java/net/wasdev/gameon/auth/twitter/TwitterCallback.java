@@ -12,6 +12,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.annotation.Resource;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.servlet.ServletException;
@@ -39,6 +40,18 @@ import twitter4j.conf.ConfigurationBuilder;
 public class TwitterCallback extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	private String webappBase;
+	
+	@Resource(lookup="twitterOAuthConsumerKey")
+	String key;
+	@Resource(lookup="twitterOAuthConsumerSecret")
+	String secret;
+	
+	@Resource(lookup="jwtKeyStore")
+	String keyStore;
+	@Resource(lookup="jwtKeyStorePassword")
+	String keyStorePW;
+	@Resource(lookup="jwtKeyStoreAlias")
+	String keyStoreAlias;
 
 	public TwitterCallback() {
 		super();
@@ -63,8 +76,8 @@ public class TwitterCallback extends HttpServlet {
 		Map<String,String> results = new HashMap<String,String>();   	
     	    	    	       
 		ConfigurationBuilder c = new ConfigurationBuilder();
-		c.setOAuthConsumerKey(TwitterCredentials.getConsumerKey())
-		 .setOAuthConsumerSecret(TwitterCredentials.getConsumerSecret())
+		c.setOAuthConsumerKey(key)
+		 .setOAuthConsumerSecret(secret)
 		 .setOAuthAccessToken(token)
 		 .setOAuthAccessTokenSecret(tokensecret);
 		 
@@ -96,15 +109,8 @@ public class TwitterCallback extends HttpServlet {
 		
 	private static Key signingKey = null;
 	
-	private synchronized static void getKeyStoreInfo() throws IOException{
-		String keyStore = null;
-		String keyStorePW = null;
-		String keyStoreAlias = null;
-		try{
-			keyStore = new InitialContext().lookup("jwtKeyStore").toString();
-			keyStorePW = new InitialContext().lookup("jwtKeyStorePassword").toString();
-			keyStoreAlias = new InitialContext().lookup("jwtKeyStoreAlias").toString();
-			
+	private synchronized void getKeyStoreInfo() throws IOException{
+		try{			
 			//load up the keystore..
 			FileInputStream is = new FileInputStream(keyStore);
 			KeyStore signingKeystore = KeyStore.getInstance(KeyStore.getDefaultType());
@@ -113,8 +119,6 @@ public class TwitterCallback extends HttpServlet {
 			//grab the key we'll use to sign
 			signingKey = signingKeystore.getKey(keyStoreAlias,keyStorePW.toCharArray());
 			
-		}catch(NamingException e){
-			throw new IOException(e);
 		}catch(KeyStoreException e){
 			throw new IOException(e);
 		}catch(NoSuchAlgorithmException e){

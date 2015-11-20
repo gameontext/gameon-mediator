@@ -21,6 +21,7 @@ import javax.annotation.Resource;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -46,6 +47,9 @@ import com.mongodb.DBObject;
  */
 @Path("/{id}")
 public class PlayerResource {
+	@Context
+	HttpServletRequest httpRequest;
+	
 	@Context Providers ps;
 
 	@Resource(name = "mongo/playerDB")
@@ -54,6 +58,15 @@ public class PlayerResource {
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	public Player getPlayerInformation(@PathParam("id") String id) throws IOException {
+		
+		//set by the auth filter.
+		String authId = (String) httpRequest.getAttribute("player.id");
+		
+		//only allow get for matching id.
+		if(authId==null || !authId.equals(id)){
+			throw new RequestNotAllowedForThisIDException("Bad authentication id");
+		}
+		
 		DBObject player = findPlayer(null, id);
 		Player p = Player.fromDBObject(ps, player);
 		return p;
@@ -71,6 +84,15 @@ public class PlayerResource {
 
 	@DELETE
 	public Response removePlayer(@PathParam("id") String id) {
+		
+		//set by the auth filter.
+		String authId = (String) httpRequest.getAttribute("player.id");
+		
+		//only allow delete for matching id.
+		if(authId==null || !authId.equals(id)){
+			return Response.status(403).entity("Bad authentication id").build();
+		}
+		
 		DBCollection players = playerDB.getCollection("players");
 		DBObject player = findPlayer(players, id);
 

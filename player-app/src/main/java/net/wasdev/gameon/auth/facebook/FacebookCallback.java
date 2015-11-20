@@ -12,6 +12,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.annotation.Resource;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.servlet.ServletException;
@@ -39,6 +40,18 @@ public class FacebookCallback extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
 	private String webappBase;
+	
+	@Resource(lookup="facebookAppID")
+	String appId;	
+	@Resource(lookup="facebookSecret")
+	String secretKey;
+	
+	@Resource(lookup="jwtKeyStore")
+	String keyStore;
+	@Resource(lookup="jwtKeyStorePassword")
+	String keyStorePW;
+	@Resource(lookup="jwtKeyStoreAlias")
+	String keyStoreAlias;
 
 	public FacebookCallback() {
 		super();
@@ -57,9 +70,6 @@ public class FacebookCallback extends HttpServlet {
 	 * @throws IOException if anything goes wrong.
 	 */
 	private FacebookClient.AccessToken getFacebookUserToken(String code, String redirectUrl) throws IOException {
-		String appId = FacebookCredentials.getAppID();
-		String secretKey = FacebookCredentials.getAppSecret();
-
 		//restfb doesn't seem to have an obvious method to convert a response code into an access token
 		//but according to the spec, this is the easy way to do it.. we'll use WebRequestor from restfb to
 		//handle the request/response.
@@ -107,15 +117,8 @@ public class FacebookCallback extends HttpServlet {
 	
 	private static Key signingKey = null;
 	
-	private synchronized static void getKeyStoreInfo() throws IOException{
-		String keyStore = null;
-		String keyStorePW = null;
-		String keyStoreAlias = null;
-		try{
-			keyStore = new InitialContext().lookup("jwtKeyStore").toString();
-			keyStorePW = new InitialContext().lookup("jwtKeyStorePassword").toString();
-			keyStoreAlias = new InitialContext().lookup("jwtKeyStoreAlias").toString();
-			
+	private synchronized void getKeyStoreInfo() throws IOException{
+		try{		
 			//load up the keystore..
 			FileInputStream is = new FileInputStream(keyStore);
 			KeyStore signingKeystore = KeyStore.getInstance(KeyStore.getDefaultType());
@@ -124,8 +127,6 @@ public class FacebookCallback extends HttpServlet {
 			//grab the key we'll use to sign
 			signingKey = signingKeystore.getKey(keyStoreAlias,keyStorePW.toCharArray());
 			
-		}catch(NamingException e){
-			throw new IOException(e);
 		}catch(KeyStoreException e){
 			throw new IOException(e);
 		}catch(NoSuchAlgorithmException e){

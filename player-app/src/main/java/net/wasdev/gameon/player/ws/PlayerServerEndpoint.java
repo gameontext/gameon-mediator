@@ -41,7 +41,7 @@ import javax.websocket.server.ServerEndpoint;
 decoders = RoutedMessageDecoder.class,
 encoders = RoutedMessageEncoder.class)
 public class PlayerServerEndpoint {
-
+	
 	/** CDI injection of player session manager */
 	@Inject
 	PlayerSessionManager playerSessionManager;

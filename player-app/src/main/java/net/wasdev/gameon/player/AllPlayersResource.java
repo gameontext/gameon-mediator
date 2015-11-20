@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -42,6 +43,9 @@ import com.mongodb.DBObject;
  */
 @Path("/")
 public class AllPlayersResource {
+	@Context
+	HttpServletRequest httpRequest;
+	
 	@Context Providers ps;
 
 	@Resource(name = "mongo/playerDB")
@@ -67,6 +71,15 @@ public class AllPlayersResource {
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	public Response createPlayer(Player player) throws IOException{
+		
+		//set by the auth filter.
+		String authId = (String) httpRequest.getAttribute("player.id");
+		
+		//only allow create for matching id.
+		if(authId==null || !authId.equals(player.getId())){
+			return Response.status(403).entity("Bad authentication id").build();
+		}
+		
 		DBCollection players = playerDB.getCollection("players");
 		DBObject query = new BasicDBObject("id",player.getId());
 		DBCursor cursor = players.find(query);
