@@ -120,6 +120,7 @@ public class FirstRoom implements RoomMediator {
 				return;
 			default :
 				parseCommand(sourceMessage, builder);
+				break;
 		}
 
 		JsonObject response = builder.build();

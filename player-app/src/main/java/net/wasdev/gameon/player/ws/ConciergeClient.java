@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.logging.Level;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
 import javax.enterprise.context.ApplicationScoped;
 import javax.json.Json;
 import javax.json.JsonArray;
@@ -28,8 +29,6 @@ import javax.json.JsonObject;
 import javax.json.JsonReader;
 import javax.json.JsonString;
 import javax.json.JsonValue;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.client.Client;
@@ -45,16 +44,14 @@ import javax.ws.rs.core.Response;
 @ApplicationScoped
 public class ConciergeClient {
 
+	@Resource(lookup="conciergeUrl")
 	private String conciergeLocation;
+
 	private Client client;
 	private WebTarget root;
 
 	@PostConstruct
 	public void initClient() {
-		try {
-			this.conciergeLocation = (String) new InitialContext().lookup("conciergeUrl");
-		} catch (NamingException e) {
-		}
 		this.client = ClientBuilder.newClient();
 		this.root = this.client.target(conciergeLocation);
 
@@ -103,7 +100,7 @@ public class ConciergeClient {
 		Log.log(Level.FINER, this, "making request to {0} for room", target.getUri().toString());
 		try {
 			//pojo magic binding wasn't working..for some requests only it would complain it couldn't find the reader for the object
-			//so we'll do it the hard way until we figure out why..
+			//so we'll do it the long way until we figure out why..
 
 			//TODO: debug why we can't use pojo bindings for room change requests..
 

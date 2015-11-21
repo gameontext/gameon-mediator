@@ -41,7 +41,7 @@
   <jndiEntry jndiName="webappBase" value="${env.WEBAPP_BASE}"/>
   <jndiEntry jndiName="playerUrl" value="${env.PLAYER_URL}"/>
   
-  <logging traceSpecification="*=info:com.ibm.ws.wsoc.*=all" />
+  <logging traceSpecification="*=info:net.wasdev.gameon.*=all" />
 
   <!-- Twitter Application Info... -->
   <jndiEntry jndiName="twitterOAuthConsumerKey" value="${env.TWITTER_CONSUMER_KEY}"/>

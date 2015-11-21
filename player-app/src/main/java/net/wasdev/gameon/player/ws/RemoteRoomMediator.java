@@ -40,7 +40,7 @@ public class RemoteRoomMediator implements RoomMediator {
 
 	private Session roomSession;
 
-	private PlayerConnectionMediator playerSession;
+	private volatile PlayerConnectionMediator playerSession;
 	private Drain drainToRoom = null;
 
 	/** Queue of messages destined for the client device */
@@ -98,7 +98,8 @@ public class RemoteRoomMediator implements RoomMediator {
 							@Override
 							public void onMessage(RoutedMessage message) {
 								Log.log(Level.FINEST, session, "received from room {0}: {1}", getId(), message);
-								playerSession.sendToClient(message);
+								if ( playerSession != null )
+									playerSession.sendToClient(message);
 							}
 						});
 					}
@@ -148,7 +149,6 @@ public class RemoteRoomMediator implements RoomMediator {
 	@Override
 	public void unsubscribe(PlayerConnectionMediator playerSession) {
 		this.playerSession = null;
-
 	}
 
 	/**
