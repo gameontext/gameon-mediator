@@ -202,7 +202,7 @@ public class RoutedMessage {
 	 */
 	public boolean isForUser(String userId) {
 		if ( flowTarget.startsWith(Constants.PLAYER) )
-			return destination.equals("*") || destination.equals(userId);
+			return "*".equals(destination) || destination.equals(userId);
 		else
 			return false;
 	}

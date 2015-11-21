@@ -18,10 +18,9 @@ package net.wasdev.gameon.player.ws;
 import java.util.logging.Level;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
 import javax.json.Json;
 import javax.json.JsonObject;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.client.Client;
@@ -39,14 +38,12 @@ public class PlayerClient {
 
 	Client client;
 	WebTarget root;
+
+	@Resource(lookup="playerUrl")
 	String playerLocation;
 
 	@PostConstruct
 	public void initClient() {
-		try {
-			this.playerLocation = (String) new InitialContext().lookup("playerUrl");
-		} catch (NamingException e) {
-		}
 		this.client = ClientBuilder.newClient();
 		this.root = this.client.target(playerLocation);
 

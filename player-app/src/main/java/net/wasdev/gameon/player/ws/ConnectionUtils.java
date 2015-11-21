@@ -78,10 +78,14 @@ public class ConnectionUtils {
 			} catch (IOException ioe) {
 				// An IOException, on the other hand, suggests the connection is in a bad state
 				Log.log(Level.FINEST, session, "Unexpected condition writing message", ioe);
-				tryToClose(session, new CloseReason(CloseCodes.UNEXPECTED_CONDITION, ioe.toString()));
+				tryToClose(session, new CloseReason(CloseCodes.UNEXPECTED_CONDITION, trimReason(ioe.toString())));
 			}
 		}
 		return false;
+	}
+
+	private static String trimReason(String message) {
+		return message.length() > 123 ? message.substring(0, 123) : message;
 	}
 
 	/**
