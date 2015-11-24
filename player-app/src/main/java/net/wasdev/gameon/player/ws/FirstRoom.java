@@ -151,9 +151,15 @@ public class FirstRoom implements RoomMediator {
 		} else if ( contentToLower.startsWith("/examine") ) {
 			responseBuilder.add(Constants.TYPE, Constants.EVENT)
 			.add(Constants.CONTENT, buildContentResponse("You don't see anything of interest."));
+		} else if ( contentToLower.startsWith("/help") ) {
+			responseBuilder.add(Constants.TYPE, Constants.EVENT)
+			.add(Constants.CONTENT, buildContentResponse("Commands do and should start with '/' This room doesn't understand many commands, but others will."));
+		} else if ( contentToLower.startsWith("/") ) {
+			responseBuilder.add(Constants.TYPE, Constants.EVENT)
+			.add(Constants.CONTENT, buildContentResponse("This room is a basic model. It doesn't understand that command."));
 		} else {
 			responseBuilder.add(Constants.USERNAME, sourceMessage.getString(Constants.USERNAME))
-			.add(Constants.CONTENT, "echo " + content)
+			.add(Constants.CONTENT, content)
 			.add(Constants.TYPE, Constants.CHAT);
 		}
 	}
@@ -183,8 +189,8 @@ public class FirstRoom implements RoomMediator {
 		content.add("S", "Simple door to the South");
 		content.add("E", "Simple door to the East");
 		content.add("W", "Simple door to the West");
-		content.add("U", "Hatch in the ceiling");
-		content.add("D", "Trap-door in the floor");
+		content.add("U", "Hatch in the ceiling (Up)");
+		content.add("D", "Trap-door in the floor (Down)");
 
 		return content.build();
 	}
