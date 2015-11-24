@@ -1,29 +1,19 @@
 package net.wasdev.gameon.auth.twitter;
 
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.security.Key;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import net.wasdev.gameon.auth.JwtAuth;
 import twitter4j.ResponseList;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
@@ -37,29 +27,23 @@ import twitter4j.conf.ConfigurationBuilder;
  * Servlet implementation class TwitterCallback
  */
 @WebServlet("/TwitterCallback")
-public class TwitterCallback extends HttpServlet {
+public class TwitterCallback extends JwtAuth {
 	private static final long serialVersionUID = 1L;
-	private String webappBase;
-	
+
 	@Resource(lookup="twitterOAuthConsumerKey")
 	String key;
 	@Resource(lookup="twitterOAuthConsumerSecret")
 	String secret;
-	
-	@Resource(lookup="jwtKeyStore")
-	String keyStore;
-	@Resource(lookup="jwtKeyStorePassword")
-	String keyStorePW;
-	@Resource(lookup="jwtKeyStoreAlias")
-	String keyStoreAlias;
+	@Resource(lookup="webappBase")
+	String webappBase;
 
 	public TwitterCallback() {
 		super();
-		System.out.println("Twitter callback servlet starting up and looking for webapp base url.");
-		try {
-			this.webappBase = (String) new InitialContext().lookup("webappBase");
-			System.out.println("Twitter callback servlet found web app base: " + this.webappBase);
-		} catch (NamingException e) {
+	}
+	
+	@PostConstruct
+	private void verifyInit(){
+		if(webappBase==null){
 			System.err.println("Error finding webapp base URL; please set this in your environment variables!");
 		}
 	}
@@ -107,36 +91,8 @@ public class TwitterCallback extends HttpServlet {
         return results;
 	}
 		
-	private static Key signingKey = null;
-	
-	private synchronized void getKeyStoreInfo() throws IOException{
-		try{			
-			//load up the keystore..
-			FileInputStream is = new FileInputStream(keyStore);
-			KeyStore signingKeystore = KeyStore.getInstance(KeyStore.getDefaultType());
-			signingKeystore.load(is,keyStorePW.toCharArray());
-
-			//grab the key we'll use to sign
-			signingKey = signingKeystore.getKey(keyStoreAlias,keyStorePW.toCharArray());
-			
-		}catch(KeyStoreException e){
-			throw new IOException(e);
-		}catch(NoSuchAlgorithmException e){
-			throw new IOException(e);
-		}catch(CertificateException e){
-			throw new IOException(e);
-		}catch(UnrecoverableKeyException e){
-			throw new IOException(e);
-		}
-		
-	}
-
 	@Override
-	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		if(signingKey==null){
-			getKeyStoreInfo();
-		}
-		
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {		
 		//twitter calls us back at this app when a user has finished authing with them.
 		//when it calls us back here, it passes an oauth_verifier token that we can exchange
 		//for a twitter access token.
@@ -147,7 +103,6 @@ public class TwitterCallback extends HttpServlet {
 
 		//grab the verifier token from the request parms.
 		String verifier = request.getParameter("oauth_verifier");
-
 		try {
 			//clean up the session as we go (can leave twitter there if we need it again).
 			request.getSession().removeAttribute("requestToken");
@@ -160,28 +115,11 @@ public class TwitterCallback extends HttpServlet {
 			//if auth key was no longer valid, we won't build a jwt. redirect back to start.
 			if(!"true".equals(claims.get("valid"))){
 				response.sendRedirect(webappBase + "/#/game");
-			}else{
-				Claims onwardsClaims = Jwts.claims();
-				
-				//add in the subject & scopes from the token introspection	
-				onwardsClaims.setSubject(claims.get("id"));
-
-				onwardsClaims.putAll(claims);
-				
-				//client JWT has 24 hrs validity from issue
-				Calendar calendar = Calendar.getInstance();
-				calendar.add(Calendar.HOUR,24);
-				onwardsClaims.setExpiration(calendar.getTime());
-				
-				//finally build the new jwt, using the claims we just built, signing it with our
-				//signing key, and adding a key hint as kid to the encryption header, which is
-				//optional, but can be used by the receivers of the jwt to know which key
-				//they should verifiy it with.
-				String newJwt = Jwts.builder().setHeaderParam("kid","playerssl").setClaims(onwardsClaims).signWith(SignatureAlgorithm.RS256,signingKey).compact();
+			}else{				
+				String newJwt = createJwt(claims);
 				
 				//debug.
-				System.out.println("New User Authed: "+claims.get("id"));
-		
+				System.out.println("New User Authed: "+claims.get("id"));	
 				response.sendRedirect(webappBase + "/#/login/callback/"+newJwt);
 			}		
 			

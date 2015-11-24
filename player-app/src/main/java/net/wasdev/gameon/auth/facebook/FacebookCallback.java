@@ -1,23 +1,15 @@
 package net.wasdev.gameon.auth.facebook;
 
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.security.Key;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -30,34 +22,27 @@ import com.restfb.WebRequestor;
 import com.restfb.exception.FacebookOAuthException;
 import com.restfb.types.User;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import net.wasdev.gameon.auth.JwtAuth;
 
 
 @WebServlet("/FacebookCallback")
-public class FacebookCallback extends HttpServlet {
+public class FacebookCallback extends JwtAuth {
 	private static final long serialVersionUID = 1L;
-
-	private String webappBase;
 	
 	@Resource(lookup="facebookAppID")
 	String appId;	
 	@Resource(lookup="facebookSecret")
 	String secretKey;
+	@Resource(lookup="webappBase")
+	String webappBase;
 	
-	@Resource(lookup="jwtKeyStore")
-	String keyStore;
-	@Resource(lookup="jwtKeyStorePassword")
-	String keyStorePW;
-	@Resource(lookup="jwtKeyStoreAlias")
-	String keyStoreAlias;
-
 	public FacebookCallback() {
 		super();
-		try {
-			this.webappBase = (String) new InitialContext().lookup("webappBase");
-		} catch (NamingException e) {
+	}
+	
+	@PostConstruct
+	private void verifyInit(){
+		if(webappBase==null){
 			System.err.println("Error finding webapp base URL; please set this in your environment variables!");
 		}
 	}
@@ -115,36 +100,8 @@ public class FacebookCallback extends HttpServlet {
         return results;
 	}
 	
-	private static Key signingKey = null;
-	
-	private synchronized void getKeyStoreInfo() throws IOException{
-		try{		
-			//load up the keystore..
-			FileInputStream is = new FileInputStream(keyStore);
-			KeyStore signingKeystore = KeyStore.getInstance(KeyStore.getDefaultType());
-			signingKeystore.load(is,keyStorePW.toCharArray());
-
-			//grab the key we'll use to sign
-			signingKey = signingKeystore.getKey(keyStoreAlias,keyStorePW.toCharArray());
-			
-		}catch(KeyStoreException e){
-			throw new IOException(e);
-		}catch(NoSuchAlgorithmException e){
-			throw new IOException(e);
-		}catch(CertificateException e){
-			throw new IOException(e);
-		}catch(UnrecoverableKeyException e){
-			throw new IOException(e);
-		}
-		
-	}
-
 	@Override
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-
-		if(signingKey==null)
-			getKeyStoreInfo();
-		
 		//facebook redirected to us, and there should be a code awaiting us as part of the request.
 		String code = request.getParameter("code");
 
@@ -164,30 +121,12 @@ public class FacebookCallback extends HttpServlet {
 		if(!"true".equals(claims.get("valid"))){
 			response.sendRedirect(webappBase + "/#/game");
 		}else{
-			Claims onwardsClaims = Jwts.claims();
-			
-			//add in the subject & scopes from the token introspection	
-			onwardsClaims.setSubject(claims.get("id"));
-
-			onwardsClaims.putAll(claims);
-			
-			//client JWT has 24 hrs validity from issue
-			Calendar calendar = Calendar.getInstance();
-			calendar.add(Calendar.HOUR,24);
-			onwardsClaims.setExpiration(calendar.getTime());
-			
-			//finally build the new jwt, using the claims we just built, signing it with our
-			//signing key, and adding a key hint as kid to the encryption header, which is
-			//optional, but can be used by the receivers of the jwt to know which key
-			//they should verifiy it with.
-			String newJwt = Jwts.builder().setHeaderParam("kid","playerssl").setClaims(onwardsClaims).signWith(SignatureAlgorithm.RS256,signingKey).compact();
+			String newJwt = createJwt(claims);
 			
 			//debug.
-			System.out.println("New User Authed: "+claims.get("id"));
-	
+			System.out.println("New User Authed: "+claims.get("id"));	
 			response.sendRedirect(webappBase + "/#/login/callback/"+newJwt);
 		}
 	}
-
 
 }

@@ -18,6 +18,7 @@ package net.wasdev.gameon.player.ws;
 import java.util.logging.Level;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.naming.InitialContext;
@@ -39,14 +40,12 @@ public class PlayerClient {
 
 	Client client;
 	WebTarget root;
-	String playerLocation;
+
+	@Resource(lookup="playerUrl")
+	String playerLocation;	
 
 	@PostConstruct
 	public void initClient() {
-		try {
-			this.playerLocation = (String) new InitialContext().lookup("playerUrl");
-		} catch (NamingException e) {
-		}
 		this.client = ClientBuilder.newClient();
 		this.root = this.client.target(playerLocation);
 
@@ -59,13 +58,16 @@ public class PlayerClient {
 	 * we'll get back the one that won.
 	 *
 	 * @param playerId The player id
+	 * @param jwt The server jwt for this player id.
 	 * @param oldRoomId The old room's id
 	 * @param newRoomId The new room's id
 	 * @return The id of the selected new room, taking contention into account.
 	 */
-	public String updatePlayerLocation(String playerId, String oldRoomId, String newRoomId) {
+	public String updatePlayerLocation(String playerId, String jwt, String oldRoomId, String newRoomId) {
 		WebTarget target = this.root.path("{playerId}/location")
-				.resolveTemplate("playerId", playerId);
+				.resolveTemplate("playerId", playerId)
+				.queryParam("jwt", jwt);
+		
 
 		JsonObject parameter = Json.createObjectBuilder()
 				.add("old", oldRoomId)

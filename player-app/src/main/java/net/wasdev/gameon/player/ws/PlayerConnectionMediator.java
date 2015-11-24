@@ -35,6 +35,7 @@ public class PlayerConnectionMediator {
 
 	private final String userId;
 	private final String username;
+	private final String jwt;
 	private final String id = UUID.randomUUID().toString();
 
 	private final ConciergeClient concierge;
@@ -62,9 +63,10 @@ public class PlayerConnectionMediator {
 	 * @param userId Name of user for this session
 	 * @param playerClient
 	 */
-	public PlayerConnectionMediator(String userId, String username, ConciergeClient concierge, PlayerClient playerClient, ConnectionUtils connectionUtils) {
+	public PlayerConnectionMediator(String userId, String username, String jwt, ConciergeClient concierge, PlayerClient playerClient, ConnectionUtils connectionUtils) {
 		this.userId = userId;
 		this.username = username;
+		this.jwt = jwt;
 		this.concierge = concierge;
 		this.playerClient = playerClient;
 		this.connectionUtils = connectionUtils;
