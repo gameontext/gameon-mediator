@@ -46,7 +46,7 @@
   
   <jndiEntry jndiName="conciergeQueryApiKey" value="${env.CONCIERGE_KEY}"/>
   
-  <logging traceSpecification="*=info:com.ibm.ws.wsoc.*=all" />
+  <logging traceSpecification="*=info:net.wasdev.gameon.*=all" />
 
   <!-- Twitter Application Info... -->
   <jndiEntry jndiName="twitterOAuthConsumerKey" value="${env.TWITTER_CONSUMER_KEY}"/>

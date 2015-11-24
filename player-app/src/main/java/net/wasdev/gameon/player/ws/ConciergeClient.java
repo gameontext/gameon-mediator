@@ -108,7 +108,7 @@ public class ConciergeClient {
 		Log.log(Level.FINER, this, "making request to {0} for room", target.getUri().toString());
 		try {
 			//pojo magic binding wasn't working..for some requests only it would complain it couldn't find the reader for the object
-			//so we'll do it the hard way until we figure out why..
+			//so we'll do it the long way until we figure out why..
 
 			//TODO: debug why we can't use pojo bindings for room change requests..
 

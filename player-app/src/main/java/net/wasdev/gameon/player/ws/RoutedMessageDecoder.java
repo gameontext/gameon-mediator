@@ -41,9 +41,11 @@ public class RoutedMessageDecoder implements Decoder.Text<RoutedMessage> {
 
 	@Override
 	public void init(EndpointConfig ec) {
+		// no set-up
 	}
 
 	@Override
 	public void destroy() {
+		// no tear-down
 	}
 }

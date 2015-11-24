@@ -126,8 +126,5 @@ public class TwitterCallback extends JwtAuth {
 		} catch (TwitterException e) {
 			throw new ServletException(e);
 		}
-
 	}
-
-
 }

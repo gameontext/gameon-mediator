@@ -127,6 +127,7 @@ public class FacebookCallback extends JwtAuth {
 			System.out.println("New User Authed: "+claims.get("id"));	
 			response.sendRedirect(webappBase + "/#/login/callback/"+newJwt);
 		}
+
 	}
 
 }
