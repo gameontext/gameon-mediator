@@ -53,6 +53,7 @@ task createNewContainer(type: DockerCreateContainer) {
 	portBindings = ['9443:9443']
 	env = ["LICENSE=accept", 
 			"CONCIERGE_URL=" + System.getenv('CONCIERGE_URL'),
+			"CONCIERGE_KEY=" + System.getenv('CONCIERGE_KEY'),
 			"MONGO_HOST=" + System.getenv('MONGO_HOST'),
 			"MONGO_PORT=" + System.getenv('MONGO_PORT'),
 			"LOGGING_DOCKER_HOST=" + System.getenv("LOGGING_DOCKER_HOST"),
