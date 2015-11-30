@@ -120,7 +120,7 @@ public class TwitterCallback extends JwtAuth {
 				
 				//debug.
 				System.out.println("New User Authed: "+claims.get("id"));	
-				response.sendRedirect(webappBase + "/#/login/callback/"+newJwt);
+				response.sendRedirect(webappBase + "/login/callback/"+newJwt);
 			}		
 			
 		} catch (TwitterException e) {
