@@ -54,7 +54,7 @@
   
   <!-- Facebook Application Info...  -->
   <jndiEntry jndiName="facebookAppID" value="${env.FACEBOOK_APP_ID}"/>
-  <jndiEntry jndiName="facebookAppSecret" value="${env.FACEBOOK_APP_SECRET}"/>
+  <jndiEntry jndiName="facebookSecret" value="${env.FACEBOOK_APP_SECRET}"/>
   
   <webApplication id="player-app" location="player-app.war" name="player-app" contextRoot="/play">
     <classloader commonLibraryRef="MongoLib"/>
