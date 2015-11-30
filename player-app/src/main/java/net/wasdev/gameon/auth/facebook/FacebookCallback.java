@@ -33,7 +33,7 @@ public class FacebookCallback extends JwtAuth {
 	String appId;	
 	@Resource(lookup="facebookSecret")
 	String secretKey;
-	@Resource(lookup="webappBase")
+	@Resource(lookup="callbackUr")
 	String webappBase;
 	
 	public FacebookCallback() {

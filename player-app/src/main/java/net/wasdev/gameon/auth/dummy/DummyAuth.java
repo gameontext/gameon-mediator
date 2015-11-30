@@ -24,8 +24,8 @@ import net.wasdev.gameon.auth.JwtAuth;
 public class DummyAuth extends JwtAuth {
 	private static final long serialVersionUID = 1L;
 
-	@Resource(lookup="webappBase")
-	String webappBase;
+	@Resource(lookup="authCallbcakURLSuccess")
+	String callbackSuccess;
 	
     public DummyAuth() {
     	super();
@@ -56,7 +56,7 @@ public class DummyAuth extends JwtAuth {
 		//debug.
 		System.out.println("New User Authed: "+claims.get("id"));
 
-		response.sendRedirect(webappBase + "login/callback/"+newJwt);
+		response.sendRedirect(callbackSuccess + newJwt);
 		
 	}
 
