@@ -88,13 +88,16 @@ public abstract class JwtAuth extends HttpServlet {
 		//We'll use this claim to know this is a user token
 		onwardsClaims.setAudience("client");
 		
-		//creation time (now)
-		onwardsClaims.setIssuedAt(new Date());
+		//we set creation time to 24hrs ago, to avoid timezone issues in the browser
+		//verification of the jwt.
+		Calendar calendar1 = Calendar.getInstance();
+		calendar1.add(Calendar.HOUR,-24);
+		onwardsClaims.setIssuedAt(calendar1.getTime());		
 		
-		//client JWT has 24 hrs validity from issue
-		Calendar calendar = Calendar.getInstance();
-		calendar.add(Calendar.HOUR,24);
-		onwardsClaims.setExpiration(calendar.getTime());
+		//client JWT has 24 hrs validity from now.
+		Calendar calendar2 = Calendar.getInstance();
+		calendar2.add(Calendar.HOUR,24);
+		onwardsClaims.setExpiration(calendar2.getTime());
 		
 		//finally build the new jwt, using the claims we just built, signing it with our
 		//signing key, and adding a key hint as kid to the encryption header, which is
