@@ -15,6 +15,14 @@
  *******************************************************************************/
 package net.wasdev.gameon.player.ws;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.security.Key;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,6 +37,11 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.json.JsonObject;
 import javax.websocket.Session;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 
 /**
  * @author elh
@@ -57,6 +70,15 @@ public class PlayerSessionManager implements Runnable {
 	/** CDI injection of client for Player CRUD operations */
 	@Inject
 	PlayerClient playerClient;
+	
+	//Keystore info for jwt parsing / creation.
+	@Resource(lookup="jwtKeyStore")
+	String keyStore;
+	@Resource(lookup="jwtKeyStorePassword")
+	String keyStorePW;
+	@Resource(lookup="jwtKeyStoreAlias")
+	String keyStoreAlias;
+	private static Key signingKey = null;
 
 	private AtomicReference<ScheduledFuture<?>> reaper = new AtomicReference<ScheduledFuture<?>>(null);
 
@@ -110,14 +132,42 @@ public class PlayerSessionManager implements Runnable {
 	}
 
 	/**
+	 * Obtain the key we'll use to sign the jwts we issue. 
+	 * 
+	 * @throws IOException if there are any issues with the keystore processing.
+	 */
+	private synchronized void getKeyStoreInfo() throws IOException {
+		try{		
+			//load up the keystore..
+			FileInputStream is = new FileInputStream(keyStore);
+			KeyStore signingKeystore = KeyStore.getInstance(KeyStore.getDefaultType());
+			signingKeystore.load(is,keyStorePW.toCharArray());
+	
+			//grab the key we'll use to sign
+			signingKey = signingKeystore.getKey(keyStoreAlias,keyStorePW.toCharArray());
+			
+		}catch(KeyStoreException e){
+			throw new IOException(e);
+		}catch(NoSuchAlgorithmException e){
+			throw new IOException(e);
+		}catch(CertificateException e){
+			throw new IOException(e);
+		}catch(UnrecoverableKeyException e){
+			throw new IOException(e);
+		}
+		
+	}	
+	
+	/**
 	 * Create a new player session to mediate between the client and the room
 	 *
 	 * @param clientSession WebSocket session for the connection between the client and the player
 	 * @param userId User's unique id
 	 * @param clientCache Information from the client: updated room, last message seen
 	 * @return a new or resumed PlayerSession
+	 * @throws IOException if the keystore for the JWT processing cannot be used.
 	 */
-	public PlayerConnectionMediator startSession(Session clientSession, String userName, RoutedMessage message) {
+	public PlayerConnectionMediator startSession(Session clientSession, String userName, RoutedMessage message) throws IOException {
 
 		JsonObject sessionData = message.getParsedBody();
 
@@ -133,7 +183,41 @@ public class PlayerSessionManager implements Runnable {
 		}
 
 		if ( playerSession == null ) {
-			playerSession = new PlayerConnectionMediator(userName, username, concierge, playerClient, connectionUtils);
+			//create ourselves a token for server operations for this user.
+			
+			//TODO maybe there's a better place to put this.. but the integration between the 
+			//http session that knew the jwt as part of the url, and the mediator that doesn't, 
+			//ends here.. 
+			
+			//get the jwt from the ws query url.
+			String query = clientSession.getQueryString();
+			String params[] = query.split("&");
+			String jwtParam = null;
+			for(String param: params){
+				if(param.startsWith("jwt=")){
+					jwtParam = param.substring("jwt=".length());
+				}
+			}
+			
+			//grab the key if needed
+			if(signingKey==null)
+				getKeyStoreInfo();
+			
+			
+			//parse the jwt into an object.. 
+			Jws<Claims> jwt = Jwts.parser().setSigningKey(signingKey).parseClaimsJws(jwtParam);
+			
+			//create a new jwt with type server for use by this session.
+			Claims onwardsClaims = Jwts.claims();
+			//add all the client claims
+			onwardsClaims.putAll(jwt.getBody());
+			//upgrade the type to server
+			onwardsClaims.setAudience("server");
+			
+			//build the new jwt
+			String newJwt = Jwts.builder().setHeaderParam("kid","playerssl").setClaims(onwardsClaims).signWith(SignatureAlgorithm.RS256,signingKey).compact();
+			
+			playerSession = new PlayerConnectionMediator(userName, username, newJwt, concierge, playerClient, connectionUtils);
 			Log.log(Level.FINER, this, "Created new session {0} for user {1}", playerSession, userName);
 		} else {
 			Log.log(Level.FINER, this, "Resuming session session {0} for user {1}", playerSession, userName);

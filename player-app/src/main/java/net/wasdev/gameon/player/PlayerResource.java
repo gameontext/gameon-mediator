@@ -16,11 +16,13 @@
 package net.wasdev.gameon.player;
 
 import java.io.IOException;
+import java.util.Map;
 
 import javax.annotation.Resource;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -46,6 +48,9 @@ import com.mongodb.DBObject;
  */
 @Path("/{id}")
 public class PlayerResource {
+	@Context
+	HttpServletRequest httpRequest;
+	
 	@Context Providers ps;
 
 	@Resource(name = "mongo/playerDB")
@@ -54,13 +59,29 @@ public class PlayerResource {
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	public Player getPlayerInformation(@PathParam("id") String id) throws IOException {
+		
+		//set by the auth filter.
+		String authId = (String) httpRequest.getAttribute("player.id");
+		
+		//only allow get for matching id.
+		if(authId==null || !authId.equals(id)){
+			throw new RequestNotAllowedForThisIDException("Bad authentication id");
+		}
+		
 		DBObject player = findPlayer(null, id);
 		Player p = Player.fromDBObject(ps, player);
 		return p;
 	}
 
 	@PUT
-	public Response updatePlayer(@PathParam("id") String id, Player newPlayer) throws IOException {
+	public Response updatePlayer(@PathParam("id") String id, Player newPlayer) throws IOException {		
+		//we don't want to allow this method to be invoked by a user.
+		@SuppressWarnings("unchecked")
+		Map<String,Object> claims = (Map<String,Object>) httpRequest.getAttribute("player.claims");
+		if(!"server".equals( claims.get("aud") )){
+			throw new RequestNotAllowedForThisIDException("Invalid token type "+claims.get("aud"));
+		}
+		
 		DBCollection players = playerDB.getCollection("players");
 		DBObject player = findPlayer(players, id);
 		DBObject nPlayer = newPlayer.toDBObject(ps);
@@ -70,7 +91,16 @@ public class PlayerResource {
 	}
 
 	@DELETE
-	public Response removePlayer(@PathParam("id") String id) {
+	public Response removePlayer(@PathParam("id") String id) {		
+		//set by the auth filter.
+		String authId = (String) httpRequest.getAttribute("player.id");
+		
+		//players are allowed to delete themselves.. 
+		//only allow delete for matching id.
+		if(authId==null || !authId.equals(id)){
+			return Response.status(403).entity("Bad authentication id").build();
+		}
+		
 		DBCollection players = playerDB.getCollection("players");
 		DBObject player = findPlayer(players, id);
 
@@ -83,6 +113,13 @@ public class PlayerResource {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response updatePlayerLocation(@PathParam("id") String id, JsonObject update) throws IOException {
+		//we don't want to allow this method to be invoked by a user.
+		@SuppressWarnings("unchecked")
+		Map<String,Object> claims = (Map<String,Object>) httpRequest.getAttribute("player.claims");
+		if(!"server".equals( claims.get("aud") )){
+			throw new RequestNotAllowedForThisIDException("Invalid token type "+claims.get("aud"));
+		}
+		
 		DBCollection players = playerDB.getCollection("players");
 		DBObject player = findPlayer(players, id);
 		Player p = Player.fromDBObject(ps, player);

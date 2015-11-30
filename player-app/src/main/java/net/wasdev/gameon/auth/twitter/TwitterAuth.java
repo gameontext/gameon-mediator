@@ -2,6 +2,7 @@ package net.wasdev.gameon.auth.twitter;
 
 import java.io.IOException;
 
+import javax.annotation.Resource;
 import javax.naming.NamingException;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -20,13 +21,18 @@ import twitter4j.conf.ConfigurationBuilder;
 public class TwitterAuth extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
+	@Resource(lookup="twitterOAuthConsumerKey")
+	String key;
+	@Resource(lookup="twitterOAuthConsumerSecret")
+	String secret;
+	
     public TwitterAuth() {
     }
     
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		
 		ConfigurationBuilder c = new ConfigurationBuilder();		
-		c.setOAuthConsumerKey(TwitterCredentials.getConsumerKey()).setOAuthConsumerSecret(TwitterCredentials.getConsumerSecret());
+		c.setOAuthConsumerKey(key).setOAuthConsumerSecret(secret);
 		 
         Twitter twitter = new TwitterFactory(c.build()).getInstance();
         request.getSession().setAttribute("twitter", twitter);

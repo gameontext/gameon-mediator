@@ -40,7 +40,8 @@ public class PlayerClient {
 	WebTarget root;
 
 	@Resource(lookup="playerUrl")
-	String playerLocation;
+	String playerLocation;	
+
 
 	@PostConstruct
 	public void initClient() {
@@ -56,13 +57,16 @@ public class PlayerClient {
 	 * we'll get back the one that won.
 	 *
 	 * @param playerId The player id
+	 * @param jwt The server jwt for this player id.
 	 * @param oldRoomId The old room's id
 	 * @param newRoomId The new room's id
 	 * @return The id of the selected new room, taking contention into account.
 	 */
-	public String updatePlayerLocation(String playerId, String oldRoomId, String newRoomId) {
+	public String updatePlayerLocation(String playerId, String jwt, String oldRoomId, String newRoomId) {
 		WebTarget target = this.root.path("{playerId}/location")
-				.resolveTemplate("playerId", playerId);
+				.resolveTemplate("playerId", playerId)
+				.queryParam("jwt", jwt);
+		
 
 		JsonObject parameter = Json.createObjectBuilder()
 				.add("old", oldRoomId)

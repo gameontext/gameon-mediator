@@ -45,15 +45,23 @@ import javax.ws.rs.core.Response;
 public class ConciergeClient {
 
 	@Resource(lookup="conciergeUrl")
-	private String conciergeLocation;
-
+	String conciergeLocation;
+	
+	@Resource(lookup="conciergeQueryApiKey")
+	String querySecret;
+	
 	private Client client;
 	private WebTarget root;
 
 	@PostConstruct
 	public void initClient() {
 		this.client = ClientBuilder.newClient();
-		this.root = this.client.target(conciergeLocation);
+				
+		//add the apikey handler for the lookup requests.
+		ApiKey apikey = new ApiKey("roomQuery","MyQuerySecret");		
+		
+		this.root = this.client.target(conciergeLocation);	
+		this.root.register(apikey);
 
 		Log.log(Level.FINER, this, "Concierge initialized with {0}", conciergeLocation);
 	}

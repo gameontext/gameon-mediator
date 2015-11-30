@@ -2,6 +2,7 @@ package net.wasdev.gameon.auth.facebook;
 
 import java.io.IOException;
 
+import javax.annotation.Resource;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -18,6 +19,9 @@ import com.restfb.scope.ScopeBuilder;
 public class FacebookAuth extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
+	@Resource(lookup="facebookAppID")
+	String facebookAppId;
+	
     public FacebookAuth() {
     }
     
@@ -32,7 +36,7 @@ public class FacebookAuth extends HttpServlet {
         callbackURL.replace(index, callbackURL.length(), "").append("/FacebookCallback");
 		
 		FacebookClient client = new DefaultFacebookClient(Version.VERSION_2_5);
-		String loginUrl = client.getLoginDialogUrl(FacebookCredentials.getAppID(), callbackURL.toString(), scopeBuilder);
+		String loginUrl = client.getLoginDialogUrl(facebookAppId, callbackURL.toString(), scopeBuilder);
 
         //redirect the user to facebook to be authenticated.
         response.sendRedirect(loginUrl);

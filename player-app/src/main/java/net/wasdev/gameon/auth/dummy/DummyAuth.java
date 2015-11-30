@@ -1,39 +1,63 @@
 package net.wasdev.gameon.auth.dummy;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
+import net.wasdev.gameon.auth.JwtAuth;
+
+/**
+ * A backend-less auth impl for testing. 
+ * 
+ * Accepts the username as a parameter, and returns a signed jwt for that username. 
+ */
 @WebServlet("/DummyAuth")
-public class DummyAuth extends HttpServlet {
+public class DummyAuth extends JwtAuth {
 	private static final long serialVersionUID = 1L;
 
-	private String webappBase;
-
+	@Resource(lookup="webappBase")
+	String webappBase;
+	
     public DummyAuth() {
-    	try {
-			this.webappBase = (String) new InitialContext().lookup("webappBase");
-		} catch (NamingException e) {
-			System.err.println("Error finding webapp base URL; please set this in your environment variables!");
-		}
+    	super();
     }
     
-	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		
+	@PostConstruct
+	private void verifyInit(){
+		if(webappBase==null){
+			System.err.println("Error finding webapp base URL; please set this in your environment variables!");
+		}
+	}
+    
+    
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {	
 		String s = request.getParameter("dummyUserName");
 		
 		if(s==null){
 			s="AnonymousUser";
 		}
+		
+		Map<String,String> claims = new HashMap<String,String>();
+		
+		claims.put("id", "dummy."+s);
+		claims.put("name", s);
+		
+		String newJwt = createJwt(claims);
+		
+		//debug.
+		System.out.println("New User Authed: "+claims.get("id"));
 
-        //redirect the user to facebook to be authenticated.
-        response.sendRedirect(webappBase + "/login/callback/DUMMY::"+s);
+		response.sendRedirect(webappBase + "/#/login/callback/"+newJwt);
+		
 	}
 
 
