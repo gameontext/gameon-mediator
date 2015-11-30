@@ -33,8 +33,8 @@ public class FacebookCallback extends JwtAuth {
 	String appId;	
 	@Resource(lookup="facebookSecret")
 	String secretKey;
-	@Resource(lookup="webappBase")
-	String webappBase;
+	@Resource(lookup="authCallbcakURLSuccess")
+	String callbackSuccess;
 	
 	public FacebookCallback() {
 		super();
@@ -42,7 +42,7 @@ public class FacebookCallback extends JwtAuth {
 	
 	@PostConstruct
 	private void verifyInit(){
-		if(webappBase==null){
+		if(callbackSuccess==null){
 			System.err.println("Error finding webapp base URL; please set this in your environment variables!");
 		}
 	}
@@ -119,13 +119,13 @@ public class FacebookCallback extends JwtAuth {
 		
 		//if auth key was no longer valid, we won't build a jwt. redirect back to start.
 		if(!"true".equals(claims.get("valid"))){
-			response.sendRedirect(webappBase + "/#/game");
+			response.sendRedirect("http://game-on.org/#/game");
 		}else{
 			String newJwt = createJwt(claims);
 			
 			//debug.
 			System.out.println("New User Authed: "+claims.get("id"));	
-			response.sendRedirect(webappBase + "/login/callback/"+newJwt);
+			response.sendRedirect(callbackSuccess + newJwt);
 		}
 
 	}

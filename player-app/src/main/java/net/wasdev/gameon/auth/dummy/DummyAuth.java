@@ -33,8 +33,8 @@ public class DummyAuth extends JwtAuth {
     
 	@PostConstruct
 	private void verifyInit(){
-		if(webappBase==null){
-			System.err.println("Error finding webapp base URL; please set this in your environment variables!");
+		if(callbackSuccess==null){
+			System.err.println("Error finding auth callback url; please set this in your environment variables!");
 		}
 	}
     
