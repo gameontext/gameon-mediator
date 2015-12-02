@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-package net.wasdev.gameon.player.ws;
+package net.wasdev.gameon.mediator;
 
 import java.io.IOException;
 import java.net.URI;
@@ -24,14 +24,15 @@ import java.util.logging.Level;
 import javax.websocket.ClientEndpointConfig;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
+
+import net.wasdev.gameon.mediator.ConciergeClient.RoomEndpointList;
+import net.wasdev.gameon.mediator.ConnectionUtils.Drain;
+
 import javax.websocket.DeploymentException;
 import javax.websocket.Endpoint;
 import javax.websocket.EndpointConfig;
 import javax.websocket.MessageHandler;
 import javax.websocket.Session;
-
-import net.wasdev.gameon.player.ws.ConciergeClient.RoomEndpointList;
-import net.wasdev.gameon.player.ws.ConnectionUtils.Drain;
 
 public class RemoteRoomMediator implements RoomMediator {
 
@@ -66,7 +67,7 @@ public class RemoteRoomMediator implements RoomMediator {
 
 	/**
 	 * Attempt to establish the connection to the remote room (if not already established)
-	 * @see net.wasdev.gameon.player.ws.RoomMediator#connect()
+	 * @see net.wasdev.gameon.mediator.RoomMediator#connect()
 	 */
 	@Override
 	public boolean connect() {
@@ -153,7 +154,7 @@ public class RemoteRoomMediator implements RoomMediator {
 
 	/**
 	 * Stop the writer, and close the WebSocket connection to the room
-	 * @see net.wasdev.gameon.player.ws.RoomMediator#disconnect(net.wasdev.gameon.player.ws.PlayerConnectionMediator)
+	 * @see net.wasdev.gameon.mediator.RoomMediator#disconnect(net.wasdev.gameon.mediator.PlayerConnectionMediator)
 	 */
 	@Override
 	public void disconnect() {
@@ -163,7 +164,7 @@ public class RemoteRoomMediator implements RoomMediator {
 
 	/**
 	 * Send a message on to the room
-	 * @see net.wasdev.gameon.player.ws.RoomMediator#send(net.wasdev.gameon.player.ws.RoutedMessage)
+	 * @see net.wasdev.gameon.mediator.RoomMediator#send(net.wasdev.gameon.mediator.RoutedMessage)
 	 */
 	@Override
 	public void send(RoutedMessage message) {

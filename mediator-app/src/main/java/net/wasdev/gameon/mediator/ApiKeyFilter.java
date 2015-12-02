@@ -1,4 +1,19 @@
-package net.wasdev.gameon.player.ws;
+/*******************************************************************************
+ * Copyright (c) 2015 IBM Corp.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
+package net.wasdev.gameon.mediator;
 
 import java.io.IOException;
 import java.net.URI;
@@ -9,46 +24,47 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.ws.rs.client.ClientRequestContext;
 import javax.ws.rs.client.ClientRequestFilter;
 
-public class ApiKey implements ClientRequestFilter {
+public class ApiKeyFilter implements ClientRequestFilter {
 	public static final String SYSPROP_LOGGING = "apikey.log";	//system property to let you see what is going on
 	private static final String CHAR_SET = "UTF-8";
 	private static final String HMAC_ALGORITHM = "HmacSHA256";
 
 	private final String serviceID;	//this is the ID of the service making the API call
 	private final String secret;	//the system property or environment variable which contains the shared secret
-	
+
 	//ensure consistent parameter names
 	public enum Params {
 		apikey,
 		serviceID,
 		stamp;
-		
+
+		@Override
 		public String toString() {
 			return "&" + this.name() + "=";
 		}
-		
+
 	}
-	
+
 	/**
 	 * Constructor to be used by the client.
-	 * 
+	 *
 	 * @param serviceID the ID representing this service.
 	 * @param syspropName the system property or env var which contains the shared secret to use when invoking the remote API.
 	 */
-	public ApiKey(String serviceID, String secret) {
+	public ApiKeyFilter(String serviceID, String secret) {
 		this.serviceID = serviceID;
 		this.secret = secret;
 	}
 
-	/* 
-	 * Entry point for the client that wants to make a request to a second 
+	/*
+	 * Entry point for the client that wants to make a request to a second
 	 * service. It takes the original URI supplied and adds additional query string
-	 * parameters. These are 
-	 * 
+	 * parameters. These are
+	 *
 	 * 1. The service ID supplied by the client
 	 * 2. A timestamp of when the request was made
 	 * 3. A generated API key for this invocation.
-	 * 
+	 *
 	 * @see javax.ws.rs.client.ClientRequestFilter#filter(javax.ws.rs.client.ClientRequestContext)
 	 */
 	@Override
@@ -58,7 +74,7 @@ public class ApiKey implements ClientRequestFilter {
 		String rawQuery = ctx.getUri().getRawQuery();
 		if(rawQuery==null){
 			rawQuery = "";
-		}	
+		}
 		String apikey = rawQuery + idparams;
 		String hmac = URLEncoder.encode(digest(apikey), CHAR_SET);
 		String uriStr = ctx.getUri().toString();
@@ -85,7 +101,7 @@ public class ApiKey implements ClientRequestFilter {
 			throw new IOException(e);
 		}
 	}
-	
+
 	/*
 	 * Gets the secret key from either a system property or environment variable.
 	 * The system property takes precedence over the environment variable.
@@ -93,5 +109,5 @@ public class ApiKey implements ClientRequestFilter {
 	private SecretKeySpec getKey() throws IOException {
 		return new SecretKeySpec(secret.getBytes(CHAR_SET), HMAC_ALGORITHM);
 	}
-	
+
 }

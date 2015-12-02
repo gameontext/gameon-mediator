@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-package net.wasdev.gameon.player.ws;
+package net.wasdev.gameon.mediator;
 
 import java.util.UUID;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -24,8 +24,8 @@ import javax.json.Json;
 import javax.json.JsonObject;
 import javax.websocket.Session;
 
-import net.wasdev.gameon.player.ws.ConciergeClient.RoomEndpointList;
-import net.wasdev.gameon.player.ws.ConnectionUtils.Drain;
+import net.wasdev.gameon.mediator.ConciergeClient.RoomEndpointList;
+import net.wasdev.gameon.mediator.ConnectionUtils.Drain;
 
 /**
  * A session that buffers content destined for the client devices across

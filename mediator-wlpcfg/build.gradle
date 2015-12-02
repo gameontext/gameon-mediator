@@ -12,14 +12,9 @@ buildscript {
 
 
 task copyWAR(type: Copy) {
-    from '../player-app/build/libs/player-app-1.0.war'
-    into 'servers/gameon-player/apps/'
-    rename("player-app-1.0.war", "player-app.war")
-}
-
-task copyMongo(type: Copy) {
-    from '../player-app/build/libs/mongo-java-driver-2.12.3.jar'
-    into 'servers/gameon-player/lib/'
+    from '../mediator-app/build/libs/mediator-app-1.0.war'
+    into 'servers/gameon-mediator/apps/'
+    rename("mediator-app-1.0.war", "mediator-app.war")
 }
 
 apply plugin: 'com.bmuschko.docker-remote-api'
@@ -32,24 +27,24 @@ docker {
     certPath = new File(System.getenv("WORKSPACE") + "/dockercfg")
 }
 
-task buildDockerImage(type: DockerBuildImage, dependsOn: ['copyWAR','copyMongo']) {
+task buildDockerImage(type: DockerBuildImage, dependsOn: ['copyWAR']) {
 	inputDir = file('.')
-    tag = 'gameon-player'
+    tag = 'gameon-mediator'
     quiet = false
 }
 
 task stopCurrentContainer(type: DockerStopContainer) {
-    targetContainerId { "gameon-player" }
+    targetContainerId { "gameon-mediator" }
     timeout 0
 }
 
 task removeCurrentContainer(type: DockerRemoveContainer) {
-	targetContainerId { "gameon-player" }
+	targetContainerId { "gameon-mediator" }
 }
 
 task createNewContainer(type: DockerCreateContainer) {
-	targetImageId { "gameon-player" }
-	containerName = "gameon-player"
+	targetImageId { "gameon-mediator" }
+	containerName = "gameon-mediator"
 	portBindings = ['9443:9443']
 	env = ["LICENSE=accept", 
 			"CONCIERGE_URL=" + System.getenv('CONCIERGE_URL'),
@@ -68,6 +63,6 @@ task createNewContainer(type: DockerCreateContainer) {
 
 task startNewContainer(type: DockerStartContainer) {
 	dependsOn createNewContainer
-	targetContainerId { "gameon-player" }
+	targetContainerId { "gameon-mediator" }
 }
 

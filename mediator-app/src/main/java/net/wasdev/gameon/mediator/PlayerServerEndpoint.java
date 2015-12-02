@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-package net.wasdev.gameon.player.ws;
+package net.wasdev.gameon.mediator;
 
 import java.io.IOException;
 import java.util.logging.Level;
@@ -37,11 +37,9 @@ import javax.websocket.server.ServerEndpoint;
  * player's devices if connected to more than one.
  *
  */
-@ServerEndpoint(value = "/ws1/{userId}",
-decoders = RoutedMessageDecoder.class,
-encoders = RoutedMessageEncoder.class)
+@ServerEndpoint(value = "/ws/{userId}", decoders = RoutedMessageDecoder.class, encoders = RoutedMessageEncoder.class)
 public class PlayerServerEndpoint {
-	
+
 	/** CDI injection of player session manager */
 	@Inject
 	PlayerSessionManager playerSessionManager;

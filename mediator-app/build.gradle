@@ -38,5 +38,7 @@ eclipse.jdt.file {
       it['org.eclipse.jdt.core.formatter.indentation.size'] = '4'
       it['org.eclipse.jdt.core.formatter.tabulation.size'] = '4'
       it['org.eclipse.jdt.core.formatter.tabulation.char'] = 'space'
+      it['org.eclipse.jdt.core.formatter.indent_switchstatements_compare_to_cases'] = 'true'
+      it['org.eclipse.jdt.core.formatter.indent_switchstatements_compare_to_switch'] = 'true'
     }
 }

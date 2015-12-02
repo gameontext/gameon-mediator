@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-package net.wasdev.gameon.player.ws;
+package net.wasdev.gameon.mediator;
 
 import java.util.logging.Level;
 

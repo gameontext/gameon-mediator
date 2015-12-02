@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-package net.wasdev.gameon.player.ws;
+package net.wasdev.gameon.mediator;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -99,7 +99,7 @@ public class FirstRoom implements RoomMediator {
 	 * the pseudo-sent messages and provide coverage for the most basic commands to ensure they get handled'
 	 * and provide some help and context.
 	 *
-	 * @see net.wasdev.gameon.player.ws.RoomMediator#send(net.wasdev.gameon.player.ws.RoutedMessage)
+	 * @see net.wasdev.gameon.mediator.RoomMediator#send(net.wasdev.gameon.mediator.RoutedMessage)
 	 */
 	@Override
 	public void send(RoutedMessage message) {

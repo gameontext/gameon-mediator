@@ -12,4 +12,4 @@ dockerrc
 /servers/.pid
 /build/
 /servers/.classCache
-/servers/gameon-player/configDropins/overrides
+/servers/gameon-mediator/configDropins/overrides

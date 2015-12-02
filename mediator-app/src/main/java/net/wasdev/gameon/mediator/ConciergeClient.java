@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-package net.wasdev.gameon.player.ws;
+package net.wasdev.gameon.mediator;
 
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -46,21 +46,21 @@ public class ConciergeClient {
 
 	@Resource(lookup="conciergeUrl")
 	String conciergeLocation;
-	
+
 	@Resource(lookup="conciergeQueryApiKey")
 	String querySecret;
-	
+
 	private Client client;
 	private WebTarget root;
 
 	@PostConstruct
 	public void initClient() {
 		this.client = ClientBuilder.newClient();
-				
+
 		//add the apikey handler for the lookup requests.
-		ApiKey apikey = new ApiKey("roomQuery","MyQuerySecret");		
-		
-		this.root = this.client.target(conciergeLocation);	
+		ApiKeyFilter apikey = new ApiKeyFilter("roomQuery","MyQuerySecret");
+
+		this.root = this.client.target(conciergeLocation);
 		this.root.register(apikey);
 
 		Log.log(Level.FINER, this, "Concierge initialized with {0}", conciergeLocation);
