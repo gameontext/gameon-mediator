@@ -6,7 +6,7 @@
 
 #!/bin/bash
 echo Informing Slack...
-curl -X 'POST' --silent --data-binary '{"text":"A new build for the player service has started."}' $WEBHOOK > /dev/null
+curl -X 'POST' --silent --data-binary '{"text":"A new build for the mediator service has started."}' $WEBHOOK > /dev/null
 
 mkdir dockercfg ; cd dockercfg
 echo Downloading Docker requirements..
@@ -25,7 +25,7 @@ export JAVA_HOME=$(pwd)/jdk1.8.0_65
 echo Building projects using gradle...
 ./gradlew build 
 echo Building and Starting Concierge Docker Image...
-cd player-wlpcfg
+cd mediator-wlpcfg
 sed -i s/PLACEHOLDER_ADMIN_PASSWORD/$ADMIN_PASSWORD/g ./Dockerfile
 
 ../gradlew buildDockerImage 

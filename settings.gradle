@@ -1,4 +1,4 @@
-include 'player-app'
-include 'player-wlpcfg'
+include 'mediator-app'
+include 'mediator-wlpcfg'
 
-rootProject.name='gameon-player'
+rootProject.name='gameon-mediator'

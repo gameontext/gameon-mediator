@@ -1,6 +1,6 @@
 # Game On! 
 
-[![Codacy Badge](https://api.codacy.com/project/badge/grade/1fc932713e474ba0bb9593a9cdcb8e35)](https://www.codacy.com/app/gameontext/gameon-player)
+[![Codacy Badge](https://api.codacy.com/project/badge/grade/1fc932713e474ba0bb9593a9cdcb8e35)](https://www.codacy.com/app/gameontext/gameon-mediator)
 
 Game On! is a both a sample application, and throwback text adventure.
 
@@ -35,7 +35,7 @@ Or, if you don't have gradle, then:
 ### Interactive Run
 
 ```
-docker run -it -p 9443:9443 --env-file=./dockerrc --name gameon-player gameon-player bash
+docker run -it -p 9443:9443 --env-file=./dockerrc --name gameon-mediator gameon-mediator bash
 ```
 
 Then, you can start the server with 
@@ -46,18 +46,18 @@ Then, you can start the server with
 ### Daemon Run
 
 ```
-docker run -d -p 9443:9443 --env-file=./dockerrc --name gameon-player gameon-player
+docker run -d -p 9443:9443 --env-file=./dockerrc --name gameon-mediator gameon-mediator
 ```
 
 ### Stop
 
 ```
-docker stop gameon-player ; docker rm gameon-player
+docker stop gameon-mediator ; docker rm gameon-mediator
 ```
 
 ### Restart Daemon
 
 ```
-docker stop gameon-player ; docker rm gameon-player; docker run -d -p 9443:9443 --env-file=./dockerrc --name gameon-player gameon-player
+docker stop gameon-mediator ; docker rm gameon-mediator; docker run -d -p 9443:9443 --env-file=./dockerrc --name gameon-mediator gameon-mediator
 ```
 
