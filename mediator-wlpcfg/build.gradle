@@ -24,13 +24,6 @@ if (null != System.getenv("DOCKER_HOST"))
 def determinedEnvironment = ["LICENSE=accept",
 			"CONCIERGE_URL=" + System.getenv('CONCIERGE_URL'),
 			"CONCIERGE_KEY=" + System.getenv('CONCIERGE_KEY'),
-			"MONGO_HOST=" + System.getenv('MONGO_HOST'),
-			"MONGO_PORT=" + System.getenv('MONGO_PORT'),
-			"TWITTER_CONSUMER_KEY=" + System.getenv('TWITTER_CONSUMER_KEY'),
-			"TWITTER_CONSUMER_SECRET=" + System.getenv('TWITTER_CONSUMER_SECRET'),
-			"FACEBOOK_APP_ID=" + System.getenv('FACEBOOK_APP_ID'),
-			"FACEBOOK_APP_SECRET=" + System.getenv('FACEBOOK_APP_SECRET'),
-			"SUCCESS_CALLBACK=" + System.getenv('SUCCESS_CALLBACK'),
 			"PLAYER_URL=" + System.getenv('PLAYER_URL')
 		]
 if (null != System.getenv("LOGSTASH_ENDPOINT"))
@@ -74,12 +67,8 @@ task removeCurrentContainer(type: DockerRemoveContainer) {
 task createNewContainer(type: DockerCreateContainer) {
 	targetImageId { "gameon-mediator" }
 	containerName = "gameon-mediator"
-	portBindings = ['9443:9443']
-	env = ["LICENSE=accept",
-			"CONCIERGE_URL=" + System.getenv('CONCIERGE_URL'),
-			"CONCIERGE_KEY=" + System.getenv('CONCIERGE_KEY'),
-			"PLAYER_URL=" + System.getenv('PLAYER_URL')
-		]
+	portBindings = ['9446:9446']
+        env = determinedEnvironment
 }
 
 task startNewContainer(type: DockerStartContainer) {
