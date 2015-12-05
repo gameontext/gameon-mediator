@@ -20,25 +20,27 @@ import javax.websocket.Encoder;
 import javax.websocket.EndpointConfig;
 
 /**
- * @author elh
+ * Encoder for an outgoing message. This combines the routed message and the payload.
  *
+ * @see RoutedMessage
  */
 public class RoutedMessageEncoder implements Encoder.Text<RoutedMessage> {
 
-	/**
-	 * Simple encoder: relies in the RoutedMessage to stringify itself
-	 * @see javax.websocket.Encoder.Text#encode(java.lang.Object)
-	 */
-	@Override
-	public String encode(RoutedMessage object) throws EncodeException {
-		return object.toString();
-	}
+    /**
+     * Simple encoder: relies in the RoutedMessage to stringify itself
+     *
+     * @see javax.websocket.Encoder.Text#encode(java.lang.Object)
+     */
+    @Override
+    public String encode(RoutedMessage object) throws EncodeException {
+        return object.toString();
+    }
 
-	@Override
-	public void init(EndpointConfig ec) {
-	}
+    @Override
+    public void init(EndpointConfig ec) {
+    }
 
-	@Override
-	public void destroy() {
-	}
+    @Override
+    public void destroy() {
+    }
 }

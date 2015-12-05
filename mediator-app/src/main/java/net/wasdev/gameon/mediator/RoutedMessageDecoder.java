@@ -20,32 +20,34 @@ import javax.websocket.Decoder;
 import javax.websocket.EndpointConfig;
 
 /**
- * @author elh
+ * Decoder for an incoming message. This splits out the routing information.
  *
+ * @see RoutedMessage
  */
 public class RoutedMessageDecoder implements Decoder.Text<RoutedMessage> {
 
-	/**
-	 * Simple decoder: relies on RoutedMessage to parse the message.
-	 * @see javax.websocket.Decoder.Text#decode(java.lang.String)
-	 */
-	@Override
-	public RoutedMessage decode(String msg) throws DecodeException {
-		return new RoutedMessage(msg);
-	}
+    /**
+     * Simple decoder: relies on RoutedMessage to parse the message.
+     *
+     * @see javax.websocket.Decoder.Text#decode(java.lang.String)
+     */
+    @Override
+    public RoutedMessage decode(String msg) throws DecodeException {
+        return new RoutedMessage(msg);
+    }
 
-	@Override
-	public boolean willDecode(String msg) {
-		return true;
-	}
+    @Override
+    public boolean willDecode(String msg) {
+        return true;
+    }
 
-	@Override
-	public void init(EndpointConfig ec) {
-		// no set-up
-	}
+    @Override
+    public void init(EndpointConfig ec) {
+        // no set-up
+    }
 
-	@Override
-	public void destroy() {
-		// no tear-down
-	}
+    @Override
+    public void destroy() {
+        // no tear-down
+    }
 }
