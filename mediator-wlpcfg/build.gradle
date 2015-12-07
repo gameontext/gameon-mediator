@@ -24,6 +24,7 @@ if (null != System.getenv("DOCKER_HOST"))
 def dockerCertPath = ""
 if (null != System.getenv('DOCKER_CERT_PATH')){
 	dockerCertPath = System.getenv('DOCKER_CERT_PATH')
+}
 
 def determinedEnvironment = ["LICENSE=accept",
 			"CONCIERGE_URL=" + System.getenv('CONCIERGE_URL'),
