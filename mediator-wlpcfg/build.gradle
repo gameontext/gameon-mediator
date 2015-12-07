@@ -21,6 +21,10 @@ if (null != System.getenv("DOCKER_HOST"))
 	}
 }
 
+def dockerCertPath = ""
+if (null != System.getenv('DOCKER_CERT_PATH')){
+	dockerCertPath = System.getenv('DOCKER_CERT_PATH')
+
 def determinedEnvironment = ["LICENSE=accept",
 			"CONCIERGE_URL=" + System.getenv('CONCIERGE_URL'),
 			"CONCIERGE_KEY=" + System.getenv('CONCIERGE_KEY'),
@@ -39,14 +43,17 @@ task copyWAR(type: Copy) {
     rename("mediator-app-1.0.war", "mediator-app.war")
 }
 
+task build(dependsOn: ['copyWAR']){
+}
+
 apply plugin: 'com.bmuschko.docker-remote-api'
 
 import com.bmuschko.gradle.docker.tasks.container.*
 import com.bmuschko.gradle.docker.tasks.image.*
 
 docker {
-	url = dockerHost
-    certPath = new File(System.getenv("DOCKER_CERT_PATH"))
+	  url = dockerHost
+    certPath = new File(dockerCertPath)
 }
 
 task buildDockerImage(type: DockerBuildImage, dependsOn: ['copyWAR']) {
@@ -67,6 +74,19 @@ task removeCurrentContainer(type: DockerRemoveContainer) {
 task createNewContainer(type: DockerCreateContainer) {
 	targetImageId { "gameon-mediator" }
 	containerName = "gameon-mediator"
+	env = ["LICENSE=accept",
+			"CONCIERGE_URL=" + System.getenv('CONCIERGE_URL'),
+			"CONCIERGE_KEY=" + System.getenv('CONCIERGE_KEY'),
+			"MONGO_HOST=" + System.getenv('MONGO_HOST'),
+			"MONGO_PORT=" + System.getenv('MONGO_PORT'),
+			"LOGGING_DOCKER_HOST=" + System.getenv("LOGGING_DOCKER_HOST"),
+			"TWITTER_CONSUMER_KEY=" + System.getenv('TWITTER_CONSUMER_KEY'),
+			"TWITTER_CONSUMER_SECRET=" + System.getenv('TWITTER_CONSUMER_SECRET'),
+			"FACEBOOK_APP_ID=" + System.getenv('FACEBOOK_APP_ID'),
+			"FACEBOOK_APP_SECRET=" + System.getenv('FACEBOOK_APP_SECRET'),
+			"SUCCESS_CALLBACK=" + System.getenv('SUCCESS_CALLBACK'),
+			"PLAYER_URL=" + System.getenv('PLAYER_URL')
+		]
 	portBindings = ['9446:9446']
         env = determinedEnvironment
 }
