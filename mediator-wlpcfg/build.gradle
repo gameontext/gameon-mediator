@@ -4,17 +4,35 @@ buildscript {
 	repositories {
 	    mavenCentral()
 	}
-	
+
 	dependencies {
 		classpath 'com.bmuschko:gradle-docker-plugin:2.6'
 	}
 }
 
+def dockerHost = "https://localhost:2376"
+if (null != System.getenv("DOCKER_HOST"))
+{
+	dockerHost = System.getenv('DOCKER_HOST')
+
+	if (dockerHost.indexOf('tcp') == 0)
+	{
+		dockerHost = dockerHost.replace('tcp','https')
+	}
+}
+
+def dockerCertPath = ""
+if (null != System.getenv('DOCKER_CERT_PATH')){
+	dockerCertPath = System.getenv('DOCKER_CERT_PATH')
+}
 
 task copyWAR(type: Copy) {
     from '../mediator-app/build/libs/mediator-app-1.0.war'
     into 'servers/gameon-mediator/apps/'
     rename("mediator-app-1.0.war", "mediator-app.war")
+}
+
+task build(dependsOn: ['copyWAR']){
 }
 
 apply plugin: 'com.bmuschko.docker-remote-api'
@@ -23,8 +41,8 @@ import com.bmuschko.gradle.docker.tasks.container.*
 import com.bmuschko.gradle.docker.tasks.image.*
 
 docker {
-    url = System.getenv('GRADLE_DOCKER_HOST')
-    certPath = new File(System.getenv("WORKSPACE") + "/dockercfg")
+	  url = dockerHost
+    certPath = new File(dockerCertPath)
 }
 
 task buildDockerImage(type: DockerBuildImage, dependsOn: ['copyWAR']) {
@@ -46,7 +64,7 @@ task createNewContainer(type: DockerCreateContainer) {
 	targetImageId { "gameon-mediator" }
 	containerName = "gameon-mediator"
 	portBindings = ['9443:9443']
-	env = ["LICENSE=accept", 
+	env = ["LICENSE=accept",
 			"CONCIERGE_URL=" + System.getenv('CONCIERGE_URL'),
 			"CONCIERGE_KEY=" + System.getenv('CONCIERGE_KEY'),
 			"MONGO_HOST=" + System.getenv('MONGO_HOST'),
@@ -65,4 +83,3 @@ task startNewContainer(type: DockerStartContainer) {
 	dependsOn createNewContainer
 	targetContainerId { "gameon-mediator" }
 }
-
