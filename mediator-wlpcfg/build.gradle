@@ -24,6 +24,17 @@ if (null != System.getenv("DOCKER_HOST"))
 def dockerCertPath = ""
 if (null != System.getenv('DOCKER_CERT_PATH')){
 	dockerCertPath = System.getenv('DOCKER_CERT_PATH')
+
+def determinedEnvironment = ["LICENSE=accept",
+			"CONCIERGE_URL=" + System.getenv('CONCIERGE_URL'),
+			"CONCIERGE_KEY=" + System.getenv('CONCIERGE_KEY'),
+			"PLAYER_URL=" + System.getenv('PLAYER_URL')
+		]
+if (null != System.getenv("LOGSTASH_ENDPOINT"))
+{
+	determinedEnvironment << "LOGSTASH_ENDPOINT=" + System.getenv("LOGSTASH_ENDPOINT")
+	determinedEnvironment << "LOGSTASH_KEY=" + System.getenv("LOGSTASH_KEY")
+	determinedEnvironment << "LOGSTASH_CERT=" + System.getenv("LOGSTASH_CERT")
 }
 
 task copyWAR(type: Copy) {
@@ -63,7 +74,6 @@ task removeCurrentContainer(type: DockerRemoveContainer) {
 task createNewContainer(type: DockerCreateContainer) {
 	targetImageId { "gameon-mediator" }
 	containerName = "gameon-mediator"
-	portBindings = ['9443:9443']
 	env = ["LICENSE=accept",
 			"CONCIERGE_URL=" + System.getenv('CONCIERGE_URL'),
 			"CONCIERGE_KEY=" + System.getenv('CONCIERGE_KEY'),
@@ -77,6 +87,8 @@ task createNewContainer(type: DockerCreateContainer) {
 			"SUCCESS_CALLBACK=" + System.getenv('SUCCESS_CALLBACK'),
 			"PLAYER_URL=" + System.getenv('PLAYER_URL')
 		]
+	portBindings = ['9446:9446']
+        env = determinedEnvironment
 }
 
 task startNewContainer(type: DockerStartContainer) {

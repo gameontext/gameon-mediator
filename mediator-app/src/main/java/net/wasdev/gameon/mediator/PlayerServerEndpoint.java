@@ -30,92 +30,93 @@ import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
 
 /**
- * Server-side endpoint for the Player Client (phone/browser).
- * This class is versioned to allow for controlled changes to data
- * sent over the wire. It is also scoped to the player's id:
- * a broadcast can be used to send responses back to all of a
- * player's devices if connected to more than one.
- *
+ * Server-side endpoint for the Player Client (phone/browser). This endpoint is
+ * scoped to the player's id to avoid session sharing between different users.
  */
 @ServerEndpoint(value = "/ws/{userId}", decoders = RoutedMessageDecoder.class, encoders = RoutedMessageEncoder.class)
 public class PlayerServerEndpoint {
 
-	/** CDI injection of player session manager */
-	@Inject
-	PlayerSessionManager playerSessionManager;
+    /** CDI injection of player session manager */
+    @Inject
+    PlayerConnectionManager playerSessionManager;
 
-	/** CDI injection of Connection Utilities (consistent send/receive/error handling) */
-	@Inject
-	ConnectionUtils connectionUtils;
+    /**
+     * CDI injection of Connection Utilities (consistent send/receive/error
+     * handling)
+     */
+    @Inject
+    ConnectionUtils connectionUtils;
 
+    /**
+     * Called when a new connection has been established to this endpoint.
+     *
+     * @param session
+     * @param ec
+     */
+    @OnOpen
+    public void onOpen(@PathParam("userId") String userId, Session session, EndpointConfig ec) {
+        Log.log(Level.FINER, session, "client open - {0}", userId);
 
-	/**
-	 * Called when a new connection has been established to this endpoint.
-	 *
-	 * @param session
-	 * @param ec
-	 */
-	@OnOpen
-	public void onOpen(@PathParam("userId") String userId, Session session, EndpointConfig ec) {
-		Log.log(Level.FINER, session, "client open - {0}", userId);
+        System.out.println(session);
+        System.out.println(session.getQueryString());
+        System.out.println(session.getUserProperties());
+    }
 
-		System.out.println(session);
-		System.out.println(session.getQueryString());
-		System.out.println(session.getUserProperties());
-	}
+    /**
+     * Called when the connection is closed (cleanup)
+     *
+     * @param session
+     * @param reason
+     */
+    @OnClose
+    public void onClose(@PathParam("userId") String userId, Session session, CloseReason reason) {
+        Log.log(Level.FINER, session, "client closed - {0}: {1}", userId, reason);
 
-	/**
-	 * Called when the connection is closed (cleanup)
-	 *
-	 * @param session
-	 * @param reason
-	 */
-	@OnClose
-	public void onClose(@PathParam("userId") String userId, Session session, CloseReason reason) {
-		Log.log(Level.FINER, session, "client closed - {0}: {1}", userId, reason);
+        PlayerConnectionMediator ps = playerSessionManager.getMediator(session);
+        playerSessionManager.suspendMediator(ps);
+    }
 
-		PlayerConnectionMediator ps = playerSessionManager.getPlayerSession(session);
-		playerSessionManager.suspendSession(ps);
-	}
+    /**
+     * Message is received from the JS client
+     *
+     * @param message
+     * @param session
+     * @throws IOException
+     */
+    @OnMessage
+    public void onMessage(@PathParam("userId") String userId, RoutedMessage message, Session session)
+            throws IOException {
+        Log.log(Level.FINEST, session, "received from client {0}: {1}", userId, message);
 
-	/**
-	 * Message is received from the JS client
-	 *
-	 * @param message
-	 * @param session
-	 * @throws IOException
-	 */
-	@OnMessage
-	public void onMessage(@PathParam("userId") String userId, RoutedMessage message, Session session) throws IOException {
-		Log.log(Level.FINEST, session, "received from client {0}: {1}", userId, message);
+        switch (message.getFlowTarget()) {
+            case PlayerConnectionMediator.CLIENT_READY: {
+                // create a new or resume an existing player session
+                PlayerConnectionMediator ps = playerSessionManager.startSession(session, userId, message);
+                playerSessionManager.setMediator(session, ps);
+                break;
+            }
+            default: {
+                PlayerConnectionMediator ps = playerSessionManager.getMediator(session);
 
-		switch(message.getFlowTarget()) {
-			case Constants.CLIENT_READY : {
-				// create a new or resume an existing player session
-				PlayerConnectionMediator ps = playerSessionManager.startSession(session, userId, message);
-				playerSessionManager.setPlayerSession(session, ps);
-				break;
-			}
-			default : {
-				PlayerConnectionMediator ps = playerSessionManager.getPlayerSession(session);
+                // after a restart we may get messages before we've
+                // re-established a
+                // session or connection to a room. These are dropped.
+                if (ps == null) {
+                    Log.log(Level.FINEST, session, "no session, dropping message from client {0}: {1}", userId,
+                            message);
+                } else {
+                    ps.sendToRoom(message);
+                }
+                break;
+            }
+        }
+    }
 
-				// after a restart we may get messages before we've re-established a
-				// session or connection to a room. These are dropped.
-				if( ps == null) {
-					Log.log(Level.FINEST, session, "no session, dropping message from client {0}: {1}", userId, message);
-				} else {
-					ps.sendToRoom(message);
-				}
-				break;
-			}
-		}
-	}
+    @OnError
+    public void onError(@PathParam("userId") String userId, Session session, Throwable t) {
+        Log.log(Level.FINER, session, "oops for client " + userId + " connection", t);
 
-	@OnError
-	public void onError(@PathParam("userId") String userId, Session session, Throwable t) {
-		Log.log(Level.FINER, session, "oops for client "+userId+" connection", t);
-
-		connectionUtils.tryToClose(session,
-				new CloseReason(CloseReason.CloseCodes.UNEXPECTED_CONDITION, t.getClass().getName()));
-	}
+        connectionUtils.tryToClose(session,
+                new CloseReason(CloseReason.CloseCodes.UNEXPECTED_CONDITION, t.getClass().getName()));
+    }
 }

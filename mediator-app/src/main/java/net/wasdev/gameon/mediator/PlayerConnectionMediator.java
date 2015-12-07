@@ -28,323 +28,422 @@ import net.wasdev.gameon.mediator.ConciergeClient.RoomEndpointList;
 import net.wasdev.gameon.mediator.ConnectionUtils.Drain;
 
 /**
- * A session that buffers content destined for the client devices across
- * connect/disconnects.
+ * The mediator: mediates the inbound connection from the player's device
+ * to the connection to each individual room. Handles all room transitions
+ * and failover.
+ * <p>
+ * The {@code PlayerServerEndpoint will interact with the {@code PlayerSessionManager}
+ * to find the associated mediator.
+ * </p>
  */
 public class PlayerConnectionMediator {
 
-	private final String userId;
-	private final String username;
-	private final String jwt;
-	private final String id = UUID.randomUUID().toString();
+    /**
+     * The player's userId. The room will broadcast to all connected sessions
+     * in the event that two player devices are connected (e.g.). The mediator
+     * will filter messages, and only relay those directed to all players or
+     * to the specific player.
+     */
+    private final String userId;
 
-	private final ConciergeClient concierge;
-	private final ConnectionUtils connectionUtils;
+    /**
+     * The player's username. Sent to the room with playerHello and playerGoodbye
+     * (which are mediator-initiated messages).
+     */
+    private final String username;
 
-	/** The websocket session between this service and the client device */
-	private Drain drainToClient = null;
+    /** Player client (for updating player location */
+    private final PlayerClient playerClient;
 
-	/** Queue of messages destined for the client device */
-	private final LinkedBlockingDeque<RoutedMessage> toClient = new LinkedBlockingDeque<RoutedMessage>();
+    /**
+     * JWT used to sign messages.
+     */
+    private final String jwt;
 
-	/** The currently connected room */
-	private RoomMediator currentRoom = null;
+    /**
+     * Mediator id. Identifies _this_ mediator instance, which is sent back to the client
+     * device. In the case that the websocket is interrupted, sticky sessions should get the
+     * client routed back to the same mediator instance, which means we should
+     * be able to cope/queue/smooth-over brief disconnects from the client.
+     */
+    private final String id = UUID.randomUUID().toString();
 
-	/**
-	 * Session reaping happens in cycles: we allow a few cycles
-	 * before the session is actually destroyed. Session suspend. */
-	private AtomicInteger suspendCount = new AtomicInteger(0);
+    /**
+     * Concierge client: used to navigate room to room.
+     * Provided by the PlayerSessionMediator, as the
+     * owning CDI-managed bean.
+     */
+    private final ConciergeClient concierge;
 
-	/**
-	 * Create a new PlayerSession for the user.
-	 * @param userId Name of user for this session
-	 * @param playerClient
-	 */
-	public PlayerConnectionMediator(String userId, String username, String jwt, ConciergeClient concierge, PlayerClient playerClient, ConnectionUtils connectionUtils) {
-		this.userId = userId;
-		this.username = username;
-		this.jwt = jwt;
-		this.concierge = concierge;
-		this.connectionUtils = connectionUtils;
+    /**
+     * Connection utilities: used to simplify managing websocket connections.
+     * Provided by the PlayerSessionMediator, as the
+     * owning CDI-managed bean.
+     */
+    private final ConnectionUtils connectionUtils;
 
-		Log.log(Level.FINEST, this, "playerConnectionMediator built. currentRoom should be null at the mo.. is it? "+(currentRoom==null));
-	}
+    /** The websocket session between this service and the client device */
+    private Drain drainToClient = null;
 
-	/**
-	 * @return ID of this session
-	 */
-	public String getId() {
-		return id;
-	}
+    /** Queue of messages destined for the client device */
+    private final LinkedBlockingDeque<RoutedMessage> toClient = new LinkedBlockingDeque<RoutedMessage>();
 
-	/**
-	 * @return User ID of this session
-	 */
-	public String getUserId() {
-		return userId;
-	}
-	/**
-	 * Re-establish connection between the mediator and the player.
-	 * Check the facts, make sure we are safe to resume, otherwise warp the player
-	 * back to first room with no fuss.
-	 *
-	 * @param clientSession The client websocket session
-	 * @param roomId The room id
-	 * @param lastmessage the last message the client saw
-	 */
-	public void connect(Session clientSession, String roomId, long lastmessage) {
-		suspendCount.set(0); // resumed
+    /** The currently connected room */
+    private RoomMediator currentRoom = null;
 
-		// set up delivery thread to send messages to the client as they arrive
-		drainToClient = connectionUtils.drain("TO PLAYER[" + userId + "]", toClient, clientSession);
+    /**
+     * Session reaping happens in cycles: we allow a few cycles before the
+     * session is actually destroyed. Session suspend.
+     */
+    private AtomicInteger suspendCount = new AtomicInteger(0);
 
-		// Find the required room (should keep existing on a reconnect, if possible)
-		// will fall back to FirstRoom if we don't already have a mediator, and the concierge
-		// can't find the room
-		currentRoom = findRoom(roomId);
+    /** Room protocol: name sent from room to client (identifying the room) */
+    public static final String ROOM_NAME = "roomName";
 
-		if ( currentRoom.connect() ) {
-			if ( roomId != null && !currentRoom.getId().equals(roomId) ) {
-				// WARP from one room to the other (because the player is actually in another room)
-				Log.log(Level.FINE, this, "User {0} warped from {1} to {2}", userId, roomId, currentRoom.getId());
-				sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, Constants.SPLINCHED));
-			}
-		} else {
-			Log.log(Level.FINE, this, "User {0} warped from {1} to FirstRoom due to inability to connect to {2}", userId, roomId, currentRoom.getId());
-			sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, Constants.BAD_RIDE));
-			currentRoom = new FirstRoom();
-		}
+    /**
+     * Handshake, player to mediator. Indicates the player is ready to
+     * start or resume player. Includes information based on localstorage in
+     * the client (which room the client thought it was in and the last message seen).
+     */
+    public static final String CLIENT_READY = "ready";
 
-		// Double check that all is well and the client agrees with where we are after possible bumpy rides or splinch repair
-		sendClientAck();
+    /**
+     * Handshake, mediator to player. Returns information to the client
+     * to update the client's cache.
+     */
+    public static final String CLIENT_ACK = "ack";
 
-		// Start flow of messages from room to player (if not previously started)
-		currentRoom.subscribe(this, lastmessage);
-	}
+    public static final String FINDROOM_FAIL = "{\"type\": \"joinpart\",\"content\": \"Oh dear. That is a door to Nowhere. Back to TheFirstRoom \",\"bookmark\": 0}";
+    public static final String CONNECTING = "{\"type\": \"joinpart\",\"content\": \"...connecting to %s...\",\"bookmark\": 0}";
+    public static final String FINDROOM = "{\"type\": \"joinpart\",\"content\": \"...asking concierge for next room...\",\"bookmark\": 0}";
+    public static final String PART = "{\"type\": \"joinpart\",\"content\": \"exit %s\",\"bookmark\": 0}";
+    public static final String JOIN = "{\"type\": \"joinpart\",\"content\": \"enter %s\",\"bookmark\": 0}";
+    public static final String HIBYE = "{\"username\": \"%s\",\"userId\": \"%s\"}";
+    public static final String ELECTRIC_THUMB = "{\"type\": \"exit\",\"content\": \"In a desperate plea for rescue, you stick out your <a href='http://everything2.com/title/Electronic+Thumb' target='_blank'>Electric Thumb</a> and hope for the best.\",\"bookmark\": 0}";
+    public static final String BAD_RIDE = "{\"type\": \"event\",\"content\": {\"*\": \"There is a sudden jerk, and you feel as though a hook somewhere behind your navel was yanking you ... somewhere. <br /><br />What just happened? Something bad, whatever it was, and now you notice you're in a different place than you were.\"},\"bookmark\": 0}";
+    public static final String SPLINCHED = "{\"type\": \"event\",\"content\": {\"*\": \"Ow! You were splinched! After a brief jolt (getting unsplinched isn't comfortable), you're all back together again. At least, all instances of you are in the same room.\"},\"bookmark\": 0}";
 
-	/**
-	 * Stop draining the client-bound queue
-	 */
-	public void disconnect() {
-		if ( drainToClient != null)
-			drainToClient.stop();
-	}
+    /**
+     * Create a new PlayerSession for the user.
+     *
+     * @param userId
+     *            Name of user for this session
+     * @param playerClient
+     */
+    public PlayerConnectionMediator(String userId, String username, String jwt, ConciergeClient concierge,
+            PlayerClient playerClient, ConnectionUtils connectionUtils) {
+        this.userId = userId;
+        this.username = username;
+        this.jwt = jwt;
+        this.concierge = concierge;
+        this.connectionUtils = connectionUtils;
+        this.playerClient = playerClient;
 
-	/**
-	 * Destroy/cleanup the session (expired)
-	 */
-	public void destroy() {
-		Log.log(Level.FINE, this, "session {0} destroyed", userId);
-		// session expired.
-		toClient.clear();
+        Log.log(Level.FINEST, this, "playerConnectionMediator built. currentRoom should be null at the mo.. is it? "
+                + (currentRoom == null));
+    }
 
-		Log.log(Level.FINER, this, "playerConnectionMediator for {1} unsubscribing from currentRoom {0} and setting it to null", currentRoom.getId(), userId);
+    /**
+     * @return ID of this session
+     */
+    public String getId() {
+        return id;
+    }
 
-		currentRoom.unsubscribe(this);
-		currentRoom.disconnect();
-		currentRoom = null;
-	}
+    /**
+     * @return User ID of this session
+     */
+    public String getUserId() {
+        return userId;
+    }
 
-	/**
-	 * Coordinate a player switching rooms. Send messages to the client
-	 * to indicate the transition, connect to the new room, indicate to the
-	 * client that they've joined the new room, and then disconnect from the old room.
-	 *
-	 * @param message RoutedMessage that contains the updated/target room
-	 */
-	private void switchRooms(RoutedMessage message) {
-		Log.log(Level.FINER, this, "SWITCH ROOMS", currentRoom, message);
+    /**
+     * Re-establish connection between the mediator and the player. Check the
+     * facts, make sure we are safe to resume, otherwise warp the player back to
+     * first room with no fuss.
+     *
+     * @param clientSession
+     *            The client websocket session
+     * @param roomId
+     *            The room id
+     * @param lastmessage
+     *            the last message the client saw
+     */
+    public void connect(Session clientSession, String roomId, long lastmessage) {
+        suspendCount.set(0); // resumed
 
-		RoomMediator oldRoom = currentRoom;
-		String exitId = null;
+        // set up delivery thread to send messages to the client as they arrive
+        drainToClient = connectionUtils.drain("TO PLAYER[" + userId + "]", toClient, clientSession);
 
-		if ( message != null ) {
-			if ( message.isSOS() ) {
-				// we don't look for an exitId in the case of an SOS.
-				sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, Constants.ELECTRIC_THUMB));
-			} else {
-				// If we are properly exiting a room, we have the new room in the payload
-				// of the message from the old room.
-				JsonObject exitData = message.getParsedBody();
-				exitId = exitData.getString("exitId");
-			}
-		}
+        // Find the required room (should keep existing on a reconnect, if
+        // possible)
+        // will fall back to FirstRoom if we don't already have a mediator, and
+        // the concierge
+        // can't find the room
+        currentRoom = findRoom(roomId);
 
-		// Part the room
-		Log.log(Level.FINER, this, "GOODBYE {0}", oldRoom.getId());
-		sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, String.format(Constants.PART, oldRoom.getId())));
-		sendToRoom(oldRoom,
-				RoutedMessage.createMessage(Constants.ROOM_GOODBYE,
-						oldRoom.getId(),
-						String.format(Constants.HIBYE, username, userId)));
+        if (currentRoom.connect()) {
+            if (roomId != null && !currentRoom.getId().equals(roomId)) {
+                // WARP from one room to the other (because the player is
+                // actually in another room)
+                Log.log(Level.FINE, this, "User {0} warped from {1} to {2}", userId, roomId, currentRoom.getId());
+                sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, PlayerConnectionMediator.SPLINCHED));
+            }
+        } else {
+            Log.log(Level.FINE, this, "User {0} warped from {1} to FirstRoom due to inability to connect to {2}",
+                    userId, roomId, currentRoom.getId());
+            sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, PlayerConnectionMediator.BAD_RIDE));
+            currentRoom = new FirstRoom();
+        }
 
-		// allow room to close connection after receiving the roomGoodbye
-		oldRoom.unsubscribe(this);
-		oldRoom.disconnect();
+        // Double check that all is well and the client agrees with where we are
+        // after possible bumpy rides or splinch repair
+        sendClientAck();
 
-		// Find the next room.
-		sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, String.format(Constants.FINDROOM, oldRoom.getId())));
-		RoomMediator newRoom = findNextRoom(oldRoom, exitId);
+        // Start flow of messages from room to player (if not previously
+        // started)
+        currentRoom.subscribe(this, lastmessage);
+    }
 
-		sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, String.format(Constants.CONNECTING, newRoom.getId())));
-		if ( newRoom.connect() ) {
-			Log.log(Level.FINER, this, "playerConnectionMediator just set room for {0} to be {1}", userId, newRoom.getId());
-			currentRoom = newRoom;
-		} else {
-			// Bumpy ride! OW.
-			sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, Constants.BAD_RIDE));
-			sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, String.format(Constants.CONNECTING, currentRoom.getId())));
+    /**
+     * Stop draining the client-bound queue
+     */
+    public void disconnect() {
+        if (drainToClient != null)
+            drainToClient.stop();
+    }
 
-			if ( currentRoom.connect() ) {
-				// we were able to reconnect to the old room.
-			} else {
-				currentRoom = findRoom(null);
-			}
-		}
+    /**
+     * Destroy/cleanup the session (expired)
+     */
+    public void destroy() {
+        Log.log(Level.FINE, this, "session {0} destroyed", userId);
+        // session expired.
+        toClient.clear();
 
-		sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, String.format(Constants.JOIN, currentRoom.getName())));
-		// Tell the client we've changed rooms
-		sendClientAck();
+        Log.log(Level.FINER, this,
+                "playerConnectionMediator for {1} unsubscribing from currentRoom {0} and setting it to null",
+                currentRoom.getId(), userId);
 
-		// Start flow of messages from room to player (if not previously started)
-		currentRoom.subscribe(this, 0);
+        currentRoom.unsubscribe(this);
+        currentRoom.disconnect();
+        currentRoom = null;
+    }
 
-		Log.log(Level.FINER, this, "HELLO {0}", currentRoom.getId());
-		sendToRoom(currentRoom,
-				RoutedMessage.createMessage(Constants.ROOM_HELLO,
-						currentRoom.getId(),
-						String.format(Constants.HIBYE, username, userId)));
-	}
+    /**
+     * Coordinate a player switching rooms. Send messages to the client to
+     * indicate the transition, connect to the new room, indicate to the client
+     * that they've joined the new room, and then disconnect from the old room.
+     *
+     * @param message
+     *            RoutedMessage that contains the updated/target room
+     */
+    private void switchRooms(RoutedMessage message) {
+        Log.log(Level.FINER, this, "SWITCH ROOMS", currentRoom, message);
 
-	/**
-	 * Route the message to the current room
-	 * @param message RoutedMessage containing routing information and payload
-	 */
-	public void sendToRoom(RoutedMessage message) {
-		this.sendToRoom(currentRoom, message);
-	}
+        RoomMediator oldRoom = currentRoom;
+        String exitId = null;
 
-	/**
-	 * Send a message on to the target room. IFF the message is actually the
-	 * special /sos command, switch rooms instead.
-	 * @param targetRoom Room to write to (like the old room)
-	 * @param message RoutedMessage containing routing information and payload
-	 */
-	public void sendToRoom(RoomMediator targetRoom, RoutedMessage message) {
-		if ( message.isSOS() ) {
-			switchRooms(message);
-		} else {
-			targetRoom.send(message);
-		}
-	}
+        if (message != null) {
+            if (message.isSOS()) {
+                // we don't look for an exitId in the case of an SOS.
+                sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, PlayerConnectionMediator.ELECTRIC_THUMB));
+            } else {
+                // If we are properly exiting a room, we have the new room in
+                // the payload
+                // of the message from the old room.
+                JsonObject exitData = message.getParsedBody();
+                exitId = exitData.getString("exitId");
+            }
+        }
 
-	/**
-	 * Compose an acknowledgement to send back to the client that
-	 * contains the mediator id and the current room id/name.
-	 *
-	 * @return ack message with mediator id
-	 */
-	private void sendClientAck() {
-		JsonObject ack = Json.createObjectBuilder()
-				.add(Constants.MEDIATOR_ID, id)
-				.add(Constants.ROOM_ID, currentRoom.getId())
-				.add(Constants.ROOM_NAME, currentRoom.getName())
-				.build();
+        // Part the room
+        Log.log(Level.FINER, this, "GOODBYE {0}", oldRoom.getId());
+        sendToClient(
+                RoutedMessage.createMessage(Constants.PLAYER, userId, String.format(PlayerConnectionMediator.PART, oldRoom.getId())));
+        sendToRoom(oldRoom, RoutedMessage.createMessage(Constants.ROOM_GOODBYE, oldRoom.getId(),
+                String.format(PlayerConnectionMediator.HIBYE, username, userId)));
 
-		toClient.offer(RoutedMessage.createMessage(Constants.CLIENT_ACK, ack));
-	}
+        // allow room to close connection after receiving the roomGoodbye
+        oldRoom.unsubscribe(this);
+        oldRoom.disconnect();
 
-	/**
-	 * Add message to queue for delivery to the client
-	 * @param routing RoutedMessage containing routing information and payload
-	 */
-	public void sendToClient(RoutedMessage message) {
-		// make sure we're only dealing with messages for everyone,
-		// or messages for this user (ignore all others)
-		if ( message.isForUser(userId) ){
-			// TODO: Capacity?
-			toClient.offer(message);
+        // Find the next room.
+        sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
+                String.format(PlayerConnectionMediator.FINDROOM, oldRoom.getId())));
+        RoomMediator newRoom = findNextRoom(oldRoom, exitId);
 
-			// If we are additionally changing locations, ...
-			if ( Constants.PLAYER_LOCATION.equals(message.getFlowTarget())) {
-				switchRooms(message);
-			}
-		} else {
-			Log.log(Level.FINEST, this, "sendToClient -- Dropping message {0}", message);
-		}
-	}
+        sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
+                String.format(PlayerConnectionMediator.CONNECTING, newRoom.getId())));
 
-	/**
-	 * Find the room for the specified room id.
-	 *
-	 * @param roomId Current room id to look up.
-	 * @return current room mediator if it matches, or a new one if not.
-	 */
-	protected RoomMediator findRoom(String roomId) {
-		Log.log(Level.FINEST, this, "findRoom  {0} {1}", roomId, currentRoom);
+        if (newRoom.connect()) {
+            Log.log(Level.FINER, this, "playerConnectionMediator just set room for {0} to be {1}", userId,
+                    newRoom.getId());
+            currentRoom = newRoom;
+        } else {
+            // Bumpy ride! OW.
+            sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, PlayerConnectionMediator.BAD_RIDE));
+            sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
+                    String.format(PlayerConnectionMediator.CONNECTING, currentRoom.getId())));
 
-		if ( currentRoom != null ) {
-			if ( currentRoom.getId().equals(roomId)) {
-				// Room session resume
-				return currentRoom;
-			} else {
-				// The player moved rooms somewhere along the way
-				// we need to make sure we detach the old session
-				currentRoom.unsubscribe(this);
-				currentRoom.disconnect();
-			}
-		}
+            if (currentRoom.connect()) {
+                // we were able to reconnect to the old room.
+            } else {
+                currentRoom = findRoom(null);
+            }
+        }
 
-		if ( roomId == null || roomId.isEmpty() || Constants.FIRST_ROOM.equals(roomId) ) {
-			return new FirstRoom((roomId == null || roomId.isEmpty()));
-		}
+        // Tell the client we've changed rooms
+        sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
+                String.format(PlayerConnectionMediator.JOIN, currentRoom.getName())));
 
+        // Update client's local storage information
+        sendClientAck();
 
-		return createMediator(concierge.getRoomEndpoints(roomId));
-	}
+        // Start flow of messages from room to player (if not previously started)
+        currentRoom.subscribe(this, 0);
 
-	/**
-	 * Find the room on the other side of the specified door
-	 * @param currentRoom The current room
-	 * @param exit The id of the door to look behind (directional, e.g. 'N')
-	 * @return A new room mediator for the room on the other side of the door
-	 */
-	protected RoomMediator findNextRoom(RoomMediator currentRoom, String exit) {
-		if ( exit == null || Constants.FIRST_ROOM.equals(currentRoom.getId()) ) {
-			return createMediator(concierge.findNextRoom(currentRoom, null));
-		}
-		return createMediator(concierge.findNextRoom(currentRoom, exit));
-	}
+        // Say hello to the new room!
+        Log.log(Level.FINER, this, "HELLO {0}", currentRoom.getId());
+        sendToRoom(currentRoom, RoutedMessage.createMessage(Constants.ROOM_HELLO, currentRoom.getId(),
+                String.format(PlayerConnectionMediator.HIBYE, username, userId)));
+    }
 
-	/**
-	 * Create the remote mediator for the specified Room/EndpointList
-	 * @param roomEndpoints Room and possible endpoints to reach that room
-	 * @return new mediator, or the FirstRoom if roomEndpoints is null
-	 */
-	protected RoomMediator createMediator(RoomEndpointList roomEndpoints) {
-		if ( roomEndpoints == null ) {
-			// safe fallback
-			sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, String.format(Constants.FINDROOM_FAIL)));
-			return new FirstRoom();
-		} else {
-			return new RemoteRoomMediator(roomEndpoints, connectionUtils);
-		}
-	}
+    /**
+     * Route the message to the current room
+     *
+     * @param message
+     *            RoutedMessage containing routing information and payload
+     */
+    public void sendToRoom(RoutedMessage message) {
+        this.sendToRoom(currentRoom, message);
+    }
 
-	@Override
-	public String toString() {
-		if ( currentRoom == null ) {
-			return this.getClass().getName()
-					+ "[userId=" + userId +"]";
-		} else {
-			return this.getClass().getName()
-					+ "[userId=" + userId
-					+ ", roomId=" + currentRoom.getId()
-					+ ", suspendCount=" + suspendCount.get() +"]";
-		}
-	}
+    /**
+     * Send a message on to the target room. IFF the message is actually the
+     * special /sos command, switch rooms instead.
+     *
+     * @param targetRoom
+     *            Room to write to (like the old room)
+     * @param message
+     *            RoutedMessage containing routing information and payload
+     */
+    public void sendToRoom(RoomMediator targetRoom, RoutedMessage message) {
+        if (message.isSOS()) {
+            switchRooms(message);
+        } else {
+            targetRoom.send(message);
+        }
+    }
 
-	public int incrementAndGet() {
-		return suspendCount.incrementAndGet();
-	}
+    /**
+     * Compose an acknowledgement to send back to the client that contains the
+     * mediator id and the current room id/name.
+     *
+     * @return ack message with mediator id
+     */
+    private void sendClientAck() {
+        JsonObject ack = Json.createObjectBuilder().add(FirstRoom.MEDIATOR_ID, id)
+                .add(Constants.ROOM_ID, currentRoom.getId()).add(PlayerConnectionMediator.ROOM_NAME, currentRoom.getName()).build();
+
+        toClient.offer(RoutedMessage.createMessage(PlayerConnectionMediator.CLIENT_ACK, ack));
+    }
+
+    /**
+     * Add message to queue for delivery to the client
+     *
+     * @param routing
+     *            RoutedMessage containing routing information and payload
+     */
+    public void sendToClient(RoutedMessage message) {
+        // make sure we're only dealing with messages for everyone,
+        // or messages for this user (ignore all others)
+        if (message.isForUser(userId)) {
+            // TODO: Capacity?
+            toClient.offer(message);
+
+            // If we are additionally changing locations, ...
+            if (Constants.PLAYER_LOCATION.equals(message.getFlowTarget())) {
+                switchRooms(message);
+            }
+        } else {
+            Log.log(Level.FINEST, this, "sendToClient -- Dropping message {0}", message);
+        }
+    }
+
+    /**
+     * Find the room for the specified room id.
+     *
+     * @param roomId
+     *            Current room id to look up.
+     * @return current room mediator if it matches, or a new one if not.
+     */
+    protected RoomMediator findRoom(String roomId) {
+        Log.log(Level.FINEST, this, "findRoom  {0} {1}", roomId, currentRoom);
+
+        if (currentRoom != null) {
+            if (currentRoom.getId().equals(roomId)) {
+                // Room session resume
+                return currentRoom;
+            } else {
+                // The player moved rooms somewhere along the way
+                // we need to make sure we detach the old session
+                currentRoom.unsubscribe(this);
+                currentRoom.disconnect();
+            }
+        }
+
+        if (roomId == null || roomId.isEmpty() || Constants.FIRST_ROOM.equals(roomId)) {
+            return new FirstRoom((roomId == null || roomId.isEmpty()));
+        }
+
+        return createMediator(concierge.getRoomEndpoints(roomId));
+    }
+
+    /**
+     * Find the room on the other side of the specified door
+     *
+     * @param currentRoom
+     *            The current room
+     * @param exit
+     *            The id of the door to look behind (directional, e.g. 'N')
+     * @return A new room mediator for the room on the other side of the door
+     */
+    protected RoomMediator findNextRoom(RoomMediator currentRoom, String exit) {
+        if (exit == null || Constants.FIRST_ROOM.equals(currentRoom.getId())) {
+            return createMediator(concierge.findNextRoom(currentRoom, null));
+        }
+        return createMediator(concierge.findNextRoom(currentRoom, exit));
+    }
+
+    /**
+     * Create the remote mediator for the specified Room/EndpointList
+     *
+     * @param roomEndpoints
+     *            Room and possible endpoints to reach that room
+     * @return new mediator, or the FirstRoom if roomEndpoints is null
+     */
+    protected RoomMediator createMediator(RoomEndpointList roomEndpoints) {
+        if (roomEndpoints == null) {
+            // safe fallback
+            sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, String.format(PlayerConnectionMediator.FINDROOM_FAIL)));
+            return new FirstRoom();
+        } else {
+            return new RemoteRoomMediator(roomEndpoints, connectionUtils);
+        }
+    }
+
+    @Override
+    public String toString() {
+        if (currentRoom == null) {
+            return this.getClass().getName() + "[userId=" + userId + "]";
+        } else {
+            return this.getClass().getName() + "[userId=" + userId + ", roomId=" + currentRoom.getId()
+            + ", suspendCount=" + suspendCount.get() + "]";
+        }
+    }
+
+    public int incrementAndGet() {
+        return suspendCount.incrementAndGet();
+    }
 }

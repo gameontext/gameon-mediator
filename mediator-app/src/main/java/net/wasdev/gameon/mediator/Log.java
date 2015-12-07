@@ -18,25 +18,30 @@ package net.wasdev.gameon.mediator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Wrapper to provide a single logger with a consistent format that helps
+ * identify different endpoints in the messages
+ *
+ */
 public class Log {
-	private final static Logger log = Logger.getLogger("net.wasdev.gameon.mediator");
-	private static final String endpoint_log_format = "%-10s: %s";
+    private final static Logger log = Logger.getLogger("net.wasdev.gameon.mediator");
+    private static final String endpoint_log_format = "%-10s: %s";
 
-	public static void log(Level level, Object source, String message, Object ... args) {
-		if ( log.isLoggable(level)) {
-			String msg = String.format(endpoint_log_format, getHash(source), message);
-			log.log(level, msg, args);
-		}
-	}
+    public static void log(Level level, Object source, String message, Object... args) {
+        if (log.isLoggable(level)) {
+            String msg = String.format(endpoint_log_format, getHash(source), message);
+            log.log(level, msg, args);
+        }
+    }
 
-	public static void log(Level level, Object source, String message, Throwable thrown) {
-		if ( log.isLoggable(level)) {
-			String msg = String.format(endpoint_log_format, getHash(source), message);
-			log.log(level, msg, thrown);
-		}
-	}
+    public static void log(Level level, Object source, String message, Throwable thrown) {
+        if (log.isLoggable(level)) {
+            String msg = String.format(endpoint_log_format, getHash(source), message);
+            log.log(level, msg, thrown);
+        }
+    }
 
-	private static String getHash(Object source) {
-		return source == null ? "null" : Integer.toString(System.identityHashCode(source));
-	}
+    private static String getHash(Object source) {
+        return source == null ? "null" : Integer.toString(System.identityHashCode(source));
+    }
 }

@@ -1,6 +1,6 @@
 # Game On! 
 
-[![Codacy Badge](https://api.codacy.com/project/badge/grade/1fc932713e474ba0bb9593a9cdcb8e35)](https://www.codacy.com/app/gameontext/gameon-mediator)
+[![Codacy Badge](https://api.codacy.com/project/badge/grade/0635f617e5d2455ca24ba2fe5873a1ec)](https://www.codacy.com/app/gameontext/gameon-mediator)
 
 Game On! is a both a sample application, and throwback text adventure.
 

@@ -16,52 +16,40 @@
 package net.wasdev.gameon.mediator;
 
 /**
- * @author elh
+ * Protocol and message constants
  *
  */
 public interface Constants {
 
-	String ROOM = "room";
-	String ROOM_NAME = "roomName";
-	String ROOM_HELLO = "roomHello";
-	String ROOM_GOODBYE = "roomGoodbye";
+    /** Routing: Mediator sends hello when a player enters the room (new room) */
+    String ROOM_HELLO = "roomHello";
 
-	String PLAYER = "player";
-	String PLAYER_LOCATION = "playerLocation";
-	String SOS = "sos";
-	String CLIENT_READY = "ready";
-	String CLIENT_ACK = "ack";
+    /** Routing: Mediator sends goodbye when a player leaves the room */
+    String ROOM_GOODBYE = "roomGoodbye";
 
-	String FIRST_ROOM = "TheFirstRoom";
+    /** Routing: Message directed from room to player */
+    String PLAYER = "player";
 
-	// Perhaps a type enum would work better
-	String TYPE = "type";
-	String CHAT = "chat";
-	String EVENT = "event";
-	String EXIT = "exit";
+    /**
+     * Routing:
+     * Message from room to mediator indicating that the player successfully opened a door.
+     * This will tell the mediator to attempt a room change.
+     */
+    String PLAYER_LOCATION = "playerLocation";
 
-	String LOCATION = "location";
-	String NAME = "name";
-	String DESCRIPTION = "description";
-	String EXITS = "exits";
+    /**
+     * Routing: sent by the player to attempt a "rescue" (a jump from one room
+     * to a random other room if they get stuck (or feel like exploring).
+     */
+    String SOS = "sos";
 
-	String MEDIATOR_ID = "mediatorId";
-	String ROOM_ID = "roomId";
-	String EXIT_ID = "exitId";
-	String BOOKMARK = "bookmark";
+    /**
+     * The id of the first room (special, provided by the mediator itself).
+     */
+    String FIRST_ROOM = "TheFirstRoom";
 
-	String USERNAME = "username";
-	String USER_ID = "userId";
-	String CONTENT = "content";
+    String ROOM_ID = "roomId";
+    String BOOKMARK = "bookmark";
 
-	String SPLINCHED = "{\"type\": \"event\",\"content\": {\"*\": \"Ow! You were splinched! After a brief jolt (getting unsplinched isn't comfortable), you're all back together again. At least, all instances of you are in the same room.\"},\"bookmark\": 0}";
-	String BAD_RIDE = "{\"type\": \"event\",\"content\": {\"*\": \"There is a sudden jerk, and you feel as though a hook somewhere behind your navel was yanking you ... somewhere. <br /><br />What just happened? Something bad, whatever it was, and now you notice you're in a different place than you were.\"},\"bookmark\": 0}";
-	String ELECTRIC_THUMB = "{\"type\": \"exit\",\"content\": \"In a desperate plea for rescue, you stick out your <a href='http://everything2.com/title/Electronic+Thumb' target='_blank'>Electric Thumb</a> and hope for the best.\",\"bookmark\": 0}";
-
-	String HIBYE = "{\"username\": \"%s\",\"userId\": \"%s\"}";
-	String JOIN = "{\"type\": \"joinpart\",\"content\": \"enter %s\",\"bookmark\": 0}";
-	String PART = "{\"type\": \"joinpart\",\"content\": \"exit %s\",\"bookmark\": 0}";
-	String FINDROOM = "{\"type\": \"joinpart\",\"content\": \"...asking concierge for next room...\",\"bookmark\": 0}";
-	String CONNECTING = "{\"type\": \"joinpart\",\"content\": \"...connecting to %s...\",\"bookmark\": 0}";
-	String FINDROOM_FAIL = "{\"type\": \"joinpart\",\"content\": \"Oh dear. That is a door to Nowhere. Back to TheFirstRoom \",\"bookmark\": 0}";
+    String USERNAME = "username";
 }
