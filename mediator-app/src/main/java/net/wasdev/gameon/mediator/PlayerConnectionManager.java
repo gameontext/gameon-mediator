@@ -233,19 +233,20 @@ public class PlayerConnectionManager implements Runnable {
             if (signingKey == null)
                 getKeyStoreInfo();
 
-            // parse the jwt into an object..
-            Jws<Claims> jwt = Jwts.parser().setSigningKey(signingKey).parseClaimsJws(jwtParam);
-
-            // create a new jwt with type server for use by this session.
-            Claims onwardsClaims = Jwts.claims();
-            // add all the client claims
-            onwardsClaims.putAll(jwt.getBody());
-            // upgrade the type to server
-            onwardsClaims.setAudience("server");
-
-            // build the new jwt
-            String newJwt = Jwts.builder().setHeaderParam("kid", "playerssl").setClaims(onwardsClaims)
-                    .signWith(SignatureAlgorithm.RS256, signingKey).compact();
+            //// parse the jwt into an object..
+            //Jws<Claims> jwt = Jwts.parser().setSigningKey(signingKey).parseClaimsJws(jwtParam);
+            //
+            //// create a new jwt with type server for use by this session.
+            //Claims onwardsClaims = Jwts.claims();
+            //// add all the client claims
+            //onwardsClaims.putAll(jwt.getBody());
+            //// upgrade the type to server
+            //onwardsClaims.setAudience("server");
+            //
+            //// build the new jwt
+            //String newJwt = Jwts.builder().setHeaderParam("kid", "playerssl").setClaims(onwardsClaims)
+            //        .signWith(SignatureAlgorithm.RS256, signingKey).compact();
+            String newJwt="";
 
             mediator = new PlayerConnectionMediator(userName, username, newJwt, concierge, playerClient,
                     connectionUtils);
