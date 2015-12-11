@@ -37,6 +37,10 @@ if (null != System.getenv("LOGSTASH_ENDPOINT"))
 	determinedEnvironment << "LOGSTASH_KEY=" + System.getenv("LOGSTASH_KEY")
 	determinedEnvironment << "LOGSTASH_CERT=" + System.getenv("LOGSTASH_CERT")
 }
+if (null != System.getenv("SSL_CERT"))
+{
+	determinedEnvironment << "SSL_CERT=" + System.getenv("SSL_CERT")
+}
 
 task copyWAR(type: Copy) {
     from '../mediator-app/build/libs/mediator-app-1.0.war'
