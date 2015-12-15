@@ -40,10 +40,10 @@ import javax.websocket.WebSocketContainer;
 /**
  * A common set of utilities to manage websocket connections.
  * <p>
- * CDI will create this (the {@code ConnectionUtils} as an application
- * scoped bean. This bean will be created when the application starts,
- * and can  be injected into other CDI-managed beans for as long as
- * the application is valid.
+ * CDI will create this (the {@code ConnectionUtils} as an application scoped
+ * bean. This bean will be created when the application starts, and can be
+ * injected into other CDI-managed beans for as long as the application is
+ * valid.
  * </p>
  *
  * @see ApplicationScoped
@@ -102,8 +102,9 @@ public class ConnectionUtils {
     /**
      * {@code CloseReason} can include a value, but the length of the text is
      * limited.
+     * 
      * @param message
-     *    String to trim
+     *            String to trim
      * @return a string no longer than 123 characters.
      */
     private static String trimReason(String message) {
@@ -149,7 +150,8 @@ public class ConnectionUtils {
     }
 
     /**
-     * Try to close a {@code Closeable} (usually once an error has already occurred).
+     * Try to close a {@code Closeable} (usually once an error has already
+     * occurred).
      *
      * @param c
      *            Closable to close
@@ -196,11 +198,16 @@ public class ConnectionUtils {
 
         /**
          * Construct a drain around the given message queue.
-         * @param id An identifier for the drain (used in logs)
-         * @param pending The queue for pending messages
-         * @param targetSession The target session to publish queued messages
-         * @param connectionUtils Instance of connection utils for managing the connections
-         *         (provided by the CDI bean that creates/manages this drain)
+         * 
+         * @param id
+         *            An identifier for the drain (used in logs)
+         * @param pending
+         *            The queue for pending messages
+         * @param targetSession
+         *            The target session to publish queued messages
+         * @param connectionUtils
+         *            Instance of connection utils for managing the connections
+         *            (provided by the CDI bean that creates/manages this drain)
          */
         public Drain(String id, LinkedBlockingDeque<RoutedMessage> pending, Session targetSession,
                 ConnectionUtils connectionUtils) {

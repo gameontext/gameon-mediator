@@ -44,20 +44,20 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 
 /**
- * Lifecycle management for mediators.
- * When a "ready" message is received, the payload will be inspected to see
- * if a mediator id is present via {@link #startSession(Session, String, RoutedMessage)} .
- * If so, that session will be resumed, if not, a new session will be created.
- * The {@code PlayerConnectionMediator} is then associated with the WebSocket session
- * via {@link #setMediator(Session, PlayerConnectionMediator)}.
- * When future messages are received via the WebSocket, the {@code PlayerConnectionMediator}
- * for the session is retrieved via {@link #getMediator(Session)}, and then used
- * to handle the incoming message.
+ * Lifecycle management for mediators. When a "ready" message is received, the
+ * payload will be inspected to see if a mediator id is present via
+ * {@link #startSession(Session, String, RoutedMessage)} . If so, that session
+ * will be resumed, if not, a new session will be created. The
+ * {@code PlayerConnectionMediator} is then associated with the WebSocket
+ * session via {@link #setMediator(Session, PlayerConnectionMediator)}. When
+ * future messages are received via the WebSocket, the
+ * {@code PlayerConnectionMediator} for the session is retrieved via
+ * {@link #getMediator(Session)}, and then used to handle the incoming message.
  * <p>
  * CDI will create this (the {@code PlayerSessionManager} as an application
- * scoped bean. This bean will be created when the application starts,
- * and can  be injected into other CDI-managed beans for as long as
- * the application is valid.
+ * scoped bean. This bean will be created when the application starts, and can
+ * be injected into other CDI-managed beans for as long as the application is
+ * valid.
  * </p>
  *
  * @see ApplicationScoped
@@ -181,7 +181,8 @@ public class PlayerConnectionManager implements Runnable {
     }
 
     /**
-     * Create a new {@code PlayerConnectionMediator} to mediate between the client and the room
+     * Create a new {@code PlayerConnectionMediator} to mediate between the
+     * client and the room
      *
      * @param clientSession
      *            WebSocket session for the connection between the client and
@@ -235,14 +236,14 @@ public class PlayerConnectionManager implements Runnable {
 
             // parse the jwt into an object..
             Jws<Claims> jwt = Jwts.parser().setSigningKey(signingKey).parseClaimsJws(jwtParam);
-            
+
             // create a new jwt with type server for use by this session.
             Claims onwardsClaims = Jwts.claims();
             // add all the client claims
             onwardsClaims.putAll(jwt.getBody());
             // upgrade the type to server
             onwardsClaims.setAudience("server");
-            
+
             // build the new jwt
             String newJwt = Jwts.builder().setHeaderParam("kid", "playerssl").setClaims(onwardsClaims)
                     .signWith(SignatureAlgorithm.RS256, signingKey).compact();
@@ -259,7 +260,8 @@ public class PlayerConnectionManager implements Runnable {
     }
 
     /**
-     * Move the {@code PlayerConnectionMediator} to the list of suspended mediators.
+     * Move the {@code PlayerConnectionMediator} to the list of suspended
+     * mediators.
      *
      * @see PlayerServerEndpoint#onClose(String, Session,
      *      javax.websocket.CloseReason)

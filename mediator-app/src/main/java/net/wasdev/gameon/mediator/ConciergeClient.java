@@ -42,13 +42,14 @@ import javax.ws.rs.core.Response;
  * A wrapped/encapsulation of outbound REST requests to the concierge.
  * <p>
  * The URL for the concierge service and the API key are injected via CDI:
- * {@code <jndiEntry />} elements defined in server.xml maps the
- * environment variables to JNDI values.
- * </p><p>
- * CDI will create this (the {@code ConciergeClient} as an application
- * scoped bean. This bean will be created when the application starts,
- * and can  be injected into other CDI-managed beans for as long as
- * the application is valid.
+ * {@code <jndiEntry />} elements defined in server.xml maps the environment
+ * variables to JNDI values.
+ * </p>
+ * <p>
+ * CDI will create this (the {@code ConciergeClient} as an application scoped
+ * bean. This bean will be created when the application starts, and can be
+ * injected into other CDI-managed beans for as long as the application is
+ * valid.
  * </p>
  *
  * @see ApplicationScoped
@@ -56,14 +57,20 @@ import javax.ws.rs.core.Response;
 @ApplicationScoped
 public class ConciergeClient {
 
-    /** The concierge URL injected from JNDI via CDI.
-     * @see {@code conciergeUrl} in {@code /mediator-wlpcfg/servers/gameon-mediator/server.xml}
+    /**
+     * The concierge URL injected from JNDI via CDI.
+     * 
+     * @see {@code conciergeUrl} in
+     *      {@code /mediator-wlpcfg/servers/gameon-mediator/server.xml}
      */
     @Resource(lookup = "conciergeUrl")
     String conciergeLocation;
 
-    /** The concierge API key injected from JNDI via CDI.
-     * @see {@code conciergeQueryApiKey} in {@code /mediator-wlpcfg/servers/gameon-mediator/server.xml}
+    /**
+     * The concierge API key injected from JNDI via CDI.
+     * 
+     * @see {@code conciergeQueryApiKey} in
+     *      {@code /mediator-wlpcfg/servers/gameon-mediator/server.xml}
      */
     @Resource(lookup = "conciergeQueryApiKey")
     String querySecret;
@@ -77,9 +84,9 @@ public class ConciergeClient {
     private WebTarget root;
 
     /**
-     * The {@code @PostConstruct} annotation indicates that this method
-     * should be called immediately after the {@code ConciergeClient} is
-     * instantiated with the default no-argument constructor.
+     * The {@code @PostConstruct} annotation indicates that this method should
+     * be called immediately after the {@code ConciergeClient} is instantiated
+     * with the default no-argument constructor.
      *
      * @see PostConstruct
      * @see ApplicationScoped
@@ -127,12 +134,12 @@ public class ConciergeClient {
     }
 
     /**
-     * Construct an outbound {@code WebTarget} that builds on the
-     * root {@code WebTarget#path(String)} to add the path segment
-     * required to request a starting room ({@code startingRoom}).
+     * Construct an outbound {@code WebTarget} that builds on the root
+     * {@code WebTarget#path(String)} to add the path segment required to
+     * request a starting room ({@code startingRoom}).
      *
-     * @return The list of available endpoints returned from the concierge.
-     *   This may be null if the list could not be retrieved.
+     * @return The list of available endpoints returned from the concierge. This
+     *         may be null if the list could not be retrieved.
      * @see #getRoomList(WebTarget)
      */
     public RoomEndpointList getRoomEndpoints() {
@@ -142,15 +149,16 @@ public class ConciergeClient {
     }
 
     /**
-     * Construct an outbound {@code WebTarget} that builds on the
-     * root {@code WebTarget#path(String)} to add the path segment
-     * required to request the exits available for a given room (<code>rooms/{roomId}</code>).
+     * Construct an outbound {@code WebTarget} that builds on the root
+     * {@code WebTarget#path(String)} to add the path segment required to
+     * request the exits available for a given room (<code>rooms/{roomId}</code>
+     * ).
      *
      * @param roomId
-     *          The specific room to find exits for
+     *            The specific room to find exits for
      *
-     * @return The list of available endpoints returned from the concierge.
-     *   This may be null if the list could not be retrieved.
+     * @return The list of available endpoints returned from the concierge. This
+     *         may be null if the list could not be retrieved.
      *
      * @see #getRoomList(WebTarget)
      * @see WebTarget#resolveTemplate(String, Object)
@@ -162,18 +170,18 @@ public class ConciergeClient {
     }
 
     /**
-     * Construct an outbound {@code WebTarget} that builds on the
-     * root {@code WebTarget#path(String)} to add the path segment
-     * required to request the endpoints available for a
-     * specific exit from the given room <code>rooms/{roomId}/{exit}</code>).
+     * Construct an outbound {@code WebTarget} that builds on the root
+     * {@code WebTarget#path(String)} to add the path segment required to
+     * request the endpoints available for a specific exit from the given room
+     * <code>rooms/{roomId}/{exit}</code>).
      *
      * @param roomId
-     *          The specific room to find exits for
+     *            The specific room to find exits for
      * @param exit
-     *          The specific exit to find
+     *            The specific exit to find
      *
-     * @return The list of available endpoints (URLs) returned from the concierge.
-     *   This may be null if the list could not be retrieved.
+     * @return The list of available endpoints (URLs) returned from the
+     *         concierge. This may be null if the list could not be retrieved.
      *
      * @see #getRoomList(WebTarget)
      * @see WebTarget#path(String)
@@ -186,16 +194,17 @@ public class ConciergeClient {
     }
 
     /**
-     * Invoke the provided {@code WebTarget}, and resolve/parse the result
-     * into a {@code RoomEndpointList} that the caller can use to create a new
+     * Invoke the provided {@code WebTarget}, and resolve/parse the result into
+     * a {@code RoomEndpointList} that the caller can use to create a new
      * connection to the target room.
      *
      * @param target
-     *          {@code WebTarget} that includes the requred parameters
-     *          to retrieve information about available or specified exits.
-     *          All of the REST requests that find or work with exits return
-     *          the same result structure
-     * @return A populated {@code RoomEndpointList}, or null if the request failed.
+     *            {@code WebTarget} that includes the requred parameters to
+     *            retrieve information about available or specified exits. All
+     *            of the REST requests that find or work with exits return the
+     *            same result structure
+     * @return A populated {@code RoomEndpointList}, or null if the request
+     *         failed.
      */
     protected RoomEndpointList getRoomList(WebTarget target) {
         Log.log(Level.FINER, this, "making request to {0} for room", target.getUri().toString());

@@ -46,6 +46,7 @@ public class RoutedMessage {
 
     /**
      * Create a new message
+     * 
      * @param flowTarget
      *            The prefix that identifies how the message should be routed
      * @param destination
@@ -60,6 +61,7 @@ public class RoutedMessage {
 
     /**
      * Create a new message
+     * 
      * @param flowTarget
      *            The prefix that identifies how the message should be routed
      * @param destination
