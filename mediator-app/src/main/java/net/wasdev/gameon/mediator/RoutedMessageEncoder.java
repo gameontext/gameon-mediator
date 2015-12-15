@@ -20,7 +20,8 @@ import javax.websocket.Encoder;
 import javax.websocket.EndpointConfig;
 
 /**
- * Encoder for an outgoing message. This combines the routed message and the payload.
+ * Encoder for an outgoing message. This combines the routed message and the
+ * payload.
  *
  * @see RoutedMessage
  */

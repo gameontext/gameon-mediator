@@ -34,18 +34,22 @@ import net.wasdev.gameon.mediator.ConciergeClient.RoomEndpointList;
 import net.wasdev.gameon.mediator.ConnectionUtils.Drain;
 
 /**
- * Mediator for connections to remote rooms. This manages creating
- * and destroying the client WebSocket connection, and the queue
- * of outgoing messages that need to be sent.
+ * Mediator for connections to remote rooms. This manages creating and
+ * destroying the client WebSocket connection, and the queue of outgoing
+ * messages that need to be sent.
  */
 public class RemoteRoomMediator implements RoomMediator {
 
-    /** Information about the remote endpoint. Used to construct the client websocket */
+    /**
+     * Information about the remote endpoint. Used to construct the client
+     * websocket
+     */
     private final RoomEndpointList endpointInfo;
 
     /**
-     * Connection utilities for using the websocket. Passed in by the {@code PlayerConnectionMediator},
-     * which manages the lifecycle of this mediator.
+     * Connection utilities for using the websocket. Passed in by the
+     * {@code PlayerConnectionMediator}, which manages the lifecycle of this
+     * mediator.
      */
     private final ConnectionUtils connectionUtils;
 
@@ -62,8 +66,10 @@ public class RemoteRoomMediator implements RoomMediator {
     private final LinkedBlockingDeque<RoutedMessage> toRoom = new LinkedBlockingDeque<RoutedMessage>();
 
     /**
-     * @param roomEndpointList Information about the target room endpoint
-     * @param connectionUtils Utilities for interacting with the outbound websocket
+     * @param roomEndpointList
+     *            Information about the target room endpoint
+     * @param connectionUtils
+     *            Utilities for interacting with the outbound websocket
      */
     public RemoteRoomMediator(RoomEndpointList roomEndpointList, ConnectionUtils connectionUtils) {
         this.endpointInfo = roomEndpointList;
@@ -168,6 +174,7 @@ public class RemoteRoomMediator implements RoomMediator {
 
     /**
      * Stop relaying messages to the player.
+     * 
      * @param playerMediator
      */
     @Override

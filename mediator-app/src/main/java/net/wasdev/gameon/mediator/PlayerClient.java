@@ -35,22 +35,25 @@ import javax.ws.rs.core.Response;
 /**
  * A wrapped/encapsulation of outbound REST requests to the player service.
  * <p>
- * The URL for the player service is injected via CDI:
- * {@code <jndiEntry />} elements defined in server.xml maps the
- * environment variable to the JNDI value.
- * </p><p>
- * CDI will create this (the {@code PlayerClient} as an application
- * scoped bean. This bean will be created when the application starts,
- * and can  be injected into other CDI-managed beans for as long as
- * the application is valid.
+ * The URL for the player service is injected via CDI: {@code <jndiEntry />}
+ * elements defined in server.xml maps the environment variable to the JNDI
+ * value.
+ * </p>
+ * <p>
+ * CDI will create this (the {@code PlayerClient} as an application scoped bean.
+ * This bean will be created when the application starts, and can be injected
+ * into other CDI-managed beans for as long as the application is valid.
  * </p>
  *
  * @see ApplicationScoped
  */
 public class PlayerClient {
 
-    /** The player URL injected from JNDI via CDI.
-     * @see {@code playerUrl} in {@code /mediator-wlpcfg/servers/gameon-mediator/server.xml}
+    /**
+     * The player URL injected from JNDI via CDI.
+     * 
+     * @see {@code playerUrl} in
+     *      {@code /mediator-wlpcfg/servers/gameon-mediator/server.xml}
      */
     @Resource(lookup = "playerUrl")
     String playerLocation;
@@ -64,9 +67,9 @@ public class PlayerClient {
     WebTarget root;
 
     /**
-     * The {@code @PostConstruct} annotation indicates that this method
-     * should be called immediately after the {@code ConciergeClient} is
-     * instantiated with the default no-argument constructor.
+     * The {@code @PostConstruct} annotation indicates that this method should
+     * be called immediately after the {@code ConciergeClient} is instantiated
+     * with the default no-argument constructor.
      *
      * @see PostConstruct
      * @see ApplicationScoped

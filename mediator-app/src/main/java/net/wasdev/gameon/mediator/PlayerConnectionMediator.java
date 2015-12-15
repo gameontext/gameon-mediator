@@ -28,27 +28,27 @@ import net.wasdev.gameon.mediator.ConciergeClient.RoomEndpointList;
 import net.wasdev.gameon.mediator.ConnectionUtils.Drain;
 
 /**
- * The mediator: mediates the inbound connection from the player's device
- * to the connection to each individual room. Handles all room transitions
- * and failover.
+ * The mediator: mediates the inbound connection from the player's device to the
+ * connection to each individual room. Handles all room transitions and
+ * failover.
  * <p>
- * The {@code PlayerServerEndpoint will interact with the {@code PlayerSessionManager}
- * to find the associated mediator.
+ * The {@code PlayerServerEndpoint will interact with the
+ * {@code PlayerSessionManager} to find the associated mediator.
  * </p>
  */
 public class PlayerConnectionMediator {
 
     /**
-     * The player's userId. The room will broadcast to all connected sessions
-     * in the event that two player devices are connected (e.g.). The mediator
-     * will filter messages, and only relay those directed to all players or
-     * to the specific player.
+     * The player's userId. The room will broadcast to all connected sessions in
+     * the event that two player devices are connected (e.g.). The mediator will
+     * filter messages, and only relay those directed to all players or to the
+     * specific player.
      */
     private final String userId;
 
     /**
-     * The player's username. Sent to the room with playerHello and playerGoodbye
-     * (which are mediator-initiated messages).
+     * The player's username. Sent to the room with playerHello and
+     * playerGoodbye (which are mediator-initiated messages).
      */
     private final String username;
 
@@ -61,24 +61,23 @@ public class PlayerConnectionMediator {
     private final String jwt;
 
     /**
-     * Mediator id. Identifies _this_ mediator instance, which is sent back to the client
-     * device. In the case that the websocket is interrupted, sticky sessions should get the
-     * client routed back to the same mediator instance, which means we should
-     * be able to cope/queue/smooth-over brief disconnects from the client.
+     * Mediator id. Identifies _this_ mediator instance, which is sent back to
+     * the client device. In the case that the websocket is interrupted, sticky
+     * sessions should get the client routed back to the same mediator instance,
+     * which means we should be able to cope/queue/smooth-over brief disconnects
+     * from the client.
      */
     private final String id = UUID.randomUUID().toString();
 
     /**
-     * Concierge client: used to navigate room to room.
-     * Provided by the PlayerSessionMediator, as the
-     * owning CDI-managed bean.
+     * Concierge client: used to navigate room to room. Provided by the
+     * PlayerSessionMediator, as the owning CDI-managed bean.
      */
     private final ConciergeClient concierge;
 
     /**
      * Connection utilities: used to simplify managing websocket connections.
-     * Provided by the PlayerSessionMediator, as the
-     * owning CDI-managed bean.
+     * Provided by the PlayerSessionMediator, as the owning CDI-managed bean.
      */
     private final ConnectionUtils connectionUtils;
 
@@ -101,15 +100,15 @@ public class PlayerConnectionMediator {
     public static final String ROOM_NAME = "roomName";
 
     /**
-     * Handshake, player to mediator. Indicates the player is ready to
-     * start or resume player. Includes information based on localstorage in
-     * the client (which room the client thought it was in and the last message seen).
+     * Handshake, player to mediator. Indicates the player is ready to start or
+     * resume player. Includes information based on localstorage in the client
+     * (which room the client thought it was in and the last message seen).
      */
     public static final String CLIENT_READY = "ready";
 
     /**
-     * Handshake, mediator to player. Returns information to the client
-     * to update the client's cache.
+     * Handshake, mediator to player. Returns information to the client to
+     * update the client's cache.
      */
     public static final String CLIENT_ACK = "ack";
 
@@ -247,7 +246,8 @@ public class PlayerConnectionMediator {
         if (message != null) {
             if (message.isSOS()) {
                 // we don't look for an exitId in the case of an SOS.
-                sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, PlayerConnectionMediator.ELECTRIC_THUMB));
+                sendToClient(
+                        RoutedMessage.createMessage(Constants.PLAYER, userId, PlayerConnectionMediator.ELECTRIC_THUMB));
             } else {
                 // If we are properly exiting a room, we have the new room in
                 // the payload
@@ -259,8 +259,8 @@ public class PlayerConnectionMediator {
 
         // Part the room
         Log.log(Level.FINER, this, "GOODBYE {0}", oldRoom.getId());
-        sendToClient(
-                RoutedMessage.createMessage(Constants.PLAYER, userId, String.format(PlayerConnectionMediator.PART, oldRoom.getId())));
+        sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
+                String.format(PlayerConnectionMediator.PART, oldRoom.getId())));
         sendToRoom(oldRoom, RoutedMessage.createMessage(Constants.ROOM_GOODBYE, oldRoom.getId(),
                 String.format(PlayerConnectionMediator.HIBYE, username, userId)));
 
@@ -300,7 +300,8 @@ public class PlayerConnectionMediator {
         // Update client's local storage information
         sendClientAck();
 
-        // Start flow of messages from room to player (if not previously started)
+        // Start flow of messages from room to player (if not previously
+        // started)
         currentRoom.subscribe(this, 0);
 
         // Say hello to the new room!
@@ -344,7 +345,8 @@ public class PlayerConnectionMediator {
      */
     private void sendClientAck() {
         JsonObject ack = Json.createObjectBuilder().add(FirstRoom.MEDIATOR_ID, id)
-                .add(Constants.ROOM_ID, currentRoom.getId()).add(PlayerConnectionMediator.ROOM_NAME, currentRoom.getName()).build();
+                .add(Constants.ROOM_ID, currentRoom.getId())
+                .add(PlayerConnectionMediator.ROOM_NAME, currentRoom.getName()).build();
 
         toClient.offer(RoutedMessage.createMessage(PlayerConnectionMediator.CLIENT_ACK, ack));
     }
@@ -426,7 +428,8 @@ public class PlayerConnectionMediator {
     protected RoomMediator createMediator(RoomEndpointList roomEndpoints) {
         if (roomEndpoints == null) {
             // safe fallback
-            sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, String.format(PlayerConnectionMediator.FINDROOM_FAIL)));
+            sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
+                    String.format(PlayerConnectionMediator.FINDROOM_FAIL)));
             return new FirstRoom();
         } else {
             return new RemoteRoomMediator(roomEndpoints, connectionUtils);
@@ -439,7 +442,7 @@ public class PlayerConnectionMediator {
             return this.getClass().getName() + "[userId=" + userId + "]";
         } else {
             return this.getClass().getName() + "[userId=" + userId + ", roomId=" + currentRoom.getId()
-            + ", suspendCount=" + suspendCount.get() + "]";
+                    + ", suspendCount=" + suspendCount.get() + "]";
         }
     }
 

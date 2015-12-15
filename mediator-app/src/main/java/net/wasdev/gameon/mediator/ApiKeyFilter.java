@@ -25,8 +25,8 @@ import javax.ws.rs.client.ClientRequestContext;
 import javax.ws.rs.client.ClientRequestFilter;
 
 /**
- * This is a client request filter that is applied to outbound client
- * requests to use/propagate an API key.
+ * This is a client request filter that is applied to outbound client requests
+ * to use/propagate an API key.
  *
  * @see ConciergeClient
  * @see PlayerClient
@@ -38,7 +38,9 @@ public class ApiKeyFilter implements ClientRequestFilter {
     /** ID of the service making the API call */
     private final String serviceID;
 
-    /** system property or environment variable which contains the shared secret */
+    /**
+     * system property or environment variable which contains the shared secret
+     */
     private final String secret;
 
     /** Enum to ensure consistent parameter names. */
@@ -76,12 +78,12 @@ public class ApiKeyFilter implements ClientRequestFilter {
      * request was made 3. A generated API key for this invocation.
      *
      * @see javax.ws.rs.client.ClientRequestFilter#filter(javax.ws.rs.client.
-     * ClientRequestContext)
+     *      ClientRequestContext)
      */
     @Override
     public void filter(ClientRequestContext ctx) throws IOException {
         String idparams = Params.serviceID.toString() + serviceID + Params.stamp.toString()
-        + Long.toString(System.currentTimeMillis());
+                + Long.toString(System.currentTimeMillis());
 
         // handle when the original request had no query params.
         String rawQuery = ctx.getUri().getRawQuery();

@@ -42,7 +42,6 @@ public class FirstRoom implements RoomMediator {
     public static final String EXIT = "exit";
     public static final String EVENT = "event";
 
-
     public static final String FIRST_ROOM_DESC = "You've entered a vaguely squarish room, with walls of an indeterminate color.";
     public static final String FIRST_ROOM_EXTENDED = "<br /><br />You are alone at the moment, and have a strong suspicion that "
             + " you're in a place that requires '/' before commands and is picky about syntax. You notice "
@@ -175,7 +174,7 @@ public class FirstRoom implements RoomMediator {
                     buildContentResponse("This room is a basic model. It doesn't understand that command."));
         } else {
             responseBuilder.add(Constants.USERNAME, sourceMessage.getString(Constants.USERNAME))
-            .add(FirstRoom.CONTENT, content).add(FirstRoom.TYPE, FirstRoom.CHAT);
+                    .add(FirstRoom.CONTENT, content).add(FirstRoom.TYPE, FirstRoom.CHAT);
         }
     }
 

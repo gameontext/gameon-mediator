@@ -21,7 +21,9 @@ package net.wasdev.gameon.mediator;
  */
 public interface Constants {
 
-    /** Routing: Mediator sends hello when a player enters the room (new room) */
+    /**
+     * Routing: Mediator sends hello when a player enters the room (new room)
+     */
     String ROOM_HELLO = "roomHello";
 
     /** Routing: Mediator sends goodbye when a player leaves the room */
@@ -31,9 +33,9 @@ public interface Constants {
     String PLAYER = "player";
 
     /**
-     * Routing:
-     * Message from room to mediator indicating that the player successfully opened a door.
-     * This will tell the mediator to attempt a room change.
+     * Routing: Message from room to mediator indicating that the player
+     * successfully opened a door. This will tell the mediator to attempt a room
+     * change.
      */
     String PLAYER_LOCATION = "playerLocation";
 
