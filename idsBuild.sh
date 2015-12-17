@@ -8,11 +8,11 @@
 echo Informing Slack...
 curl -X 'POST' --silent --data-binary '{"text":"A new build for the mediator service has started."}' $WEBHOOK > /dev/null
 
-mkdir dockercfg ; cd dockercfg
-echo Downloading Docker requirements..
-wget --user=admin --password=$ADMIN_PASSWORD https://$BUILD_DOCKER_HOST:8443/dockerneeds.tar -q
 echo Setting up Docker...
-tar xzf dockerneeds.tar
+mkdir dockercfg ; cd dockercfg
+echo -e $KEY > key.pem
+echo -e $CA_CERT > ca.pem
+echo -e $CERT > cert.pem
 cd ..
 
 echo Building projects using gradle...
