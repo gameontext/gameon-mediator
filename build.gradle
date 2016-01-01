@@ -1,5 +1,5 @@
 allprojects {
-    group = 'net.wasdev.wlp.sample'
+    group = 'org.gameon'
     version = '1.0'
 
     repositories {
