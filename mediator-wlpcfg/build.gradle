@@ -29,15 +29,6 @@ if (null != System.getenv('DOCKER_CERT_PATH')){
 def localEnvironment = ["LICENSE=accept",
 			"CONCIERGE_URL=" + System.getenv('CONCIERGE_URL'),
 			"CONCIERGE_KEY=" + System.getenv('CONCIERGE_KEY'),
-			"PLAYER_URL=" + System.getenv('PLAYER_URL'),
-			"MONGO_HOST=" + System.getenv('MONGO_HOST'),
-			"MONGO_PORT=" + System.getenv('MONGO_PORT'),
-			"LOGGING_DOCKER_HOST=" + System.getenv("LOGGING_DOCKER_HOST"),
-			"TWITTER_CONSUMER_KEY=" + System.getenv('TWITTER_CONSUMER_KEY'),
-			"TWITTER_CONSUMER_SECRET=" + System.getenv('TWITTER_CONSUMER_SECRET'),
-			"FACEBOOK_APP_ID=" + System.getenv('FACEBOOK_APP_ID'),
-			"FACEBOOK_APP_SECRET=" + System.getenv('FACEBOOK_APP_SECRET'),
-			"SUCCESS_CALLBACK=" + System.getenv('SUCCESS_CALLBACK'),
 			"PLAYER_URL=" + System.getenv('PLAYER_URL')
 		]
 
