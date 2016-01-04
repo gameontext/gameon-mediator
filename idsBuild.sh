@@ -19,9 +19,8 @@ echo Building projects using gradle...
 ./gradlew build
 echo Building and Starting Mediator Docker Image...
 cd mediator-wlpcfg
-sed -i s/PLACEHOLDER_ADMIN_PASSWORD/$ADMIN_PASSWORD/g ./Dockerfile
 
 ../gradlew buildDockerImage
 ../gradlew stopCurrentContainer
 ../gradlew removeCurrentContainer
-../gradlew startNewContainer
+../gradlew startNewEtcdContainer
