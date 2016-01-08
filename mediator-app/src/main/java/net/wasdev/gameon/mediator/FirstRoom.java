@@ -199,12 +199,12 @@ public class FirstRoom implements RoomMediator {
 
     private JsonObject buildExitsResponse() {
         JsonObjectBuilder content = Json.createObjectBuilder();
-        content.add("N", "Simple door to the North");
-        content.add("S", "Simple door to the South");
-        content.add("E", "Simple door to the East");
-        content.add("W", "Simple door to the West");
-        content.add("U", "Hatch in the ceiling (Up)");
-        content.add("D", "Trap-door in the floor (Down)");
+        content.add("N", "Simple door");
+        content.add("S", "Simple door");
+        content.add("E", "Simple door");
+        content.add("W", "Simple door");
+        content.add("U", "Hatch in the ceiling");
+        content.add("D", "Trap-door in the floor");
 
         return content.build();
     }
