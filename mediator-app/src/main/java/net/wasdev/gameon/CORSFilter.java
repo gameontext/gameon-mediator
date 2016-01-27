@@ -31,6 +31,9 @@ public class CORSFilter implements Filter {
             throws IOException, ServletException {
         HttpServletResponse sresponse = (HttpServletResponse) response;
         sresponse.setHeader("Access-Control-Allow-Origin", "*");
+        sresponse.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
+        sresponse.setHeader("Access-Control-Max-Age", "86400");
+        sresponse.setHeader("Access-Control-Allow-Credentials", "true");
         chain.doFilter(request, response);
     }
 
