@@ -30,8 +30,9 @@ import javax.websocket.EndpointConfig;
 import javax.websocket.MessageHandler;
 import javax.websocket.Session;
 
-import net.wasdev.gameon.mediator.ConciergeClient.RoomEndpointList;
 import net.wasdev.gameon.mediator.ConnectionUtils.Drain;
+import net.wasdev.gameon.mediator.MapClient.ConnectionDetails;
+import net.wasdev.gameon.mediator.MapClient.Site;
 
 /**
  * Mediator for connections to remote rooms. This manages creating and
@@ -44,7 +45,7 @@ public class RemoteRoomMediator implements RoomMediator {
      * Information about the remote endpoint. Used to construct the client
      * websocket
      */
-    private final RoomEndpointList endpointInfo;
+    private final Site room;
 
     /**
      * Connection utilities for using the websocket. Passed in by the
@@ -71,8 +72,8 @@ public class RemoteRoomMediator implements RoomMediator {
      * @param connectionUtils
      *            Utilities for interacting with the outbound websocket
      */
-    public RemoteRoomMediator(RoomEndpointList roomEndpointList, ConnectionUtils connectionUtils) {
-        this.endpointInfo = roomEndpointList;
+    public RemoteRoomMediator(Site room, ConnectionUtils connectionUtils) {
+        this.room = room;
         this.connectionUtils = connectionUtils;
     }
 
@@ -81,7 +82,7 @@ public class RemoteRoomMediator implements RoomMediator {
      */
     @Override
     public String getId() {
-        return endpointInfo.getRoomId();
+        return room.getId();
     }
 
     /**
@@ -89,7 +90,7 @@ public class RemoteRoomMediator implements RoomMediator {
      */
     @Override
     public String getName() {
-        return endpointInfo.getRoomName();
+        return room.getInfo().getFullName();
     }
 
     /**
@@ -100,64 +101,87 @@ public class RemoteRoomMediator implements RoomMediator {
      */
     @Override
     public boolean connect() {
+        System.out.println("Asked to connect.. roomSession is null? "+(roomSession==null)+ (roomSession!=null?" roomSession is Open?"+roomSession.isOpen():""));
+        
         if (roomSession != null && roomSession.isOpen()) {
             return true;
         }
 
-        Log.log(Level.FINE, this, "Creating connection to room {0}", endpointInfo);
+        Log.log(Level.FINE, this, "Creating connection to room {0}", room.getId());
+        
+        System.out.println("building endpoint config.. ");
+        
         final ClientEndpointConfig cec = ClientEndpointConfig.Builder.create()
                 .decoders(Arrays.asList(RoutedMessageDecoder.class)).encoders(Arrays.asList(RoutedMessageEncoder.class))
                 .build();
+        
+        System.out.println("room is null? "+(room==null));
+        
+        System.out.println("Processing details.. roomInfo non null?" +(room.getInfo()!=null));
 
-        for (String urlString : endpointInfo.getEndpoints()) {
-            // try each in turn, return as soon as we successfully connect
-            URI uriServerEP = URI.create(urlString);
+        ConnectionDetails details = room.getInfo().getConnectionDetails();
+        
+        System.out.println("details non null ? "+(details!=null));
+        System.out.println("details.type "+details.getType());
+        System.out.println("details.target "+details.getTarget());
+        switch(details.getType()){
+            case "websocket":{
+                
+                System.out.println("Creating websocket to "+details.getTarget());
+                
+                URI uriServerEP = URI.create(details.getTarget());
 
-            try {
-                // Create the new outbound session with a programmatic endpoint
-                Session s = connectionUtils.connectToServer(new Endpoint() {
+                try {
+                    // Create the new outbound session with a programmatic endpoint
+                    Session s = connectionUtils.connectToServer(new Endpoint() {
 
-                    @Override
-                    public void onOpen(Session session, EndpointConfig config) {
-                        // let the room mediator know the connection was opened
-                        connectionOpened(session);
+                        @Override
+                        public void onOpen(Session session, EndpointConfig config) {
+                            // let the room mediator know the connection was opened
+                            connectionOpened(session);
 
-                        // Add message handler
-                        session.addMessageHandler(new MessageHandler.Whole<RoutedMessage>() {
-                            @Override
-                            public void onMessage(RoutedMessage message) {
-                                Log.log(Level.FINEST, session, "received from room {0}: {1}", getId(), message);
-                                if (playerMediator != null)
-                                    playerMediator.sendToClient(message);
-                            }
-                        });
-                    }
+                            // Add message handler
+                            session.addMessageHandler(new MessageHandler.Whole<RoutedMessage>() {
+                                @Override
+                                public void onMessage(RoutedMessage message) {
+                                    Log.log(Level.FINEST, session, "received from room {0}: {1}", getId(), message);
+                                    if (playerMediator != null)
+                                        playerMediator.sendToClient(message);
+                                }
+                            });
+                        }
 
-                    @Override
-                    public void onClose(Session session, CloseReason closeReason) {
-                        // let the room mediator know the connection was closed
-                        connectionClosed(closeReason);
-                    }
+                        @Override
+                        public void onClose(Session session, CloseReason closeReason) {
+                            // let the room mediator know the connection was closed
+                            connectionClosed(closeReason);
+                        }
 
-                    @Override
-                    public void onError(Session session, Throwable thr) {
-                        Log.log(Level.FINEST, this, "BADNESS " + session.getUserProperties(), thr);
+                        @Override
+                        public void onError(Session session, Throwable thr) {
+                            Log.log(Level.FINEST, this, "BADNESS " + session.getUserProperties(), thr);
 
-                        connectionUtils.tryToClose(session,
-                                new CloseReason(CloseReason.CloseCodes.UNEXPECTED_CONDITION, thr.toString()));
-                    }
-                }, cec, uriServerEP);
-                Log.log(Level.FINEST, s, "CONNECTED to room {0}", endpointInfo.getRoomId());
+                            connectionUtils.tryToClose(session,
+                                    new CloseReason(CloseReason.CloseCodes.UNEXPECTED_CONDITION, thr.toString()));
+                        }
+                    }, cec, uriServerEP);
+                    Log.log(Level.FINEST, s, "CONNECTED to room {0}", room.getId());
 
-                return true;
-            } catch (DeploymentException e) {
-                Log.log(Level.FINER, this,
-                        "Deployment exception creating connection to room " + endpointInfo.getRoomId(), e);
-            } catch (IOException e) {
-                Log.log(Level.FINER, this, "I/O exception creating connection to room " + endpointInfo.getRoomId(), e);
+                    return true;
+                } catch (DeploymentException e) {
+                    Log.log(Level.FINER, this,
+                            "Deployment exception creating connection to room " + room.getId(), e);
+                } catch (IOException e) {
+                    Log.log(Level.FINER, this, "I/O exception creating connection to room " + room.getId(), e);
+                }
+                
+                break;
             }
+            default:{
+                return false;
+            }         
         }
-
+       
         return false;
     }
 
@@ -213,12 +237,12 @@ public class RemoteRoomMediator implements RoomMediator {
      * Called when the connection to the room has been established.
      */
     private void connectionOpened(Session roomSession) {
-        Log.log(Level.FINER, this, "ROOM CONNECTION OPEN {0}: {1}", endpointInfo.getRoomId());
+        Log.log(Level.FINER, this, "ROOM CONNECTION OPEN {0}: {1}", room.getId());
 
         this.roomSession = roomSession;
 
         // set up delivery thread to send messages to the room as they arrive
-        drainToRoom = connectionUtils.drain("TO ROOM[" + endpointInfo.getRoomId() + "]", toRoom, roomSession);
+        drainToRoom = connectionUtils.drain("TO ROOM[" + room.getId() + "]", toRoom, roomSession);
     }
 
     /**
@@ -226,7 +250,7 @@ public class RemoteRoomMediator implements RoomMediator {
      * closed badly, try to open again.
      */
     private void connectionClosed(CloseReason reason) {
-        Log.log(Level.FINER, this, "ROOM CONNECTION CLOSED {0}: {1}", endpointInfo.getRoomId(), reason);
+        Log.log(Level.FINER, this, "ROOM CONNECTION CLOSED {0}: {1}", room.getId(), reason);
 
         if (drainToRoom != null)
             drainToRoom.stop();
@@ -238,6 +262,6 @@ public class RemoteRoomMediator implements RoomMediator {
 
     @Override
     public String toString() {
-        return this.getClass().getName() + "[roomId=" + endpointInfo.getRoomId() + "]";
+        return this.getClass().getName() + "[roomId=" + room.getId() + "]";
     }
 }

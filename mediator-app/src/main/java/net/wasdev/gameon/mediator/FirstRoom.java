@@ -15,12 +15,15 @@
  *******************************************************************************/
 package net.wasdev.gameon.mediator;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+
+import net.wasdev.gameon.mediator.MapClient.Site;
 
 /**
  *
@@ -31,6 +34,7 @@ public class FirstRoom implements RoomMediator {
     public static final String USER_ID = "userId";
     public static final String EXIT_ID = "exitId";
     public static final String MEDIATOR_ID = "mediatorId";
+    public static final String TELEPORT = "teleport";
     public static final String EXITS = "exits";
     public static final String DESCRIPTION = "description";
     public static final String NAME = "name";
@@ -60,19 +64,21 @@ public class FirstRoom implements RoomMediator {
     private AtomicInteger counter = new AtomicInteger(0);
     boolean newbie = false;
     boolean inventory = false;
+    MapClient mapClient = null;
 
-    public FirstRoom() {
-        this(false);
+    public FirstRoom(MapClient mapClient) {
+        this(mapClient, false);
     }
 
-    public FirstRoom(boolean newbie) {
+    public FirstRoom(MapClient mapClient, boolean newbie) {
         Log.log(Level.FINEST, this, "New First Room, new player {0}", newbie);
         this.newbie = newbie;
+        this.mapClient = mapClient;
     }
 
     @Override
     public String getId() {
-        return Constants.FIRST_ROOM;
+        return "firstroom";
     }
 
     @Override
@@ -159,7 +165,11 @@ public class FirstRoom implements RoomMediator {
         } else if (contentToLower.startsWith("/exits")) {
             responseBuilder.add(FirstRoom.TYPE, FirstRoom.EXITS).add(FirstRoom.CONTENT, buildExitsResponse());
         } else if (contentToLower.startsWith("/exit") || contentToLower.startsWith("/go ")) {
-            responseBuilder.add(FirstRoom.TYPE, FirstRoom.EXIT).add(FirstRoom.EXIT_ID, "N").add(FirstRoom.CONTENT,
+            String exitDirection = "N";
+            if(contentToLower.startsWith("/go ") && contentToLower.length()>"/go ".length()){
+                exitDirection = (""+contentToLower.charAt(4)).toUpperCase();
+            }     
+            responseBuilder.add(FirstRoom.TYPE, FirstRoom.EXIT).add(FirstRoom.EXIT_ID, exitDirection).add(FirstRoom.CONTENT,
                     "You've found a way out, well done!");
         } else if (contentToLower.startsWith("/inventory")) {
             responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT, buildInventoryResponse());
@@ -169,7 +179,40 @@ public class FirstRoom implements RoomMediator {
         } else if (contentToLower.startsWith("/help")) {
             responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT, buildContentResponse(
                     "Commands do and should start with '/' This room doesn't understand many commands, but others will."));
-        } else if (contentToLower.startsWith("/")) {
+        } else if (contentToLower.startsWith("/listmyrooms")) {            
+            //TODO: add cache / rate limit. 
+            String userid = sourceMessage.getString(USER_ID);
+            List<Site> rooms =  mapClient.getRoomsByOwner(userid);
+            
+            StringBuffer roomSummary = new StringBuffer();
+            if(rooms!=null && !rooms.isEmpty()){
+                roomSummary.append("You have registered the following rooms... <br />");
+                for(Site room: rooms){
+                    if(room.getInfo()!=null){
+                        roomSummary.append(" - '"+room.getInfo().getFullName()+"' with id "+room.getId()+"<br />\n");
+                    }
+                }
+                roomSummary.append("You can go directly to your own rooms using /teleport <roomid>");
+            }else{
+                roomSummary.append("You have no rooms registered!");
+            }
+            
+            responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT, buildContentResponse(
+                    roomSummary.toString()));
+        } else if (contentToLower.startsWith("/teleport ")) {
+            if(contentToLower.length()>"/teleport ".length()){
+                String target = contentToLower.substring("/teleport ".length());
+                
+                //TODO: use sommat friendlier than room id as the teleport argument.. 
+                //      needs update to listmyrooms above to tell it how to 
+                
+                responseBuilder.add(FirstRoom.TYPE, FirstRoom.EXIT).add(FirstRoom.EXIT_ID, target).add(FirstRoom.TELEPORT, true).add(FirstRoom.CONTENT,
+                        "You punch the coordinates into the console, a large tube appears from above you, and you are sucked into a maze of piping.");
+            }else{
+                responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT, buildContentResponse(
+                        "You concentrate really hard, and teleport from your current location, to your current location.. Magic!!"));
+            }
+        }else if (contentToLower.startsWith("/")) {
             responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT,
                     buildContentResponse("This room is a basic model. It doesn't understand that command."));
         } else {

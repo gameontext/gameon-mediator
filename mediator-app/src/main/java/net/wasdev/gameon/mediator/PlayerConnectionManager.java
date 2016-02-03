@@ -77,9 +77,9 @@ public class PlayerConnectionManager implements Runnable {
     @Inject
     ConnectionUtils connectionUtils;
 
-    /** CDI injection of client for Concierge */
+    /** CDI injection of client for Map */
     @Inject
-    ConciergeClient concierge;
+    MapClient mapClient;
 
     /** CDI injection of client for Player CRUD operations */
     @Inject
@@ -248,7 +248,7 @@ public class PlayerConnectionManager implements Runnable {
             String newJwt = Jwts.builder().setHeaderParam("kid", "playerssl").setClaims(onwardsClaims)
                     .signWith(SignatureAlgorithm.RS256, signingKey).compact();
 
-            mediator = new PlayerConnectionMediator(userName, username, newJwt, concierge, playerClient,
+            mediator = new PlayerConnectionMediator(userName, username, newJwt, mapClient, playerClient,
                     connectionUtils);
             Log.log(Level.FINER, this, "Created new session {0} for user {1}", mediator, userName);
         } else {
