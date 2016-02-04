@@ -36,7 +36,7 @@ if (null != System.getenv("SSL_CERT"))
 {
 	localEnvironment << "SSL_CERT=" + System.getenv("SSL_CERT")
 }
-		
+
 def etcdEnvironment = ["LICENSE=accept", "ETCDCTL_ENDPOINT=http://etcd:4001"]
 
 
@@ -78,7 +78,7 @@ task createNewContainer(type: DockerCreateContainer) {
 	targetImageId { "gameon-mediator" }
 	containerName = "gameon-mediator"
 	env = localEnvironment
-	portBindings = ['9446:9446']
+	portBindings = ['9086:9080','9446:9443']
 }
 
 task startNewContainer(type: DockerStartContainer) {
@@ -89,7 +89,7 @@ task startNewContainer(type: DockerStartContainer) {
 task createNewEtcdContainer(type: DockerCreateContainer) {
 	targetImageId { "gameon-mediator" }
 	containerName = "gameon-mediator"
-	portBindings = ['9446:9446']
+	portBindings = ['9086:9080','9446:9443']
     env = etcdEnvironment
     links = ['etcd:etcd']
 }

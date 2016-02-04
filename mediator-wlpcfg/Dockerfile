@@ -2,8 +2,6 @@ FROM websphere-liberty:latest
 
 MAINTAINER Ben Smith
 
-EXPOSE 9446
-
 ADD https://download.elastic.co/logstash-forwarder/binaries/logstash-forwarder_linux_amd64 /opt/forwarder
 
 ADD ./servers/gameon-mediator /opt/ibm/wlp/usr/servers/defaultServer/
