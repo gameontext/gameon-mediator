@@ -123,13 +123,13 @@ public class MapClient {
      *            parameter may be null (for the initial starting room)
      * @return new Room Id
      */
-    public Site findNextRoom(RoomMediator currentRoom, String exit) {
-        Site roomEndpoints = null;
+    public Exit findIdentifedExitForRoom(RoomMediator currentRoom, String exit) {
+        Exit exitResult;
         System.out.println("Asked to get exit "+exit+" for room "+currentRoom.getName());
         if (exit == null) {
-            // SOS or First Room: randomly grab a new room (start over with
-            // starting rooms)
-            roomEndpoints = getRoomEndpoints();
+            // SOS or first room.. return exit with id for first room.. 
+            exitResult = new Exit();
+            exitResult.setId(Constants.FIRST_ROOM);
         } else {
             //so.. not great.. until we have room exit push, then we need to
             //a) re-retrieve our current room, to find out what it's wired to.
@@ -137,39 +137,32 @@ public class MapClient {
             //
             //b) obtain the exit we plan to use from that room, if there is one
             //
-            //c) since we haven't rewritten the entire mediator yet, then we have
-            //   to go obtain the entire site for that exit.. 
-            //   eventually I'll recode the callers of here to use an object other
-            //   than 'Site' that gives them just the info they need.. 
-            //   (id, name, connection details)
-            System.out.println("Asking map for roomInfo for id:"+currentRoom.getId()+" name:"+currentRoom.getName());
-            Site current = getRoomEndpoints(currentRoom.getId());            
-            System.out.println("updated, processing exits.");
-            Exit next = null;
+            System.out.println("Asking map service for Site for id:"+currentRoom.getId()+" name:"+currentRoom.getName());
+            Site current = getSite(currentRoom.getId());            
             Exits exits = current.getExits();
             switch(exit.toLowerCase()){
                 case "n":{
-                    next = exits.getN();
+                    exitResult = exits.getN();
                     break;
                 }
                 case "s":{
-                    next = exits.getS();
+                    exitResult = exits.getS();
                     break;
                 }
                 case "e":{
-                    next = exits.getE();
+                    exitResult = exits.getE();
                     break;
                 }
                 case "w":{
-                    next = exits.getW();
+                    exitResult = exits.getW();
                     break;
                 }
                 case "u":{
-                    next = exits.getU();
+                    exitResult = exits.getU();
                     break;
                 }
                 case "d":{
-                    next = exits.getD();
+                    exitResult = exits.getD();
                     break;
                 }
                 default:{
@@ -177,13 +170,8 @@ public class MapClient {
                     return null;
                 }                
             }
-            System.out.println("We have a configured next room of "+next.getName());
-            System.out.println("Asking for updated site info for "+next.getId()+" "+next.getName());
-            roomEndpoints = getRoomEndpoints(next.getId());
-            System.out.println("updated, returning "+roomEndpoints.getId()+" "+roomEndpoints.getInfo().getName());
-        }
-
-        return roomEndpoints;
+        }       
+        return exitResult;
     }
 
     /**
@@ -195,9 +183,8 @@ public class MapClient {
      *         may be null if the list could not be retrieved.
      * @see #getRoomList(WebTarget)
      */
-    public Site getRoomEndpoints() {
-        WebTarget target = this.root.path("firstroom");
-        System.out.println("Mediator returning firstroom");
+    public Site getSite() {
+        WebTarget target = this.root.path(Constants.FIRST_ROOM);
         return getSite(target);
     }
 
@@ -216,9 +203,8 @@ public class MapClient {
      * @see #getRoomList(WebTarget)
      * @see WebTarget#resolveTemplate(String, Object)
      */
-    public Site getRoomEndpoints(String roomId) {
+    public Site getSite(String roomId) {
         WebTarget target = this.root.path("{roomId}").resolveTemplate("roomId", roomId);
-        System.out.println("Mediator returning "+roomId);
         return getSite(target);
     }
 
@@ -237,23 +223,16 @@ public class MapClient {
      *         failed.
      */
     protected List<Site> getSites(WebTarget target) {
-        System.out.println("Mediator making get request to "+target.getUri().toString());
         Log.log(Level.FINER, this, "making request to {0} for room", target.getUri().toString());
         Response r = null;
         try {
-            System.out.println("Issuing get");
             r = target.request(MediaType.APPLICATION_JSON).get(); //.accept(MediaType.APPLICATION_JSON).get();
-            System.out.println("r? "+r.getStatusInfo().getFamily().toString());
-            if(r.getStatusInfo().getFamily().equals(Response.Status.Family.SUCCESSFUL)){                
-                System.out.println("Reading entity as Site");
-                
+            if(r.getStatusInfo().getFamily().equals(Response.Status.Family.SUCCESSFUL)){                 
                 List<Site> list = r.readEntity(new GenericType<List<Site>>(){});
-                System.out.println("Returning "+list.size()+" sites");
                 return list;
             }
             
             // Sadly, no endpoints found!
-            System.out.println("Returning null.. nowt found.");
             return null;
         } catch (ResponseProcessingException rpe) {
             Response response = rpe.getResponse();
@@ -294,21 +273,15 @@ public class MapClient {
      *         failed.
      */
     protected Site getSite(WebTarget target) {
-        System.out.println("Mediator making get request to "+target.getUri().toString());
         Log.log(Level.FINER, this, "making request to {0} for room", target.getUri().toString());
         Response r = null;
         try {
-            System.out.println("Issuing get");
             r = target.request(MediaType.APPLICATION_JSON).get(); //.accept(MediaType.APPLICATION_JSON).get();
-            System.out.println("r? "+r.getStatusInfo().getFamily().toString());
             if(r.getStatusInfo().getFamily().equals(Response.Status.Family.SUCCESSFUL)){                
-                System.out.println("Reading entity as Site");
                 Site site = r.readEntity(Site.class);
-                System.out.println("Returning site. "+site.getInfo().getName());
                 return site;
             }           
             // Sadly, no endpoints found!
-            System.out.println("Returning null.. nowt found.");
             return null;
         } catch (ResponseProcessingException rpe) {
             Response response = rpe.getResponse();
@@ -444,6 +417,7 @@ public class MapClient {
         @JsonProperty("_id")
         String id;
         String name;
+        String fullName;
         String door = null;
         ConnectionDetails connectionDetails = null;
         @JsonProperty("_id")
@@ -459,6 +433,12 @@ public class MapClient {
         }
         public void setName(String name) {
             this.name = name;
+        }      
+        public String getFullName() {
+            return fullName;
+        }
+        public void setFullName(String fullName) {
+            this.fullName = fullName;
         }
         public String getDoor() {
             return door;
@@ -530,6 +510,7 @@ public class MapClient {
         String owner;   
         @JsonProperty("_id")
         String id;
+        String type;
          
         public RoomInfo getInfo() {
             return info;
@@ -557,6 +538,13 @@ public class MapClient {
         public void setId(String id) {
             this.id = id;
         }
+        public String getType() {
+            return type;
+        }
+        public void setType(String type) {
+            this.type = type;
+        }
+        
     }
 }
 

@@ -48,7 +48,7 @@ public interface Constants {
     /**
      * The id of the first room (special, provided by the mediator itself).
      */
-    String FIRST_ROOM = "TheFirstRoom";
+    String FIRST_ROOM = "firstroom";
 
     String ROOM_ID = "roomId";
     String BOOKMARK = "bookmark";
