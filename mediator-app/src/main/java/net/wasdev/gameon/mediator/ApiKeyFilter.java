@@ -28,7 +28,7 @@ import javax.ws.rs.client.ClientRequestFilter;
  * This is a client request filter that is applied to outbound client requests
  * to use/propagate an API key.
  *
- * @see ConciergeClient
+ * @see MapClient
  * @see PlayerClient
  */
 public class ApiKeyFilter implements ClientRequestFilter {

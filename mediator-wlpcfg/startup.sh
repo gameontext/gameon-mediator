@@ -26,8 +26,8 @@ if [ "$ETCDCTL_ENDPOINT" != "" ]; then
   keytool -delete -storepass testOnlyKeystore -alias endeca -keystore security/key.jks
   keytool -v -importkeystore -srcalias 1 -alias 1 -destalias default -noprompt -srcstorepass keystore -deststorepass testOnlyKeystore -srckeypass keystore -destkeypass testOnlyKeystore -srckeystore cert.pkcs12 -srcstoretype PKCS12 -destkeystore security/key.jks -deststoretype JKS
 
-  export CONCIERGE_KEY=$(etcdctl get /passwords/concierge-key)
-  export CONCIERGE_URL=$(etcdctl get /concierge/url)
+  export MAP_KEY=$(etcdctl get /passwords/map-key)
+  export MAP_URL=$(etcdctl get /map/url)
   export PLAYER_URL=$(etcdctl get /player/url)
   
   /opt/ibm/wlp/bin/server start defaultServer

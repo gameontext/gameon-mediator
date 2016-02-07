@@ -30,8 +30,10 @@ import javax.websocket.EndpointConfig;
 import javax.websocket.MessageHandler;
 import javax.websocket.Session;
 
-import net.wasdev.gameon.mediator.ConciergeClient.RoomEndpointList;
 import net.wasdev.gameon.mediator.ConnectionUtils.Drain;
+import net.wasdev.gameon.mediator.MapClient.ConnectionDetails;
+import net.wasdev.gameon.mediator.MapClient.Exit;
+import net.wasdev.gameon.mediator.MapClient.Site;
 
 /**
  * Mediator for connections to remote rooms. This manages creating and
@@ -44,7 +46,10 @@ public class RemoteRoomMediator implements RoomMediator {
      * Information about the remote endpoint. Used to construct the client
      * websocket
      */
-    private final RoomEndpointList endpointInfo;
+    private final String roomName;
+    private final String roomFullName;
+    private final String id;
+    private final ConnectionDetails details;
 
     /**
      * Connection utilities for using the websocket. Passed in by the
@@ -66,13 +71,29 @@ public class RemoteRoomMediator implements RoomMediator {
     private final LinkedBlockingDeque<RoutedMessage> toRoom = new LinkedBlockingDeque<RoutedMessage>();
 
     /**
-     * @param roomEndpointList
+     * @param room
      *            Information about the target room endpoint
      * @param connectionUtils
      *            Utilities for interacting with the outbound websocket
      */
-    public RemoteRoomMediator(RoomEndpointList roomEndpointList, ConnectionUtils connectionUtils) {
-        this.endpointInfo = roomEndpointList;
+    public RemoteRoomMediator(Site room, ConnectionUtils connectionUtils) {
+        this.id = room.getId();
+        this.details = room.getInfo().getConnectionDetails();
+        this.roomName = room.getInfo().getName();
+        this.roomFullName = room.getInfo().getFullName();
+        this.connectionUtils = connectionUtils;
+    }
+    /**
+     * @param exit
+     *            Information about the target room endpoint
+     * @param connectionUtils
+     *            Utilities for interacting with the outbound websocket
+     */
+    public RemoteRoomMediator(Exit exit, ConnectionUtils connectionUtils) {
+        this.id = exit.getId();
+        this.details = exit.getConnectionDetails();
+        this.roomName = exit.getName();
+        this.roomFullName = exit.getFullName();
         this.connectionUtils = connectionUtils;
     }
 
@@ -81,7 +102,7 @@ public class RemoteRoomMediator implements RoomMediator {
      */
     @Override
     public String getId() {
-        return endpointInfo.getRoomId();
+        return id;
     }
 
     /**
@@ -89,7 +110,7 @@ public class RemoteRoomMediator implements RoomMediator {
      */
     @Override
     public String getName() {
-        return endpointInfo.getRoomName();
+        return roomFullName;
     }
 
     /**
@@ -100,64 +121,76 @@ public class RemoteRoomMediator implements RoomMediator {
      */
     @Override
     public boolean connect() {
+        System.out.println("Asked to connect.. roomSession is null? "+(roomSession==null)+ (roomSession!=null?" roomSession is Open?"+roomSession.isOpen():""));
+        
         if (roomSession != null && roomSession.isOpen()) {
             return true;
         }
 
-        Log.log(Level.FINE, this, "Creating connection to room {0}", endpointInfo);
+        Log.log(Level.FINE, this, "Creating connection to room {0}", id);
+              
         final ClientEndpointConfig cec = ClientEndpointConfig.Builder.create()
                 .decoders(Arrays.asList(RoutedMessageDecoder.class)).encoders(Arrays.asList(RoutedMessageEncoder.class))
                 .build();
+        
+        switch(details.getType()){
+            case "websocket":{
+                
+                Log.log(Level.FINE, this, "Creating websocket to {0}", details.getTarget());
+                
+                URI uriServerEP = URI.create(details.getTarget());
 
-        for (String urlString : endpointInfo.getEndpoints()) {
-            // try each in turn, return as soon as we successfully connect
-            URI uriServerEP = URI.create(urlString);
+                try {
+                    // Create the new outbound session with a programmatic endpoint
+                    Session s = connectionUtils.connectToServer(new Endpoint() {
 
-            try {
-                // Create the new outbound session with a programmatic endpoint
-                Session s = connectionUtils.connectToServer(new Endpoint() {
+                        @Override
+                        public void onOpen(Session session, EndpointConfig config) {
+                            // let the room mediator know the connection was opened
+                            connectionOpened(session);
 
-                    @Override
-                    public void onOpen(Session session, EndpointConfig config) {
-                        // let the room mediator know the connection was opened
-                        connectionOpened(session);
+                            // Add message handler
+                            session.addMessageHandler(new MessageHandler.Whole<RoutedMessage>() {
+                                @Override
+                                public void onMessage(RoutedMessage message) {
+                                    Log.log(Level.FINEST, session, "received from room {0}: {1}", getId(), message);
+                                    if (playerMediator != null)
+                                        playerMediator.sendToClient(message);
+                                }
+                            });
+                        }
 
-                        // Add message handler
-                        session.addMessageHandler(new MessageHandler.Whole<RoutedMessage>() {
-                            @Override
-                            public void onMessage(RoutedMessage message) {
-                                Log.log(Level.FINEST, session, "received from room {0}: {1}", getId(), message);
-                                if (playerMediator != null)
-                                    playerMediator.sendToClient(message);
-                            }
-                        });
-                    }
+                        @Override
+                        public void onClose(Session session, CloseReason closeReason) {
+                            // let the room mediator know the connection was closed
+                            connectionClosed(closeReason);
+                        }
 
-                    @Override
-                    public void onClose(Session session, CloseReason closeReason) {
-                        // let the room mediator know the connection was closed
-                        connectionClosed(closeReason);
-                    }
+                        @Override
+                        public void onError(Session session, Throwable thr) {
+                            Log.log(Level.FINEST, this, "BADNESS " + session.getUserProperties(), thr);
 
-                    @Override
-                    public void onError(Session session, Throwable thr) {
-                        Log.log(Level.FINEST, this, "BADNESS " + session.getUserProperties(), thr);
+                            connectionUtils.tryToClose(session,
+                                    new CloseReason(CloseReason.CloseCodes.UNEXPECTED_CONDITION, thr.toString()));
+                        }
+                    }, cec, uriServerEP);
+                    Log.log(Level.FINEST, s, "CONNECTED to room {0}", id);
 
-                        connectionUtils.tryToClose(session,
-                                new CloseReason(CloseReason.CloseCodes.UNEXPECTED_CONDITION, thr.toString()));
-                    }
-                }, cec, uriServerEP);
-                Log.log(Level.FINEST, s, "CONNECTED to room {0}", endpointInfo.getRoomId());
-
-                return true;
-            } catch (DeploymentException e) {
-                Log.log(Level.FINER, this,
-                        "Deployment exception creating connection to room " + endpointInfo.getRoomId(), e);
-            } catch (IOException e) {
-                Log.log(Level.FINER, this, "I/O exception creating connection to room " + endpointInfo.getRoomId(), e);
+                    return true;
+                } catch (DeploymentException e) {
+                    Log.log(Level.FINER, this,
+                            "Deployment exception creating connection to room " + id, e);
+                } catch (IOException e) {
+                    Log.log(Level.FINER, this, "I/O exception creating connection to room " + id, e);
+                }
+                
+                break;
             }
+            default:{
+                return false;
+            }         
         }
-
+       
         return false;
     }
 
@@ -213,12 +246,12 @@ public class RemoteRoomMediator implements RoomMediator {
      * Called when the connection to the room has been established.
      */
     private void connectionOpened(Session roomSession) {
-        Log.log(Level.FINER, this, "ROOM CONNECTION OPEN {0}: {1}", endpointInfo.getRoomId());
+        Log.log(Level.FINER, this, "ROOM CONNECTION OPEN {0}: {1}", id);
 
         this.roomSession = roomSession;
 
         // set up delivery thread to send messages to the room as they arrive
-        drainToRoom = connectionUtils.drain("TO ROOM[" + endpointInfo.getRoomId() + "]", toRoom, roomSession);
+        drainToRoom = connectionUtils.drain("TO ROOM[" + id + "]", toRoom, roomSession);
     }
 
     /**
@@ -226,7 +259,7 @@ public class RemoteRoomMediator implements RoomMediator {
      * closed badly, try to open again.
      */
     private void connectionClosed(CloseReason reason) {
-        Log.log(Level.FINER, this, "ROOM CONNECTION CLOSED {0}: {1}", endpointInfo.getRoomId(), reason);
+        Log.log(Level.FINER, this, "ROOM CONNECTION CLOSED {0}: {1}", id, reason);
 
         if (drainToRoom != null)
             drainToRoom.stop();
@@ -238,6 +271,6 @@ public class RemoteRoomMediator implements RoomMediator {
 
     @Override
     public String toString() {
-        return this.getClass().getName() + "[roomId=" + endpointInfo.getRoomId() + "]";
+        return this.getClass().getName() + "[roomId=" + id + "]";
     }
 }
