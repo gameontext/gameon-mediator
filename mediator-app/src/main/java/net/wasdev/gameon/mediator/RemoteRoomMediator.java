@@ -83,6 +83,7 @@ public class RemoteRoomMediator implements RoomMediator {
         this.roomFullName = room.getInfo().getFullName();
         this.connectionUtils = connectionUtils;
     }
+
     /**
      * @param exit
      *            Information about the target room endpoint
@@ -121,32 +122,35 @@ public class RemoteRoomMediator implements RoomMediator {
      */
     @Override
     public boolean connect() {
-        System.out.println("Asked to connect.. roomSession is null? "+(roomSession==null)+ (roomSession!=null?" roomSession is Open?"+roomSession.isOpen():""));
-        
+        System.out.println("Asked to connect.. roomSession is null? " + (roomSession == null)
+                + (roomSession != null ? " roomSession is Open?" + roomSession.isOpen() : ""));
+
         if (roomSession != null && roomSession.isOpen()) {
             return true;
         }
 
         Log.log(Level.FINE, this, "Creating connection to room {0}", id);
-              
+
         final ClientEndpointConfig cec = ClientEndpointConfig.Builder.create()
                 .decoders(Arrays.asList(RoutedMessageDecoder.class)).encoders(Arrays.asList(RoutedMessageEncoder.class))
                 .build();
-        
-        switch(details.getType()){
-            case "websocket":{
-                
+
+        switch (details.getType()) {
+            case "websocket": {
+
                 Log.log(Level.FINE, this, "Creating websocket to {0}", details.getTarget());
-                
+
                 URI uriServerEP = URI.create(details.getTarget());
 
                 try {
-                    // Create the new outbound session with a programmatic endpoint
+                    // Create the new outbound session with a programmatic
+                    // endpoint
                     Session s = connectionUtils.connectToServer(new Endpoint() {
 
                         @Override
                         public void onOpen(Session session, EndpointConfig config) {
-                            // let the room mediator know the connection was opened
+                            // let the room mediator know the connection was
+                            // opened
                             connectionOpened(session);
 
                             // Add message handler
@@ -162,7 +166,8 @@ public class RemoteRoomMediator implements RoomMediator {
 
                         @Override
                         public void onClose(Session session, CloseReason closeReason) {
-                            // let the room mediator know the connection was closed
+                            // let the room mediator know the connection was
+                            // closed
                             connectionClosed(closeReason);
                         }
 
@@ -178,19 +183,18 @@ public class RemoteRoomMediator implements RoomMediator {
 
                     return true;
                 } catch (DeploymentException e) {
-                    Log.log(Level.FINER, this,
-                            "Deployment exception creating connection to room " + id, e);
+                    Log.log(Level.FINER, this, "Deployment exception creating connection to room " + id, e);
                 } catch (IOException e) {
                     Log.log(Level.FINER, this, "I/O exception creating connection to room " + id, e);
                 }
-                
+
                 break;
             }
-            default:{
+            default: {
                 return false;
-            }         
+            }
         }
-       
+
         return false;
     }
 
