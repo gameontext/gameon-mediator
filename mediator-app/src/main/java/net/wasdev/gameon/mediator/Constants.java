@@ -15,6 +15,9 @@
  *******************************************************************************/
 package net.wasdev.gameon.mediator;
 
+import javax.json.Json;
+import javax.json.JsonObject;
+
 /**
  * Protocol and message constants
  *
@@ -54,4 +57,17 @@ public interface Constants {
     String BOOKMARK = "bookmark";
 
     String USERNAME = "username";
+    
+    /**
+     * List of common/always present commands
+     */
+    JsonObject COMMON_COMMANDS = Json.createObjectBuilder()
+            .add("/look", "Look at the room")
+            .add("/examine", "Examine an item, e.g. `/examine` or `/examine item`")
+            .add("/inventory", "List your inventory (will vary by room)")
+            .add("/exits", "List room exits")
+            .add("/go", "Exit the room using the specified door, e.g. `/go N`")
+            .add("/sos", "Emergency rescue: will return you to First Room")
+            .add("/help", "List available commands")
+            .build();
 }

@@ -40,15 +40,14 @@ import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
 /**
  * A wrapped/encapsulation of outbound REST requests to the map service.
  * <p>
- * The URL for the map service and the API key are injected via CDI:
- * {@code <jndiEntry />} elements defined in server.xml maps the environment
- * variables to JNDI values.
+ * The URL for the map service and the API key are injected via CDI: {@code 
+ * <jndiEntry />} elements defined in server.xml maps the environment variables
+ * to JNDI values.
  * </p>
  * <p>
- * CDI will create this (the {@code MapClient} as an application scoped
- * bean. This bean will be created when the application starts, and can be
- * injected into other CDI-managed beans for as long as the application is
- * valid.
+ * CDI will create this (the {@code MapClient} as an application scoped bean.
+ * This bean will be created when the application starts, and can be injected
+ * into other CDI-managed beans for as long as the application is valid.
  * </p>
  *
  * @see ApplicationScoped
@@ -107,14 +106,14 @@ public class MapClient {
         Log.log(Level.FINER, this, "Map client initialized with url {0}", mapLocation);
     }
 
-    
-    public List<Site> getRoomsByOwner(String ownerId){
+    public List<Site> getRoomsByOwner(String ownerId) {
         WebTarget target = this.root.queryParam("owner", ownerId);
         return getSites(target);
     }
+
     /**
-     * Query the map: given the current room and the selected exit, where
-     * do we go?
+     * Query the map: given the current room and the selected exit, where do we
+     * go?
      *
      * @param currentRoom
      *            Current room mediator
@@ -125,52 +124,53 @@ public class MapClient {
      */
     public Exit findIdentifedExitForRoom(RoomMediator currentRoom, String exit) {
         Exit exitResult;
-        System.out.println("Asked to get exit "+exit+" for room "+currentRoom.getName());
+        System.out.println("Asked to get exit " + exit + " for room " + currentRoom.getName());
         if (exit == null) {
-            // SOS or first room.. return exit with id for first room.. 
+            // SOS or first room.. return exit with id for first room..
             exitResult = new Exit();
             exitResult.setId(Constants.FIRST_ROOM);
         } else {
-            //so.. not great.. until we have room exit push, then we need to
-            //a) re-retrieve our current room, to find out what it's wired to.
-            //   this part would normally be handled by the room itself, via push.
+            // so.. not great.. until we have room exit push, then we need to
+            // a) re-retrieve our current room, to find out what it's wired to.
+            // this part would normally be handled by the room itself, via push.
             //
-            //b) obtain the exit we plan to use from that room, if there is one
+            // b) obtain the exit we plan to use from that room, if there is one
             //
-            System.out.println("Asking map service for Site for id:"+currentRoom.getId()+" name:"+currentRoom.getName());
-            Site current = getSite(currentRoom.getId());            
+            System.out.println(
+                    "Asking map service for Site for id:" + currentRoom.getId() + " name:" + currentRoom.getName());
+            Site current = getSite(currentRoom.getId());
             Exits exits = current.getExits();
-            switch(exit.toLowerCase()){
-                case "n":{
+            switch (exit.toLowerCase()) {
+                case "n": {
                     exitResult = exits.getN();
                     break;
                 }
-                case "s":{
+                case "s": {
                     exitResult = exits.getS();
                     break;
                 }
-                case "e":{
+                case "e": {
                     exitResult = exits.getE();
                     break;
                 }
-                case "w":{
+                case "w": {
                     exitResult = exits.getW();
                     break;
                 }
-                case "u":{
+                case "u": {
                     exitResult = exits.getU();
                     break;
                 }
-                case "d":{
+                case "d": {
                     exitResult = exits.getD();
                     break;
                 }
-                default:{
-                    //unknown exit.. return null;
+                default: {
+                    // unknown exit.. return null;
                     return null;
-                }                
+                }
             }
-        }       
+        }
         return exitResult;
     }
 
@@ -208,11 +208,10 @@ public class MapClient {
         return getSite(target);
     }
 
-
     /**
      * Invoke the provided {@code WebTarget}, and resolve/parse the result into
-     * a {@code Site} that the caller can use to create a new
-     * connection to the target room.
+     * a {@code Site} that the caller can use to create a new connection to the
+     * target room.
      *
      * @param target
      *            {@code WebTarget} that includes the required parameters to
@@ -226,12 +225,13 @@ public class MapClient {
         Log.log(Level.FINER, this, "making request to {0} for room", target.getUri().toString());
         Response r = null;
         try {
-            r = target.request(MediaType.APPLICATION_JSON).get(); //.accept(MediaType.APPLICATION_JSON).get();
-            if(r.getStatusInfo().getFamily().equals(Response.Status.Family.SUCCESSFUL)){                 
-                List<Site> list = r.readEntity(new GenericType<List<Site>>(){});
+            r = target.request(MediaType.APPLICATION_JSON).get(); // .accept(MediaType.APPLICATION_JSON).get();
+            if (r.getStatusInfo().getFamily().equals(Response.Status.Family.SUCCESSFUL)) {
+                List<Site> list = r.readEntity(new GenericType<List<Site>>() {
+                });
                 return list;
             }
-            
+
             // Sadly, no endpoints found!
             return null;
         } catch (ResponseProcessingException rpe) {
@@ -241,24 +241,24 @@ public class MapClient {
                     response.getStatusInfo().getStatusCode() + " " + response.getStatusInfo().getReasonPhrase(),
                     response.readEntity(String.class));
             Log.log(Level.FINEST, this, "Exception fetching room list", rpe);
-            
-            System.out.println("ResponseProcessingException "+rpe.getMessage());
+
+            System.out.println("ResponseProcessingException " + rpe.getMessage());
             rpe.printStackTrace();
-            System.out.println("Response toString "+rpe.getResponse().toString());
-            System.out.println("Response as String "+rpe.getResponse().readEntity(String.class));
+            System.out.println("Response toString " + rpe.getResponse().toString());
+            System.out.println("Response as String " + rpe.getResponse().readEntity(String.class));
         } catch (ProcessingException e) {
-            System.out.println("ResponseProcessingException "+e.getMessage());
+            System.out.println("ResponseProcessingException " + e.getMessage());
             e.printStackTrace();
-            System.out.println("Response toString "+r.toString());
-            System.out.println("Response as String "+r.readEntity(String.class));
-        } catch (WebApplicationException ex){
+            System.out.println("Response toString " + r.toString());
+            System.out.println("Response as String " + r.readEntity(String.class));
+        } catch (WebApplicationException ex) {
             Log.log(Level.FINEST, this, "Exception fetching room list (" + target.getUri().toString() + ")", ex);
-            System.out.println("WebApplicationException "+ex.getMessage());
+            System.out.println("WebApplicationException " + ex.getMessage());
         }
         // Sadly, badness happened while trying to get the endpoints
         return null;
     }
-    
+
     /**
      * Invoke the provided {@code WebTarget}, and resolve/parse the result into
      * a {@code RoomEndpointList} that the caller can use to create a new
@@ -276,11 +276,11 @@ public class MapClient {
         Log.log(Level.FINER, this, "making request to {0} for room", target.getUri().toString());
         Response r = null;
         try {
-            r = target.request(MediaType.APPLICATION_JSON).get(); //.accept(MediaType.APPLICATION_JSON).get();
-            if(r.getStatusInfo().getFamily().equals(Response.Status.Family.SUCCESSFUL)){                
+            r = target.request(MediaType.APPLICATION_JSON).get(); // .accept(MediaType.APPLICATION_JSON).get();
+            if (r.getStatusInfo().getFamily().equals(Response.Status.Family.SUCCESSFUL)) {
                 Site site = r.readEntity(Site.class);
                 return site;
-            }           
+            }
             // Sadly, no endpoints found!
             return null;
         } catch (ResponseProcessingException rpe) {
@@ -290,64 +290,74 @@ public class MapClient {
                     response.getStatusInfo().getStatusCode() + " " + response.getStatusInfo().getReasonPhrase(),
                     response.readEntity(String.class));
             Log.log(Level.FINEST, this, "Exception fetching room list", rpe);
-            
-            System.out.println("ResponseProcessingException "+rpe.getMessage());
+
+            System.out.println("ResponseProcessingException " + rpe.getMessage());
             rpe.printStackTrace();
-            System.out.println("Response toString "+rpe.getResponse().toString());
-            System.out.println("Response as String "+rpe.getResponse().readEntity(String.class));
+            System.out.println("Response toString " + rpe.getResponse().toString());
+            System.out.println("Response as String " + rpe.getResponse().readEntity(String.class));
         } catch (ProcessingException e) {
-            System.out.println("ResponseProcessingException "+e.getMessage());
+            System.out.println("ResponseProcessingException " + e.getMessage());
             e.printStackTrace();
-            System.out.println("Response toString "+r.toString());
-            System.out.println("Response as String "+r.readEntity(String.class));
-        } catch (WebApplicationException ex){
+            System.out.println("Response toString " + r.toString());
+            System.out.println("Response as String " + r.readEntity(String.class));
+        } catch (WebApplicationException ex) {
             Log.log(Level.FINEST, this, "Exception fetching room list (" + target.getUri().toString() + ")", ex);
-            System.out.println("WebApplicationException "+ex.getMessage());
+            System.out.println("WebApplicationException " + ex.getMessage());
         }
         // Sadly, badness happened while trying to get the endpoints
         return null;
     }
 
-    @JsonIgnoreProperties(ignoreUnknown=true)
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class RoomInfo {
         String name;
-        ConnectionDetails connectionDetails=null;
+        ConnectionDetails connectionDetails = null;
         String fullName;
         String description;
         Doors doors;
+
         public String getName() {
             return name;
         }
+
         public void setName(String name) {
             this.name = name;
         }
+
         public ConnectionDetails getConnectionDetails() {
             return connectionDetails;
         }
+
         public void setConnectionDetails(ConnectionDetails connectionDetails) {
             this.connectionDetails = connectionDetails;
         }
+
         public String getFullName() {
             return fullName;
         }
+
         public void setFullName(String fullName) {
             this.fullName = fullName;
         }
+
         public String getDescription() {
             return description;
         }
+
         public void setDescription(String description) {
             this.description = description;
         }
+
         public Doors getDoors() {
             return doors;
         }
+
         public void setDoors(Doors doors) {
             this.doors = doors;
-        }    
+        }
     }
-    
-    @JsonIgnoreProperties(ignoreUnknown=true)
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Doors {
         String n;
         String s;
@@ -355,64 +365,80 @@ public class MapClient {
         String w;
         String u;
         String d;
+
         public String getN() {
             return n;
         }
+
         public void setN(String n) {
             this.n = n;
         }
+
         public String getS() {
             return s;
         }
+
         public void setS(String s) {
             this.s = s;
         }
+
         public String getE() {
             return e;
         }
+
         public void setE(String e) {
             this.e = e;
         }
+
         public String getW() {
             return w;
         }
+
         public void setW(String w) {
             this.w = w;
         }
+
         public String getU() {
             return u;
         }
+
         public void setU(String u) {
             this.u = u;
         }
+
         public String getD() {
             return d;
         }
+
         public void setD(String d) {
             this.d = d;
-        }    
+        }
     }
-    
-    @JsonIgnoreProperties(ignoreUnknown=true)
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
     @JsonInclude(Include.NON_EMPTY)
     public static class ConnectionDetails {
         String type;
         String target;
+
         public String getType() {
             return type;
         }
+
         public void setType(String type) {
             this.type = type;
         }
+
         public String getTarget() {
             return target;
         }
+
         public void setTarget(String target) {
             this.target = target;
         }
     }
-    
-    @JsonIgnoreProperties(ignoreUnknown=true)
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Exit {
         @JsonProperty("_id")
         String id;
@@ -420,41 +446,51 @@ public class MapClient {
         String fullName;
         String door = null;
         ConnectionDetails connectionDetails = null;
+
         @JsonProperty("_id")
         public String getId() {
             return id;
         }
+
         @JsonProperty("_id")
         public void setId(String id) {
             this.id = id;
         }
+
         public String getName() {
             return name;
         }
+
         public void setName(String name) {
             this.name = name;
-        }      
+        }
+
         public String getFullName() {
             return fullName;
         }
+
         public void setFullName(String fullName) {
             this.fullName = fullName;
         }
+
         public String getDoor() {
             return door;
         }
+
         public void setDoor(String door) {
             this.door = door;
         }
+
         public ConnectionDetails getConnectionDetails() {
             return connectionDetails;
         }
+
         public void setConnectionDetails(ConnectionDetails connectionDetails) {
             this.connectionDetails = connectionDetails;
-        }        
+        }
     }
-    
-    @JsonIgnoreProperties(ignoreUnknown=true)
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
     @JsonInclude(Include.NON_EMPTY)
     public static class Exits {
         Exit n;
@@ -463,88 +499,108 @@ public class MapClient {
         Exit w;
         Exit u;
         Exit d;
+
         public Exit getN() {
             return n;
         }
+
         public void setN(Exit n) {
             this.n = n;
         }
+
         public Exit getS() {
             return s;
         }
+
         public void setS(Exit s) {
             this.s = s;
         }
+
         public Exit getE() {
             return e;
         }
+
         public void setE(Exit e) {
             this.e = e;
         }
+
         public Exit getW() {
             return w;
         }
+
         public void setW(Exit w) {
             this.w = w;
         }
+
         public Exit getU() {
             return u;
         }
+
         public void setU(Exit u) {
             this.u = u;
         }
+
         public Exit getD() {
             return d;
         }
+
         public void setD(Exit d) {
             this.d = d;
         }
-        
+
     }
-    
-    @JsonIgnoreProperties(ignoreUnknown=true)
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
     @JsonInclude(Include.NON_EMPTY)
     public static class Site {
         RoomInfo info;
         Exits exits;
-        String owner;   
+        String owner;
         @JsonProperty("_id")
         String id;
         String type;
-         
+
         public RoomInfo getInfo() {
             return info;
         }
+
         public void setInfo(RoomInfo roomInfo) {
             this.info = roomInfo;
         }
+
         public Exits getExits() {
             return exits;
         }
+
         public void setExits(Exits exits) {
             this.exits = exits;
         }
+
         public String getOwner() {
             return owner;
         }
+
         public void setOwner(String owner) {
             this.owner = owner;
         }
+
         @JsonProperty("_id")
         public String getId() {
             return id;
         }
+
         @JsonProperty("_id")
         public void setId(String id) {
             this.id = id;
         }
+
         public String getType() {
             return type;
         }
+
         public void setType(String type) {
             this.type = type;
         }
-        
+
     }
 }
-
