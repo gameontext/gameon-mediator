@@ -54,9 +54,12 @@ public interface Constants {
     String FIRST_ROOM = "firstroom";
 
     String ROOM_ID = "roomId";
+
     String BOOKMARK = "bookmark";
 
     String USERNAME = "username";
+    
+    String COMMANDS = "commands";
     
     /**
      * List of common/always present commands
@@ -70,4 +73,6 @@ public interface Constants {
             .add("/sos", "Emergency rescue: will return you to First Room")
             .add("/help", "List available commands")
             .build();
+
+    String MEDIATOR_ID = "mediatorId";
 }

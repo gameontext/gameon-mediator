@@ -46,9 +46,9 @@ public class RemoteRoomMediator implements RoomMediator {
      * Information about the remote endpoint. Used to construct the client
      * websocket
      */
+    private final String id;
     private final String roomName;
     private final String roomFullName;
-    private final String id;
     private final ConnectionDetails details;
 
     /**
@@ -111,6 +111,11 @@ public class RemoteRoomMediator implements RoomMediator {
      */
     @Override
     public String getName() {
+        return roomName;
+    }
+
+    @Override
+    public String getFullName() {
         return roomFullName;
     }
 

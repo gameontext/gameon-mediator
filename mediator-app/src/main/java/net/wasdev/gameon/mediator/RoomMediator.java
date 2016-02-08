@@ -26,9 +26,14 @@ public interface RoomMediator {
     String getId();
 
     /**
-     * @return The room's pretty name
+     * @return The room's name
      */
     String getName();
+    
+    /**
+     * @return The room's pretty name
+     */
+    String getFullName();
 
     /**
      * Create the connection between the mediator and the remote room
