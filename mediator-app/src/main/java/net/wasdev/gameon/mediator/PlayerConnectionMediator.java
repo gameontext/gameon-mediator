@@ -279,7 +279,7 @@ public class PlayerConnectionMediator {
             System.out.println("Room change requested.. going from " + oldRoom.getName()
                     + (exitId != null ? " via " + exitId : " to firstroom"));
             sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
-                    String.format(PlayerConnectionMediator.FINDROOM, oldRoom.getId())));
+                    String.format(PlayerConnectionMediator.FINDROOM, oldRoom.getFullName())));
 
             // if exitId is still null, its an SOS
             if (exitId != null) {
