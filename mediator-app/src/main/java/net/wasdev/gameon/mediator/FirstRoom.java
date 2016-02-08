@@ -33,21 +33,20 @@ public class FirstRoom implements RoomMediator {
     public static final String CONTENT = "content";
     public static final String USER_ID = "userId";
     public static final String EXIT_ID = "exitId";
-    public static final String MEDIATOR_ID = "mediatorId";
+
     public static final String TELEPORT = "teleport";
     public static final String EXITS = "exits";
-    public static final String DESCRIPTION = "description";
+
     public static final String NAME = "name";
     public static final String FULL_NAME = "fullName";
-    public static final String LOCATION = "location";
-    
-    /** Commands */
+    public static final String DESCRIPTION = "description";
 
     /** JSON element specifying the type of message. */
     public static final String TYPE = "type";
     public static final String CHAT = "chat";
     public static final String EXIT = "exit";
     public static final String EVENT = "event";
+    public static final String LOCATION = "location";
 
     public static final String FIRST_ROOM_DESC = "You've entered a vaguely squarish room, with walls of an indeterminate color.";
     public static final String FIRST_ROOM_EXTENDED = "\n\nYou are alone at the moment, and have a strong suspicion that "
@@ -87,6 +86,11 @@ public class FirstRoom implements RoomMediator {
     @Override
     public String getName() {
         return Constants.FIRST_ROOM;
+    }
+    
+    @Override
+    public String getFullName() {
+        return "The First Room";
     }
 
     @Override
@@ -234,8 +238,9 @@ public class FirstRoom implements RoomMediator {
     private void buildLocationResponse(JsonObjectBuilder responseBuilder) {
         responseBuilder.add(FirstRoom.TYPE, FirstRoom.LOCATION);
         responseBuilder.add(FirstRoom.NAME, Constants.FIRST_ROOM);
-        responseBuilder.add(FirstRoom.FULL_NAME, "The First Room");
+        responseBuilder.add(FirstRoom.FULL_NAME, getFullName());
         responseBuilder.add(FirstRoom.EXITS, buildExitsResponse());
+        responseBuilder.add(Constants.COMMANDS, buildHelpResponse());
 
         if (newbie) {
             responseBuilder.add(FirstRoom.DESCRIPTION, FIRST_ROOM_DESC + FIRST_ROOM_EXTENDED);
@@ -268,12 +273,7 @@ public class FirstRoom implements RoomMediator {
     protected JsonObject buildHelpResponse() {
         JsonObjectBuilder content = Json.createObjectBuilder();
         content.add("/listmyrooms", "List all of your rooms");
-        content.add("/teleport", "Teleport to the specified room, e.g. `/teleport room-id`");
-        
-        Constants.COMMON_COMMANDS.forEach((k,v)->{
-            content.add(k, v);
-        });
-        
+        content.add("/teleport", "Teleport to the specified room, e.g. `/teleport room-id`");        
         return content.build();
     }
 }

@@ -200,7 +200,7 @@ public class PlayerConnectionManager implements Runnable {
 
         JsonObject sessionData = message.getParsedBody();
 
-        String mediatorId = sessionData.getString(FirstRoom.MEDIATOR_ID, null);
+        String mediatorId = sessionData.getString(Constants.MEDIATOR_ID, null);
         String username = sessionData.getString(Constants.USERNAME, null);
 
         String roomId = message.getOptionalValue(Constants.ROOM_ID, null);

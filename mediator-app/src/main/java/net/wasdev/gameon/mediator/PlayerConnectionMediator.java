@@ -372,9 +372,10 @@ public class PlayerConnectionMediator {
      * @return ack message with mediator id
      */
     private void sendClientAck() {
-        JsonObject ack = Json.createObjectBuilder().add(FirstRoom.MEDIATOR_ID, id)
+        JsonObject ack = Json.createObjectBuilder()
+                .add(Constants.MEDIATOR_ID, id)
                 .add(Constants.ROOM_ID, currentRoom.getId())
-                .add(PlayerConnectionMediator.ROOM_NAME, currentRoom.getName()).build();
+                .add(Constants.COMMANDS, Constants.COMMON_COMMANDS).build();
 
         toClient.offer(RoutedMessage.createMessage(PlayerConnectionMediator.CLIENT_ACK, ack));
     }
