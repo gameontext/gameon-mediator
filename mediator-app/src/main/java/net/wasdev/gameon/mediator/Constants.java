@@ -78,4 +78,9 @@ public interface Constants {
             .build();
 
     String MEDIATOR_ID = "mediatorId";
+    
+    /**
+     * The id under which system rooms are registered.
+     */
+    String SYSTEM_ID = "game-on.org";
 }

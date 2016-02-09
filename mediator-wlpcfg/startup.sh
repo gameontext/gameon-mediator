@@ -28,7 +28,7 @@ if [ "$ETCDCTL_ENDPOINT" != "" ]; then
 
   export MAP_KEY=$(etcdctl get /passwords/map-key)
   export MAP_URL=$(etcdctl get /map/url)
-  export PLAYER_URL=$(etcdctl get /player/url)
+  export MEDIATOR_PLAYER_URL=$(etcdctl get /player/url)
   
   /opt/ibm/wlp/bin/server start defaultServer
   echo Starting the logstash forwarder...
