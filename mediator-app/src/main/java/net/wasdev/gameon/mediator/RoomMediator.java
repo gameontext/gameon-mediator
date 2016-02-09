@@ -17,6 +17,7 @@ package net.wasdev.gameon.mediator;
 
 import javax.json.JsonObject;
 
+import net.wasdev.gameon.mediator.models.ConnectionDetails;
 import net.wasdev.gameon.mediator.models.Exit;
 import net.wasdev.gameon.mediator.models.Exits;
 
@@ -40,7 +41,14 @@ public interface RoomMediator {
      */
     String getFullName();
 
-    /** Return a list of the room's exits */
+    /**
+     * @return connection details for room
+     */
+    ConnectionDetails getConnectionDetails();
+
+    /**
+     * @return a list of the room's exits
+     */
     Exits getExits();
 
     /**

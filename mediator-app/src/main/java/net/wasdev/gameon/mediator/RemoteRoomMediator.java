@@ -91,7 +91,7 @@ public class RemoteRoomMediator implements RoomMediator {
      * @param connectionUtils
      *            Utilities for interacting with the outbound websocket
      */
-    public RemoteRoomMediator(Site room, MapClient mapClient, ConnectionUtils connectionUtils) {
+    public RemoteRoomMediator(MapClient mapClient, Site room, ConnectionUtils connectionUtils) {
         this.connectionUtils = connectionUtils;
         this.mapClient = mapClient;
 
@@ -141,6 +141,11 @@ public class RemoteRoomMediator implements RoomMediator {
     @Override
     public String getFullName() {
         return roomFullName;
+    }
+
+    @Override
+    public ConnectionDetails getConnectionDetails() {
+        return details;
     }
 
     @Override

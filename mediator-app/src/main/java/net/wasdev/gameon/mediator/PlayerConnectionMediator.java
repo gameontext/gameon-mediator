@@ -24,8 +24,6 @@ import javax.json.Json;
 import javax.json.JsonObject;
 import javax.websocket.Session;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import net.wasdev.gameon.mediator.ConnectionUtils.Drain;
 import net.wasdev.gameon.mediator.models.Exit;
 import net.wasdev.gameon.mediator.models.Site;
@@ -117,12 +115,12 @@ public class PlayerConnectionMediator {
 
     public static final String FINDROOM_FAIL = "{\"type\": \"joinpart\",\"content\": \"Oh dear. That is a door to Nowhere. Back to the First Room! \",\"bookmark\": 0}";
     public static final String CONNECTING = "{\"type\": \"joinpart\",\"content\": \"...connecting to %s...\",\"bookmark\": 0}";
-    public static final String FINDROOM = "{\"type\": \"joinpart\",\"content\": \"...asking map service for next room...\",\"bookmark\": 0}";
+    public static final String FINDROOM = "{\"type\": \"joinpart\",\"content\": \"...finding the next room...\",\"bookmark\": 0}";
     public static final String PART = "{\"type\": \"joinpart\",\"content\": \"exit %s\",\"bookmark\": 0}";
     public static final String JOIN = "{\"type\": \"joinpart\",\"content\": \"enter %s\",\"bookmark\": 0}";
     public static final String HIBYE = "{\"username\": \"%s\",\"userId\": \"%s\"}";
     public static final String ELECTRIC_THUMB = "{\"type\": \"exit\",\"content\": \"In a desperate plea for rescue, you stick out your <a href='http://everything2.com/title/Electronic+Thumb' target='_blank'>Electric Thumb</a> and hope for the best.\",\"bookmark\": 0}";
-    public static final String BAD_RIDE = "{\"type\": \"event\",\"content\": {\"*\": \"There is a sudden jerk, and you feel as though a hook somewhere behind your navel was yanking you ... somewhere. <br /><br />What just happened? Something bad, whatever it was, and now you notice you're in a different place than you were.\"},\"bookmark\": 0}";
+    public static final String BAD_RIDE = "{\"type\": \"event\",\"content\": {\"*\": \"There is a sudden jerk, and you feel as though a hook somewhere behind your navel was yanking you ... somewhere. \n\nWhat just happened? Something bad, whatever it was, and now you notice you're in a different place than you were.\"},\"bookmark\": 0}";
     public static final String SPLINCHED = "{\"type\": \"event\",\"content\": {\"*\": \"Ow! You were splinched! After a brief jolt (getting unsplinched isn't comfortable), you're all back together again. At least, all instances of you are in the same room.\"},\"bookmark\": 0}";
 
     /**
@@ -451,12 +449,7 @@ public class PlayerConnectionMediator {
     protected RoomMediator findMediatorForExitFromRoom(RoomMediator currentRoom, String direction) {
         Exit nextExit =  currentRoom.getExit(direction);
 
-        // check for empty rooms...
-        if (nextExit == null) {
-            return null;
-        } else {
-            return createMediator(nextExit);
-        }
+        return createMediator(nextExit);
     }
 
     /**
@@ -467,11 +460,18 @@ public class PlayerConnectionMediator {
      * @return new mediator, or the FirstRoom if roomEndpoints is null
      */
     protected RoomMediator createMediator(Exit exit) {
-        if (exit == null || Constants.FIRST_ROOM.equals(exit.getId())) {
+        if (exit == null ) {
             // safe fallback
             sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
                     String.format(PlayerConnectionMediator.FINDROOM_FAIL)));
-            return new FirstRoom(jwt,playerClient, mapClient);
+            return new FirstRoom(jwt, playerClient, mapClient);
+
+        } else if ( Constants.FIRST_ROOM.equals(exit.getId())) {
+            return new FirstRoom(mapClient);
+
+        } else if ( exit.getConnectionDetails() == null ) {
+            return new EmptyRoom(mapClient, exit.getId(), currentRoom);
+
         } else {
             return new RemoteRoomMediator(exit, mapClient, connectionUtils);
         }
@@ -489,9 +489,13 @@ public class PlayerConnectionMediator {
             // safe fallback
             sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
                     String.format(PlayerConnectionMediator.FINDROOM_FAIL)));
-            return new FirstRoom(jwt,playerClient, mapClient);
+            return new FirstRoom(jwt, playerClient, mapClient);
+
+        } else if ( "empty".equals(site.getType()) ) {
+            return new EmptyRoom(mapClient, site.getId(), currentRoom);
+
         } else {
-            return new RemoteRoomMediator(site, mapClient, connectionUtils);
+            return new RemoteRoomMediator(mapClient, site, connectionUtils);
         }
     }
 
@@ -501,7 +505,7 @@ public class PlayerConnectionMediator {
             return this.getClass().getName() + "[userId=" + userId + "]";
         } else {
             return this.getClass().getName() + "[userId=" + userId + ", roomId=" + currentRoom.getId()
-                    + ", suspendCount=" + suspendCount.get() + "]";
+            + ", suspendCount=" + suspendCount.get() + "]";
         }
     }
 

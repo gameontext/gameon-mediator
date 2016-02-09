@@ -24,6 +24,7 @@ import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
+import net.wasdev.gameon.mediator.models.ConnectionDetails;
 import net.wasdev.gameon.mediator.models.Exit;
 import net.wasdev.gameon.mediator.models.Exits;
 import net.wasdev.gameon.mediator.models.Site;
@@ -69,8 +70,8 @@ public class FirstRoom implements RoomMediator {
     boolean inventory = false;
 
     MapClient mapClient = null;
-    final String playerJwt;    
-    
+
+    final String playerJwt;
     final PlayerClient playerClient;
 
     public FirstRoom(String playerJwt, PlayerClient playerClient, MapClient mapClient) {
@@ -98,6 +99,11 @@ public class FirstRoom implements RoomMediator {
     @Override
     public String getFullName() {
         return "The First Room";
+    }
+
+    @Override
+    public ConnectionDetails getConnectionDetails() {
+        return null;
     }
 
     @Override
@@ -225,7 +231,7 @@ public class FirstRoom implements RoomMediator {
                 // argument.. needs update to listmyrooms above to tell it how to
 
                 responseBuilder.add(FirstRoom.TYPE, FirstRoom.EXIT).add(FirstRoom.EXIT_ID, target)
-                .add(FirstRoom.TELEPORT, true).add(FirstRoom.CONTENT,
+                    .add(FirstRoom.TELEPORT, true).add(FirstRoom.CONTENT,
                         "You punch the coordinates into the console, a large tube appears from above you, and you are sucked into a maze of piping.");
             } else {
                 responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT, buildContentResponse(
@@ -241,15 +247,15 @@ public class FirstRoom implements RoomMediator {
     }
 
     private void processDeleteRoomCommand(String contentToLower, JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
-        
+
         System.out.println("Processing delete command.. "+contentToLower);
-        
-        String userid = sourceMessage.getString(USER_ID);     
-                        
+
+        String userid = sourceMessage.getString(USER_ID);
+
         if (contentToLower.length() > "/deleteroom ".length()) {
             String target = contentToLower.substring("/deleteroom ".length());
-        
-            //obtain the users shared secret using their jwt.. 
+
+            //obtain the users shared secret using their jwt..
             String secret = playerClient.getSharedSecret(userid, playerJwt);
             System.out.println("Got key for user of "+String.valueOf(secret));
             if(secret==null){
@@ -257,7 +263,7 @@ public class FirstRoom implements RoomMediator {
                         buildContentResponse("Sqork. The Internal Cogs Rumble, but refuse to move, I'm not sure who you are."));
                 return;
             }
-            
+
             if(mapClient.deleteSite(target, userid, secret)){
                 responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT,
                         buildContentResponse("The room has varnished. Like an old oak table."));
@@ -270,7 +276,7 @@ public class FirstRoom implements RoomMediator {
                     buildContentResponse("But how can you delete that, if you have no fingers?"));
             return;
         }
-        
+
     }
 
     private void processListMyRoomsCommand(JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
@@ -295,7 +301,7 @@ public class FirstRoom implements RoomMediator {
         responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT,
                 buildContentResponse(roomSummary.toString()));
     }
-    
+
     private void processListSystemRoomsCommand(JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
         // TODO: add cache / rate limit.
         List<Site> rooms = mapClient.getRoomsByOwner(Constants.SYSTEM_ID);
