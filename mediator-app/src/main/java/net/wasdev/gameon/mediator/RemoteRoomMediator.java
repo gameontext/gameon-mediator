@@ -22,6 +22,9 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
 import javax.websocket.ClientEndpointConfig;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
@@ -140,6 +143,7 @@ public class RemoteRoomMediator implements RoomMediator {
         return roomFullName;
     }
 
+    @Override
     public Exits getExits() {
         long now = System.nanoTime();
         if ( lastCheck == 0 || now - lastCheck > TimeUnit.SECONDS.toNanos(30) ) {
@@ -155,9 +159,27 @@ public class RemoteRoomMediator implements RoomMediator {
         return exits;
     }
 
+    @Override
     public Exit getExit(String direction) {
         Exits currentExits = getExits();
         return currentExits == null ? null : currentExits.getExit(direction);
+    }
+
+    @Override
+    public JsonObject listExits() {
+        Exits exits = getExits();
+
+        JsonObjectBuilder content = Json.createObjectBuilder();
+        content.add("N", exits.getN().getDoor());
+        content.add("S", exits.getS().getDoor());
+        content.add("E", exits.getE().getDoor());
+        content.add("W", exits.getW().getDoor());
+        if ( exits.getU() != null )
+            content.add("U", exits.getU().getDoor());
+        if ( exits.getD() != null )
+            content.add("D", exits.getD().getDoor());
+
+        return content.build();
     }
 
     /**
