@@ -194,7 +194,7 @@ public class PlayerConnectionMediator {
             Log.log(Level.FINE, this, "User {0} warped from {1} to FirstRoom due to inability to connect to {2}({3})",
                     userId, roomId, currentRoom.getName(), currentRoom.getId());
             sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, PlayerConnectionMediator.BAD_RIDE));
-            currentRoom = new FirstRoom(mapClient);
+            currentRoom = new FirstRoom(jwt, playerClient,mapClient);
         }
 
         // Double check that all is well and the client agrees with where we are
@@ -433,7 +433,7 @@ public class PlayerConnectionMediator {
         }
 
         if (roomId == null || roomId.isEmpty() || Constants.FIRST_ROOM.equals(roomId)) {
-            return new FirstRoom(mapClient, (roomId == null || roomId.isEmpty()));
+            return new FirstRoom(jwt, playerClient, mapClient, (roomId == null || roomId.isEmpty()));
         }
 
         return createMediator(mapClient.getSite(roomId));
@@ -471,7 +471,7 @@ public class PlayerConnectionMediator {
             // safe fallback
             sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
                     String.format(PlayerConnectionMediator.FINDROOM_FAIL)));
-            return new FirstRoom(mapClient);
+            return new FirstRoom(jwt,playerClient, mapClient);
         } else {
             return new RemoteRoomMediator(exit, mapClient, connectionUtils);
         }
@@ -489,7 +489,7 @@ public class PlayerConnectionMediator {
             // safe fallback
             sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
                     String.format(PlayerConnectionMediator.FINDROOM_FAIL)));
-            return new FirstRoom(mapClient);
+            return new FirstRoom(jwt,playerClient, mapClient);
         } else {
             return new RemoteRoomMediator(site, mapClient, connectionUtils);
         }

@@ -26,6 +26,7 @@ import javax.ws.rs.ProcessingException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.ResponseProcessingException;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.GenericType;
@@ -34,7 +35,6 @@ import javax.ws.rs.core.Response;
 
 import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
 
-import net.wasdev.gameon.mediator.models.Exit;
 import net.wasdev.gameon.mediator.models.Exits;
 import net.wasdev.gameon.mediator.models.Site;
 
@@ -80,7 +80,7 @@ public class MapClient {
      *
      * @see WebTarget
      */
-    private WebTarget root;
+    private WebTarget queryRoot;
 
     /** Last check for the mediator-owned/created First Room exits */
     long lastCheck;
@@ -98,48 +98,62 @@ public class MapClient {
      */
     @PostConstruct
     public void initClient() {
-        Client client = ClientBuilder.newClient().register(JacksonJsonProvider.class);
+        Client queryClient = ClientBuilder.newClient().register(JacksonJsonProvider.class);
 
         // create the jax-rs 2.0 client
-        this.root = client.target(mapLocation);
-
-        // create the apikey filter for the lookup requests.
-        ApiKeyFilter apikey = new ApiKeyFilter("mapQuery", querySecret);
-
-        // register the API key filter that will ensure the api key is invoked
-        // for each outbound request.
-        this.root.register(apikey);
+        this.queryRoot = queryClient.target(mapLocation);
 
         Log.log(Level.FINER, this, "Map client initialized with url {0}", mapLocation);
     }
 
     public List<Site> getRoomsByOwner(String ownerId) {
-        WebTarget target = this.root.queryParam("owner", ownerId);
+        WebTarget target = this.queryRoot.queryParam("owner", ownerId);
         return getSites(target);
     }
 
     /**
      * Construct an outbound {@code WebTarget} that builds on the root
      * {@code WebTarget#path(String)} to add the path segment required to
-     * request a starting room ({@code startingRoom}).
+     * request the first room. 
      *
-     * @return The list of available endpoints returned from the concierge. This
-     *         may be null if the list could not be retrieved.
+     * @return The Site representing first room from the Map Service, or null if it could not be retrieved.
      * @see #getRoomList(WebTarget)
      */
     public Site getSite() {
-        WebTarget target = this.root.path(Constants.FIRST_ROOM);
+        WebTarget target = this.queryRoot.path(Constants.FIRST_ROOM);
         return getSite(target);
     }
 
     /**
      * Construct an outbound {@code WebTarget} that builds on the root
      * {@code WebTarget#path(String)} to add the path segment required to
-     * request the exits available for a given room (<code>rooms/{roomId}</code>
+     * request the Site a given room (<code>{roomId}</code>
      * ).
      *
      * @param roomId
-     *            The specific room to find exits for
+     *            The specific room to find the site for
+     *
+     * @return The Site returned from the map service. This
+     *         may be null if the site could not be retrieved.
+     *
+     * @see #getRoomList(WebTarget)
+     * @see WebTarget#resolveTemplate(String, Object)
+     */
+    public Site getSite(String roomId) {
+        WebTarget target = this.queryRoot.path("{roomId}").resolveTemplate("roomId", roomId);
+        return getSite(target);
+    }
+    
+    /**
+     * Construct an outbound {@code WebTarget} that builds on the root
+     * {@code WebTarget#path(String)} to add the path segment required to
+     * request the deletion of a given room (<code>{roomId}</code>
+     * ).
+     *
+     * @param roomId
+     *            The specific room to delete
+     * @param secret 
+     * @param userid 
      *
      * @return The list of available endpoints returned from the concierge. This
      *         may be null if the list could not be retrieved.
@@ -147,9 +161,53 @@ public class MapClient {
      * @see #getRoomList(WebTarget)
      * @see WebTarget#resolveTemplate(String, Object)
      */
-    public Site getSite(String roomId) {
-        WebTarget target = this.root.path("{roomId}").resolveTemplate("roomId", roomId);
-        return getSite(target);
+    public boolean deleteSite(String roomId, String userid, String secret) {
+        System.out.println("Asked to delete room id "+roomId+" for user "+userid+" with secret "+secret);
+        
+        Client client = ClientBuilder.newClient();
+                       
+        //use filter because this request has no body..
+        GameOnHeaderAuth apikey = new GameOnHeaderAuthFilter(userid, secret);
+        client.register(apikey);
+
+        WebTarget target = client.target(mapLocation).path("{roomId}").resolveTemplate("roomId", roomId);
+        
+        Log.log(Level.FINER, this, "making request to {0} for room", target.getUri().toString());
+        Response r = null;
+        try {
+            System.out.println("Issuing delete.. ");
+            r = target.request().delete(); //
+            if (r.getStatusInfo().getFamily().equals(Response.Status.Family.SUCCESSFUL)) {
+                System.out.println("It worked.."+r.getStatusInfo().getStatusCode()+" "+r.readEntity(String.class));
+                return true;
+            }
+            System.out.println("It failed "+r.getStatusInfo().getReasonPhrase()+" "+r.readEntity(String.class));
+            
+            //delete failed.
+            return false;
+        } catch (ResponseProcessingException rpe) {
+            Response response = rpe.getResponse();
+            Log.log(Level.FINER, this, "Exception deleting room uri: {0} resp code: {1} data: {2}",
+                    target.getUri().toString(),
+                    response.getStatusInfo().getStatusCode() + " " + response.getStatusInfo().getReasonPhrase(),
+                    response.readEntity(String.class));
+            Log.log(Level.FINEST, this, "Exception deleting room ", rpe);
+
+            System.out.println("ResponseProcessingException " + rpe.getMessage());
+            rpe.printStackTrace();
+            System.out.println("Response toString " + rpe.getResponse().toString());
+            System.out.println("Response as String " + rpe.getResponse().readEntity(String.class));
+        } catch (ProcessingException e) {
+            System.out.println("ResponseProcessingException " + e.getMessage());
+            e.printStackTrace();
+            System.out.println("Response toString " + r.toString());
+            System.out.println("Response as String " + r.readEntity(String.class));
+        } catch (WebApplicationException ex) {
+            Log.log(Level.FINEST, this, "Exception deleting room (" + target.getUri().toString() + ")", ex);
+            System.out.println("WebApplicationException " + ex.getMessage());
+        }
+        // Sadly, badness happened while trying to do the delete
+        return false;
     }
 
     /**
@@ -162,7 +220,7 @@ public class MapClient {
      *            retrieve information about available or specified exits. All
      *            of the REST requests that find or work with exits return the
      *            same result structure
-     * @return A populated {@code RoomEndpointList}, or null if the request
+     * @return A populated {@code List<Site>}, or null if the request
      *         failed.
      */
     protected List<Site> getSites(WebTarget target) {
@@ -205,15 +263,15 @@ public class MapClient {
 
     /**
      * Invoke the provided {@code WebTarget}, and resolve/parse the result into
-     * a {@code RoomEndpointList} that the caller can use to create a new
+     * a {@code Site} that the caller can use to create a new
      * connection to the target room.
      *
      * @param target
-     *            {@code WebTarget} that includes the requred parameters to
+     *            {@code WebTarget} that includes the required parameters to
      *            retrieve information about available or specified exits. All
      *            of the REST requests that find or work with exits return the
      *            same result structure
-     * @return A populated {@code RoomEndpointList}, or null if the request
+     * @return A populated {@code Site}, or null if the request
      *         failed.
      */
     protected Site getSite(WebTarget target) {

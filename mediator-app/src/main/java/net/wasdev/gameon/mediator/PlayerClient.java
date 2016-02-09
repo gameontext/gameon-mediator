@@ -15,6 +15,7 @@
  *******************************************************************************/
 package net.wasdev.gameon.mediator;
 
+import java.io.StringReader;
 import java.util.logging.Level;
 
 import javax.annotation.PostConstruct;
@@ -22,6 +23,10 @@ import javax.annotation.Resource;
 import javax.enterprise.context.ApplicationScoped;
 import javax.json.Json;
 import javax.json.JsonObject;
+import javax.json.JsonReader;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.client.Client;
@@ -31,6 +36,8 @@ import javax.ws.rs.client.ResponseProcessingException;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
+import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
 
 /**
  * A wrapped/encapsulation of outbound REST requests to the player service.
@@ -60,15 +67,22 @@ public class PlayerClient {
 
     /**
      * The root target used to define the root path and common query parameters
-     * for all outbound requests to the concierge service.
+     * for all outbound requests to the player service.
      *
      * @see WebTarget
      */
     WebTarget root;
 
+    
+    public class TheNotVerySensibleHostnameVerifier implements HostnameVerifier {
+        public boolean verify(String string, SSLSession sslSession) {
+            return true;
+        }
+    }
+    
     /**
      * The {@code @PostConstruct} annotation indicates that this method should
-     * be called immediately after the {@code ConciergeClient} is instantiated
+     * be called immediately after the {@code PlayerClient} is instantiated
      * with the default no-argument constructor.
      *
      * @see PostConstruct
@@ -76,9 +90,18 @@ public class PlayerClient {
      */
     @PostConstruct
     public void initClient() {
-        Client client = ClientBuilder.newClient();
-        this.root = client.target(playerLocation);
-
+        try{
+            Client client;
+            ClientBuilder builder = ClientBuilder.newBuilder().sslContext(SSLContext.getDefault());
+            if("development".equals(System.getenv("MAP_PLAYER_MODE"))){
+                builder.hostnameVerifier(new TheNotVerySensibleHostnameVerifier());
+            }
+            client = builder.build().register(JacksonJsonProvider.class);
+            this.root = client.target(playerLocation);
+        }catch(Exception e){
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
         Log.log(Level.FINER, this, "Player client initialized with {0}", playerLocation);
     }
 
@@ -127,6 +150,46 @@ public class PlayerClient {
         // Sadly, badness happened while trying to set the new room location
         // return to old room
         return oldRoomId;
+    }
+    
+    /**
+     * Get shared secret for player
+     * @param playerId
+     * @param jwt
+     * @param oldRoomId
+     * @param newRoomId
+     * @return
+     */
+    public String getSharedSecret(String playerId, String jwt) {
+        WebTarget target = this.root.path("{playerId}").resolveTemplate("playerId", playerId).queryParam("jwt",
+                jwt);
+
+        Log.log(Level.FINER, this, "requesting shared secret using {0}", target.getUri().toString());
+
+        try {
+            // Make PUT request using the specified target, get result as a
+            // string containing JSON
+            String result = target.request(MediaType.APPLICATION_JSON)//.accept(MediaType.APPLICATION_JSON)
+                    .header("Content-type", "application/json").get(String.class);
+            
+            JsonReader p = Json.createReader(new StringReader(result));
+            JsonObject j = p.readObject();
+
+            return j.getString("apiKey");
+        } catch (ResponseProcessingException rpe) {
+            Response response = rpe.getResponse();
+            Log.log(Level.FINER, this, "Exception obtaining shared secret for player,  uri: {0} resp code: {1} data: {2}",
+                    target.getUri().toString(),
+                    response.getStatusInfo().getStatusCode() + " " + response.getStatusInfo().getReasonPhrase(),
+                    response.readEntity(String.class));
+
+            Log.log(Level.FINEST, this, "Exception obtaining shared secret for player", rpe);
+        } catch (ProcessingException | WebApplicationException ex) {
+            Log.log(Level.FINEST, this, "Exception obtaining shared secret for player (" + target.getUri().toString() + ")", ex);
+        } 
+
+        // Sadly, badness happened while trying to get the shared secret
+        return null;
     }
 
 }

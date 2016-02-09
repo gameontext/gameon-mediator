@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
+import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
@@ -68,15 +69,20 @@ public class FirstRoom implements RoomMediator {
     boolean inventory = false;
 
     MapClient mapClient = null;
+    final String playerJwt;    
+    
+    final PlayerClient playerClient;
 
-    public FirstRoom(MapClient mapClient) {
-        this(mapClient, false);
+    public FirstRoom(String playerJwt, PlayerClient playerClient, MapClient mapClient) {
+        this(playerJwt, playerClient, mapClient, false);
     }
 
-    public FirstRoom(MapClient mapClient, boolean newbie) {
+    public FirstRoom(String playerJwt, PlayerClient playerClient, MapClient mapClient, boolean newbie) {
         Log.log(Level.FINEST, this, "New First Room, new player {0}", newbie);
         this.newbie = newbie;
         this.mapClient = mapClient;
+        this.playerJwt = playerJwt;
+        this.playerClient = playerClient;
     }
 
     @Override
@@ -205,27 +211,13 @@ public class FirstRoom implements RoomMediator {
         } else if (contentToLower.startsWith("/help")) {
             responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT, buildHelpResponse());
         } else if (contentToLower.startsWith("/listmyrooms")) {
-            // TODO: add cache / rate limit.
-            String userid = sourceMessage.getString(USER_ID);
-            List<Site> rooms = mapClient.getRoomsByOwner(userid);
-
-            StringBuffer roomSummary = new StringBuffer();
-            if (rooms != null && !rooms.isEmpty()) {
-                roomSummary.append("You have registered the following rooms... \n");
-                for (Site room : rooms) {
-                    if (room.getInfo() != null) {
-                        roomSummary.append(
-                                " - '" + room.getInfo().getFullName() + "' with id " + room.getId() + "\n");
-                    }
-                }
-                roomSummary.append("You can go directly to your own rooms using /teleport <roomid>");
-            } else {
-                roomSummary.append("You have no rooms registered!");
-            }
-
-            responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT,
-                    buildContentResponse(roomSummary.toString()));
-        } else if (contentToLower.startsWith("/teleport")) {
+            processListMyRoomsCommand(sourceMessage, responseBuilder);
+        } else if (contentToLower.startsWith("/listmyrooms")) {
+            processListSystemRoomsCommand(sourceMessage, responseBuilder);
+        } else if (contentToLower.startsWith("/deleteroom ")){
+            System.out.println("calling delete.. ");
+            processDeleteRoomCommand(contentToLower, sourceMessage, responseBuilder);
+        } else if (contentToLower.startsWith("/teleport ")) {
             if (contentToLower.length() > "/teleport ".length()) {
                 String target = contentToLower.substring("/teleport ".length());
 
@@ -246,6 +238,84 @@ public class FirstRoom implements RoomMediator {
             responseBuilder.add(Constants.USERNAME, sourceMessage.getString(Constants.USERNAME))
             .add(FirstRoom.CONTENT, content).add(FirstRoom.TYPE, FirstRoom.CHAT);
         }
+    }
+
+    private void processDeleteRoomCommand(String contentToLower, JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
+        
+        System.out.println("Processing delete command.. "+contentToLower);
+        
+        String userid = sourceMessage.getString(USER_ID);     
+                        
+        if (contentToLower.length() > "/deleteroom ".length()) {
+            String target = contentToLower.substring("/deleteroom ".length());
+        
+            //obtain the users shared secret using their jwt.. 
+            String secret = playerClient.getSharedSecret(userid, playerJwt);
+            System.out.println("Got key for user of "+String.valueOf(secret));
+            if(secret==null){
+                responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT,
+                        buildContentResponse("Sqork. The Internal Cogs Rumble, but refuse to move, I'm not sure who you are."));
+                return;
+            }
+            
+            if(mapClient.deleteSite(target, userid, secret)){
+                responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT,
+                        buildContentResponse("The room has varnished. Like an old oak table."));
+            }else{
+                responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT,
+                        buildContentResponse("The room stubbornly refuses to be deleted.. "));
+            }
+        }else{
+            responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT,
+                    buildContentResponse("But how can you delete that, if you have no fingers?"));
+            return;
+        }
+        
+    }
+
+    private void processListMyRoomsCommand(JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
+        // TODO: add cache / rate limit.
+        String userid = sourceMessage.getString(USER_ID);
+        List<Site> rooms = mapClient.getRoomsByOwner(userid);
+
+        StringBuffer roomSummary = new StringBuffer();
+        if (rooms != null && !rooms.isEmpty()) {
+            roomSummary.append("You have registered the following rooms... \n");
+            for (Site room : rooms) {
+                if (room.getInfo() != null) {
+                    roomSummary.append(
+                            " - '" + room.getInfo().getFullName() + "' with id " + room.getId() + "\n");
+                }
+            }
+            roomSummary.append("\nYou can go directly to your own rooms using /teleport <roomid>");
+        } else {
+            roomSummary.append("You have no rooms registered!");
+        }
+
+        responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT,
+                buildContentResponse(roomSummary.toString()));
+    }
+    
+    private void processListSystemRoomsCommand(JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
+        // TODO: add cache / rate limit.
+        List<Site> rooms = mapClient.getRoomsByOwner(Constants.SYSTEM_ID);
+
+        StringBuffer roomSummary = new StringBuffer();
+        if (rooms != null && !rooms.isEmpty()) {
+            roomSummary.append("There are the following system rooms... \n");
+            for (Site room : rooms) {
+                if (room.getInfo() != null) {
+                    roomSummary.append(
+                            " - '" + room.getInfo().getFullName() + "' with id " + room.getId() + "\n");
+                }
+            }
+            roomSummary.append("\nYou can go directly to a system room using /teleport <roomid>");
+        } else {
+            roomSummary.append("There are no system rooms registered!");
+        }
+
+        responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT,
+                buildContentResponse(roomSummary.toString()));
     }
 
     private JsonObject buildContentResponse(String message) {
