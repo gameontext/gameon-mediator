@@ -54,13 +54,16 @@ public interface Constants {
     String FIRST_ROOM = "firstroom";
 
     String ROOM_ID = "roomId";
+    String ROOM_NAME = "name";
+    String ROOM_FULLNAME = "fullName";
+    String ROOM_EXITS = "exits";
 
     String BOOKMARK = "bookmark";
 
     String USERNAME = "username";
-    
+
     String COMMANDS = "commands";
-    
+
     /**
      * List of common/always present commands
      */

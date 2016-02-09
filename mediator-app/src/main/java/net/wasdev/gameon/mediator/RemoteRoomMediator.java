@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import javax.websocket.ClientEndpointConfig;
@@ -31,9 +32,10 @@ import javax.websocket.MessageHandler;
 import javax.websocket.Session;
 
 import net.wasdev.gameon.mediator.ConnectionUtils.Drain;
-import net.wasdev.gameon.mediator.MapClient.ConnectionDetails;
-import net.wasdev.gameon.mediator.MapClient.Exit;
-import net.wasdev.gameon.mediator.MapClient.Site;
+import net.wasdev.gameon.mediator.models.ConnectionDetails;
+import net.wasdev.gameon.mediator.models.Exit;
+import net.wasdev.gameon.mediator.models.Exits;
+import net.wasdev.gameon.mediator.models.Site;
 
 /**
  * Mediator for connections to remote rooms. This manages creating and
@@ -58,8 +60,18 @@ public class RemoteRoomMediator implements RoomMediator {
      */
     private final ConnectionUtils connectionUtils;
 
+    /**
+     * Client to fetch the most recent exits from the map
+     */
+    private final MapClient mapClient;
+
     /** The session for the established websocket connection. */
     private Session roomSession;
+
+    /** List of exits, retrieved after connecting to room */
+    private Exits exits = null;
+
+    long lastCheck = 0;
 
     /** The owning mediator: manages the connection to the client device. */
     private volatile PlayerConnectionMediator playerMediator;
@@ -76,12 +88,17 @@ public class RemoteRoomMediator implements RoomMediator {
      * @param connectionUtils
      *            Utilities for interacting with the outbound websocket
      */
-    public RemoteRoomMediator(Site room, ConnectionUtils connectionUtils) {
+    public RemoteRoomMediator(Site room, MapClient mapClient, ConnectionUtils connectionUtils) {
+        this.connectionUtils = connectionUtils;
+        this.mapClient = mapClient;
+
         this.id = room.getId();
         this.details = room.getInfo().getConnectionDetails();
         this.roomName = room.getInfo().getName();
         this.roomFullName = room.getInfo().getFullName();
-        this.connectionUtils = connectionUtils;
+
+        this.exits = room.getExits();
+        lastCheck = System.nanoTime();
     }
 
     /**
@@ -90,12 +107,16 @@ public class RemoteRoomMediator implements RoomMediator {
      * @param connectionUtils
      *            Utilities for interacting with the outbound websocket
      */
-    public RemoteRoomMediator(Exit exit, ConnectionUtils connectionUtils) {
+    public RemoteRoomMediator(Exit exit, MapClient mapClient, ConnectionUtils connectionUtils) {
+        this.connectionUtils = connectionUtils;
+        this.mapClient = mapClient;
+
         this.id = exit.getId();
         this.details = exit.getConnectionDetails();
         this.roomName = exit.getName();
         this.roomFullName = exit.getFullName();
-        this.connectionUtils = connectionUtils;
+
+        this.exits = null;
     }
 
     /**
@@ -117,6 +138,26 @@ public class RemoteRoomMediator implements RoomMediator {
     @Override
     public String getFullName() {
         return roomFullName;
+    }
+
+    public Exits getExits() {
+        long now = System.nanoTime();
+        if ( lastCheck == 0 || now - lastCheck > TimeUnit.SECONDS.toNanos(30) ) {
+            try {
+                Site site = mapClient.getSite(id);
+                exits = site.getExits();
+                lastCheck = now;
+            } catch(Exception e) {
+                Log.log(Level.WARNING, this, "Unable to retrieve exits for room ["+id+"], will continue with old values", e);
+            }
+        }
+
+        return exits;
+    }
+
+    public Exit getExit(String direction) {
+        Exits currentExits = getExits();
+        return currentExits == null ? null : currentExits.getExit(direction);
     }
 
     /**
@@ -154,15 +195,14 @@ public class RemoteRoomMediator implements RoomMediator {
 
                         @Override
                         public void onOpen(Session session, EndpointConfig config) {
-                            // let the room mediator know the connection was
-                            // opened
+                            // let the room mediator know the connection was opened
                             connectionOpened(session);
 
                             // Add message handler
                             session.addMessageHandler(new MessageHandler.Whole<RoutedMessage>() {
                                 @Override
                                 public void onMessage(RoutedMessage message) {
-                                    Log.log(Level.FINEST, session, "received from room {0}: {1}", getId(), message);
+                                    Log.log(Level.FINEST, session, "received from room {2}({0}): {1}", getId(), message, getName());
                                     if (playerMediator != null)
                                         playerMediator.sendToClient(message);
                                 }
@@ -184,7 +224,7 @@ public class RemoteRoomMediator implements RoomMediator {
                                     new CloseReason(CloseReason.CloseCodes.UNEXPECTED_CONDITION, thr.toString()));
                         }
                     }, cec, uriServerEP);
-                    Log.log(Level.FINEST, s, "CONNECTED to room {0}", id);
+                    Log.log(Level.FINEST, s, "CONNECTED to room {1}({0})", id, roomName);
 
                     return true;
                 } catch (DeploymentException e) {
@@ -216,7 +256,7 @@ public class RemoteRoomMediator implements RoomMediator {
 
     /**
      * Stop relaying messages to the player.
-     * 
+     *
      * @param playerMediator
      */
     @Override
