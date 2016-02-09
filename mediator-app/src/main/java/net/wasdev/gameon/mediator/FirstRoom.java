@@ -94,6 +94,7 @@ public class FirstRoom implements RoomMediator {
         return "The First Room";
     }
 
+    @Override
     public Exits getExits() {
         return mapClient.getFirstRoomExits();
     }
@@ -102,6 +103,11 @@ public class FirstRoom implements RoomMediator {
     public Exit getExit(String direction) {
         Exits currentExits = getExits();
         return currentExits == null ? null : currentExits.getExit(direction);
+    }
+
+    @Override
+    public JsonObject listExits() {
+        return buildExitsResponse();
     }
 
     @Override
@@ -186,10 +192,10 @@ public class FirstRoom implements RoomMediator {
             String exitDirection = getDirection(contentToLower);
             if ( exitDirection == null ) {
                 responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT)
-                    .add(FirstRoom.CONTENT, buildContentResponse("Hmm. That direction didn't make sense. Try again?"));
-          } else {
+                .add(FirstRoom.CONTENT, buildContentResponse("Hmm. That direction didn't make sense. Try again?"));
+            } else {
                 responseBuilder.add(FirstRoom.TYPE, FirstRoom.EXIT).add(FirstRoom.EXIT_ID, exitDirection)
-                    .add(FirstRoom.CONTENT, "You've found a way out, well done!");
+                .add(FirstRoom.CONTENT, "You've found a way out, well done!");
             }
         } else if (contentToLower.startsWith("/inventory")) {
             responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT, buildInventoryResponse());
@@ -227,8 +233,8 @@ public class FirstRoom implements RoomMediator {
                 // argument.. needs update to listmyrooms above to tell it how to
 
                 responseBuilder.add(FirstRoom.TYPE, FirstRoom.EXIT).add(FirstRoom.EXIT_ID, target)
-                        .add(FirstRoom.TELEPORT, true).add(FirstRoom.CONTENT,
-                                "You punch the coordinates into the console, a large tube appears from above you, and you are sucked into a maze of piping.");
+                .add(FirstRoom.TELEPORT, true).add(FirstRoom.CONTENT,
+                        "You punch the coordinates into the console, a large tube appears from above you, and you are sucked into a maze of piping.");
             } else {
                 responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT, buildContentResponse(
                         "You concentrate really hard, and teleport from your current location, to your current location.. Magic!!"));
@@ -238,7 +244,7 @@ public class FirstRoom implements RoomMediator {
                     buildContentResponse("This room is a basic model. It doesn't understand that command."));
         } else {
             responseBuilder.add(Constants.USERNAME, sourceMessage.getString(Constants.USERNAME))
-                    .add(FirstRoom.CONTENT, content).add(FirstRoom.TYPE, FirstRoom.CHAT);
+            .add(FirstRoom.CONTENT, content).add(FirstRoom.TYPE, FirstRoom.CHAT);
         }
     }
 

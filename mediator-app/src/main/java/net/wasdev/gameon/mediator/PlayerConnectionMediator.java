@@ -382,7 +382,7 @@ public class PlayerConnectionMediator {
                 .add(Constants.ROOM_ID, currentRoom.getId())
                 .add(Constants.ROOM_NAME, currentRoom.getName())
                 .add(Constants.ROOM_FULLNAME, currentRoom.getFullName())
-                .add(Constants.ROOM_EXITS, currentRoom.getExits().toJsonString())
+                .add(Constants.ROOM_EXITS, currentRoom.listExits())
                 .add(Constants.COMMANDS, Constants.COMMON_COMMANDS).build();
 
         toClient.offer(RoutedMessage.createMessage(PlayerConnectionMediator.CLIENT_ACK, ack));

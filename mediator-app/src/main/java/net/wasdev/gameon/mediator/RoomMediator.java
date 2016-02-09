@@ -15,6 +15,8 @@
  *******************************************************************************/
 package net.wasdev.gameon.mediator;
 
+import javax.json.JsonObject;
+
 import net.wasdev.gameon.mediator.models.Exit;
 import net.wasdev.gameon.mediator.models.Exits;
 
@@ -46,6 +48,11 @@ public interface RoomMediator {
      * @return The exit heading off in the specified direction
      */
     Exit getExit(String direction);
+
+    /**
+     * @return JsonObject list of exits as presented in the client {"N": "Door Description"}
+     */
+    JsonObject listExits();
 
     /**
      * Create the connection between the mediator and the remote room
