@@ -16,6 +16,7 @@
 package net.wasdev.gameon.mediator;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import javax.annotation.PostConstruct;
@@ -31,16 +32,16 @@ import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
+
+import net.wasdev.gameon.mediator.models.Exit;
+import net.wasdev.gameon.mediator.models.Exits;
+import net.wasdev.gameon.mediator.models.Site;
 
 /**
  * A wrapped/encapsulation of outbound REST requests to the map service.
  * <p>
- * The URL for the map service and the API key are injected via CDI: {@code 
+ * The URL for the map service and the API key are injected via CDI: {@code
  * <jndiEntry />} elements defined in server.xml maps the environment variables
  * to JNDI values.
  * </p>
@@ -57,7 +58,7 @@ public class MapClient {
 
     /**
      * The map URL injected from JNDI via CDI.
-     * 
+     *
      * @see {@code mapUrl} in
      *      {@code /mediator-wlpcfg/servers/gameon-mediator/server.xml}
      */
@@ -66,7 +67,7 @@ public class MapClient {
 
     /**
      * The concierge API key injected from JNDI via CDI.
-     * 
+     *
      * @see {@code conciergeQueryApiKey} in
      *      {@code /mediator-wlpcfg/servers/gameon-mediator/server.xml}
      */
@@ -80,6 +81,12 @@ public class MapClient {
      * @see WebTarget
      */
     private WebTarget root;
+
+    /** Last check for the mediator-owned/created First Room exits */
+    long lastCheck;
+
+    /** Cached exits for first room */
+    Exits firstRoomExits;
 
     /**
      * The {@code @PostConstruct} annotation indicates that this method should
@@ -109,69 +116,6 @@ public class MapClient {
     public List<Site> getRoomsByOwner(String ownerId) {
         WebTarget target = this.root.queryParam("owner", ownerId);
         return getSites(target);
-    }
-
-    /**
-     * Query the map: given the current room and the selected exit, where do we
-     * go?
-     *
-     * @param currentRoom
-     *            Current room mediator
-     * @param exit
-     *            A string indicating the selected exit, e.g. {@code N}. This
-     *            parameter may be null (for the initial starting room)
-     * @return new Room Id
-     */
-    public Exit findIdentifedExitForRoom(RoomMediator currentRoom, String exit) {
-        Exit exitResult;
-        System.out.println("Asked to get exit " + exit + " for room " + currentRoom.getName());
-        if (exit == null) {
-            // SOS or first room.. return exit with id for first room..
-            exitResult = new Exit();
-            exitResult.setId(Constants.FIRST_ROOM);
-        } else {
-            // so.. not great.. until we have room exit push, then we need to
-            // a) re-retrieve our current room, to find out what it's wired to.
-            // this part would normally be handled by the room itself, via push.
-            //
-            // b) obtain the exit we plan to use from that room, if there is one
-            //
-            System.out.println(
-                    "Asking map service for Site for id:" + currentRoom.getId() + " name:" + currentRoom.getName());
-            Site current = getSite(currentRoom.getId());
-            Exits exits = current.getExits();
-            switch (exit.toLowerCase()) {
-                case "n": {
-                    exitResult = exits.getN();
-                    break;
-                }
-                case "s": {
-                    exitResult = exits.getS();
-                    break;
-                }
-                case "e": {
-                    exitResult = exits.getE();
-                    break;
-                }
-                case "w": {
-                    exitResult = exits.getW();
-                    break;
-                }
-                case "u": {
-                    exitResult = exits.getU();
-                    break;
-                }
-                case "d": {
-                    exitResult = exits.getD();
-                    break;
-                }
-                default: {
-                    // unknown exit.. return null;
-                    return null;
-                }
-            }
-        }
-        return exitResult;
     }
 
     /**
@@ -308,299 +252,25 @@ public class MapClient {
         return null;
     }
 
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class RoomInfo {
-        String name;
-        ConnectionDetails connectionDetails = null;
-        String fullName;
-        String description;
-        Doors doors;
-
-        public String getName() {
-            return name;
+    /**
+     * First Room lives in the mediator. We need to either regularly fetch, or have
+     * this list of exits updated. First room changes per player (to determine
+     * what messages to show), but exit checking does not need to be per player.
+     *
+     * @return Most current exits for the first room
+     */
+    public Exits getFirstRoomExits() {
+        long now = System.nanoTime();
+        if ( lastCheck == 0 || now - lastCheck > TimeUnit.SECONDS.toNanos(30) ) {
+            try {
+                Site firstRoom = getSite();
+                firstRoomExits = firstRoom.getExits();
+                lastCheck = now;
+            } catch(Exception e) {
+                Log.log(Level.WARNING, this, "Unable to retrieve exits for first room, will continue with old values", e);
+            }
         }
 
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public ConnectionDetails getConnectionDetails() {
-            return connectionDetails;
-        }
-
-        public void setConnectionDetails(ConnectionDetails connectionDetails) {
-            this.connectionDetails = connectionDetails;
-        }
-
-        public String getFullName() {
-            return fullName;
-        }
-
-        public void setFullName(String fullName) {
-            this.fullName = fullName;
-        }
-
-        public String getDescription() {
-            return description;
-        }
-
-        public void setDescription(String description) {
-            this.description = description;
-        }
-
-        public Doors getDoors() {
-            return doors;
-        }
-
-        public void setDoors(Doors doors) {
-            this.doors = doors;
-        }
-    }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Doors {
-        String n;
-        String s;
-        String e;
-        String w;
-        String u;
-        String d;
-
-        public String getN() {
-            return n;
-        }
-
-        public void setN(String n) {
-            this.n = n;
-        }
-
-        public String getS() {
-            return s;
-        }
-
-        public void setS(String s) {
-            this.s = s;
-        }
-
-        public String getE() {
-            return e;
-        }
-
-        public void setE(String e) {
-            this.e = e;
-        }
-
-        public String getW() {
-            return w;
-        }
-
-        public void setW(String w) {
-            this.w = w;
-        }
-
-        public String getU() {
-            return u;
-        }
-
-        public void setU(String u) {
-            this.u = u;
-        }
-
-        public String getD() {
-            return d;
-        }
-
-        public void setD(String d) {
-            this.d = d;
-        }
-    }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonInclude(Include.NON_EMPTY)
-    public static class ConnectionDetails {
-        String type;
-        String target;
-
-        public String getType() {
-            return type;
-        }
-
-        public void setType(String type) {
-            this.type = type;
-        }
-
-        public String getTarget() {
-            return target;
-        }
-
-        public void setTarget(String target) {
-            this.target = target;
-        }
-    }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class Exit {
-        @JsonProperty("_id")
-        String id;
-        String name;
-        String fullName;
-        String door = null;
-        ConnectionDetails connectionDetails = null;
-
-        @JsonProperty("_id")
-        public String getId() {
-            return id;
-        }
-
-        @JsonProperty("_id")
-        public void setId(String id) {
-            this.id = id;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public String getFullName() {
-            return fullName;
-        }
-
-        public void setFullName(String fullName) {
-            this.fullName = fullName;
-        }
-
-        public String getDoor() {
-            return door;
-        }
-
-        public void setDoor(String door) {
-            this.door = door;
-        }
-
-        public ConnectionDetails getConnectionDetails() {
-            return connectionDetails;
-        }
-
-        public void setConnectionDetails(ConnectionDetails connectionDetails) {
-            this.connectionDetails = connectionDetails;
-        }
-    }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonInclude(Include.NON_EMPTY)
-    public static class Exits {
-        Exit n;
-        Exit s;
-        Exit e;
-        Exit w;
-        Exit u;
-        Exit d;
-
-        public Exit getN() {
-            return n;
-        }
-
-        public void setN(Exit n) {
-            this.n = n;
-        }
-
-        public Exit getS() {
-            return s;
-        }
-
-        public void setS(Exit s) {
-            this.s = s;
-        }
-
-        public Exit getE() {
-            return e;
-        }
-
-        public void setE(Exit e) {
-            this.e = e;
-        }
-
-        public Exit getW() {
-            return w;
-        }
-
-        public void setW(Exit w) {
-            this.w = w;
-        }
-
-        public Exit getU() {
-            return u;
-        }
-
-        public void setU(Exit u) {
-            this.u = u;
-        }
-
-        public Exit getD() {
-            return d;
-        }
-
-        public void setD(Exit d) {
-            this.d = d;
-        }
-
-    }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonInclude(Include.NON_EMPTY)
-    public static class Site {
-        RoomInfo info;
-        Exits exits;
-        String owner;
-        @JsonProperty("_id")
-        String id;
-        String type;
-
-        public RoomInfo getInfo() {
-            return info;
-        }
-
-        public void setInfo(RoomInfo roomInfo) {
-            this.info = roomInfo;
-        }
-
-        public Exits getExits() {
-            return exits;
-        }
-
-        public void setExits(Exits exits) {
-            this.exits = exits;
-        }
-
-        public String getOwner() {
-            return owner;
-        }
-
-        public void setOwner(String owner) {
-            this.owner = owner;
-        }
-
-        @JsonProperty("_id")
-        public String getId() {
-            return id;
-        }
-
-        @JsonProperty("_id")
-        public void setId(String id) {
-            this.id = id;
-        }
-
-        public String getType() {
-            return type;
-        }
-
-        public void setType(String type) {
-            this.type = type;
-        }
-
+        return firstRoomExits;
     }
 }

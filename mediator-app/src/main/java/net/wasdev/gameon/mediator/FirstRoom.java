@@ -23,7 +23,9 @@ import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
-import net.wasdev.gameon.mediator.MapClient.Site;
+import net.wasdev.gameon.mediator.models.Exit;
+import net.wasdev.gameon.mediator.models.Exits;
+import net.wasdev.gameon.mediator.models.Site;
 
 /**
  *
@@ -35,8 +37,6 @@ public class FirstRoom implements RoomMediator {
     public static final String EXIT_ID = "exitId";
 
     public static final String TELEPORT = "teleport";
-    public static final String EXITS = "exits";
-
     public static final String NAME = "name";
     public static final String FULL_NAME = "fullName";
     public static final String DESCRIPTION = "description";
@@ -66,6 +66,7 @@ public class FirstRoom implements RoomMediator {
     private AtomicInteger counter = new AtomicInteger(0);
     boolean newbie = false;
     boolean inventory = false;
+
     MapClient mapClient = null;
 
     public FirstRoom(MapClient mapClient) {
@@ -87,10 +88,20 @@ public class FirstRoom implements RoomMediator {
     public String getName() {
         return Constants.FIRST_ROOM;
     }
-    
+
     @Override
     public String getFullName() {
         return "The First Room";
+    }
+
+    public Exits getExits() {
+        return mapClient.getFirstRoomExits();
+    }
+
+    @Override
+    public Exit getExit(String direction) {
+        Exits currentExits = getExits();
+        return currentExits == null ? null : currentExits.getExit(direction);
     }
 
     @Override
@@ -170,14 +181,16 @@ public class FirstRoom implements RoomMediator {
         if (contentToLower.startsWith("/look")) {
             buildLocationResponse(responseBuilder);
         } else if (contentToLower.startsWith("/exits")) {
-            responseBuilder.add(FirstRoom.TYPE, FirstRoom.EXITS).add(FirstRoom.CONTENT, buildExitsResponse());
+            responseBuilder.add(FirstRoom.TYPE, Constants.ROOM_EXITS).add(FirstRoom.CONTENT, buildExitsResponse());
         } else if (contentToLower.startsWith("/go")) {
-            String exitDirection = "N";
-            if (contentToLower.length() > "/go ".length()) {
-                exitDirection = ("" + contentToLower.charAt(4)).toUpperCase();
-            }
-            responseBuilder.add(FirstRoom.TYPE, FirstRoom.EXIT).add(FirstRoom.EXIT_ID, exitDirection)
+            String exitDirection = getDirection(contentToLower);
+            if ( exitDirection == null ) {
+                responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT)
+                    .add(FirstRoom.CONTENT, buildContentResponse("Hmm. That direction didn't make sense. Try again?"));
+          } else {
+                responseBuilder.add(FirstRoom.TYPE, FirstRoom.EXIT).add(FirstRoom.EXIT_ID, exitDirection)
                     .add(FirstRoom.CONTENT, "You've found a way out, well done!");
+            }
         } else if (contentToLower.startsWith("/inventory")) {
             responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT, buildInventoryResponse());
         } else if (contentToLower.startsWith("/examine")) {
@@ -239,7 +252,7 @@ public class FirstRoom implements RoomMediator {
         responseBuilder.add(FirstRoom.TYPE, FirstRoom.LOCATION);
         responseBuilder.add(FirstRoom.NAME, Constants.FIRST_ROOM);
         responseBuilder.add(FirstRoom.FULL_NAME, getFullName());
-        responseBuilder.add(FirstRoom.EXITS, buildExitsResponse());
+        responseBuilder.add(Constants.ROOM_EXITS, buildExitsResponse());
         responseBuilder.add(Constants.COMMANDS, buildHelpResponse());
 
         if (newbie) {
@@ -251,13 +264,17 @@ public class FirstRoom implements RoomMediator {
     }
 
     private JsonObject buildExitsResponse() {
+        Exits exits = getExits();
+
         JsonObjectBuilder content = Json.createObjectBuilder();
-        content.add("N", "Simple door");
-        content.add("S", "Simple door");
-        content.add("E", "Simple door");
-        content.add("W", "Simple door");
-        content.add("U", "Hatch in the ceiling");
-        content.add("D", "Trap-door in the floor");
+        content.add("N", exits.getN().getDoor());
+        content.add("S", exits.getS().getDoor());
+        content.add("E", exits.getE().getDoor());
+        content.add("W", exits.getW().getDoor());
+        if ( exits.getU() != null )
+            content.add("U", exits.getU().getDoor());
+        if ( exits.getD() != null )
+            content.add("D", exits.getD().getDoor());
 
         return content.build();
     }
@@ -273,7 +290,26 @@ public class FirstRoom implements RoomMediator {
     protected JsonObject buildHelpResponse() {
         JsonObjectBuilder content = Json.createObjectBuilder();
         content.add("/listmyrooms", "List all of your rooms");
-        content.add("/teleport", "Teleport to the specified room, e.g. `/teleport room-id`");        
+        content.add("/teleport", "Teleport to the specified room, e.g. `/teleport room-id`");
         return content.build();
+    }
+
+    private String getDirection(String direction) {
+        if ( direction == null || direction.isEmpty() || direction.length() < 5 )
+            return null;
+
+        char d = direction.charAt(4);
+
+        switch(d) {
+            case 'n':
+            case 's':
+            case 'e':
+            case 'w':
+            case 'u':
+            case 'd':
+                return "" + d;
+            default:
+                return null;
+        }
     }
 }

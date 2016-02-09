@@ -15,6 +15,9 @@
  *******************************************************************************/
 package net.wasdev.gameon.mediator;
 
+import net.wasdev.gameon.mediator.models.Exit;
+import net.wasdev.gameon.mediator.models.Exits;
+
 /**
  * Interface for a (local or remote) room mediator.
  */
@@ -29,11 +32,20 @@ public interface RoomMediator {
      * @return The room's name
      */
     String getName();
-    
+
     /**
      * @return The room's pretty name
      */
     String getFullName();
+
+    /** Return a list of the room's exits */
+    Exits getExits();
+
+    /**
+     * @param direction
+     * @return The exit heading off in the specified direction
+     */
+    Exit getExit(String direction);
 
     /**
      * Create the connection between the mediator and the remote room
