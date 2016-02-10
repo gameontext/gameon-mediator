@@ -108,6 +108,9 @@ public class MapClient {
         }
 
         Client queryClient = ClientBuilder.newClient().register(JacksonJsonProvider.class);
+        
+        //add our shared secret so all our queries come from the game-on.org id
+        queryClient.register(new GameOnHeaderAuthFilter("game-on.org", querySecret));
 
         // create the jax-rs 2.0 client
         this.queryRoot = queryClient.target(mapLocation);
