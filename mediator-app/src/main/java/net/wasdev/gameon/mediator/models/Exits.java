@@ -1,11 +1,13 @@
 package net.wasdev.gameon.mediator.models;
 
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(Include.NON_EMPTY)
@@ -94,14 +96,34 @@ public class Exits {
     }
 
     @JsonIgnore
-    public String toJsonString() {
-        ObjectMapper mapper = new ObjectMapper();
+    public JsonObject toJson() {
 
-        try {
-            return mapper.writeValueAsString(this);
-        } catch (JsonProcessingException e) {
-            return "{}";
+        JsonObjectBuilder content = Json.createObjectBuilder();
+        if ( n != null) {
+            content.add("N", n.getDoor());
         }
+
+        if ( s != null) {
+            content.add("S", s.getDoor());
+        }
+
+        if ( e != null ) {
+            content.add("E", e.getDoor());
+        }
+
+        if ( w != null ) {
+            content.add("W", w.getDoor());
+        }
+
+        if ( u != null ) {
+            content.add("U", u.getDoor());
+        }
+
+        if ( d != null ) {
+            content.add("D", d.getDoor());
+        }
+
+        return content.build();
     }
 
 }

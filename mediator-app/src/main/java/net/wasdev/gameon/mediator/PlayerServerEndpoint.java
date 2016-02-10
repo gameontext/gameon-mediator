@@ -55,11 +55,7 @@ public class PlayerServerEndpoint {
      */
     @OnOpen
     public void onOpen(@PathParam("userId") String userId, Session session, EndpointConfig ec) {
-        Log.log(Level.FINER, session, "client open - {0}", userId);
-
-        System.out.println(session);
-        System.out.println(session.getQueryString());
-        System.out.println(session.getUserProperties());
+        Log.log(Level.FINER, session, "client open - {0}", userId, session, session.getQueryString(), session.getUserProperties());
     }
 
     /**
@@ -87,28 +83,31 @@ public class PlayerServerEndpoint {
     public void onMessage(@PathParam("userId") String userId, RoutedMessage message, Session session)
             throws IOException {
         Log.log(Level.FINEST, session, "received from client {0}: {1}", userId, message);
-
-        switch (message.getFlowTarget()) {
-            case PlayerConnectionMediator.CLIENT_READY: {
-                // create a new or resume an existing player session
-                PlayerConnectionMediator ps = playerSessionManager.startSession(session, userId, message);
-                playerSessionManager.setMediator(session, ps);
-                break;
-            }
-            default: {
-                PlayerConnectionMediator ps = playerSessionManager.getMediator(session);
-
-                // after a restart we may get messages before we've
-                // re-established a
-                // session or connection to a room. These are dropped.
-                if (ps == null) {
-                    Log.log(Level.FINEST, session, "no session, dropping message from client {0}: {1}", userId,
-                            message);
-                } else {
-                    ps.sendToRoom(message);
+        try {
+            switch (message.getFlowTarget()) {
+                case PlayerConnectionMediator.CLIENT_READY: {
+                    // create a new or resume an existing player session
+                    PlayerConnectionMediator ps = playerSessionManager.startSession(session, userId, message);
+                    playerSessionManager.setMediator(session, ps);
+                    break;
                 }
-                break;
+                default: {
+                    PlayerConnectionMediator ps = playerSessionManager.getMediator(session);
+
+                    // after a restart we may get messages before we've
+                    // re-established a
+                    // session or connection to a room. These are dropped.
+                    if (ps == null) {
+                        Log.log(Level.FINEST, session, "no session, dropping message from client {0}: {1}", userId,
+                                message);
+                    } else {
+                        ps.sendToRoom(message);
+                    }
+                    break;
+                }
             }
+        } catch(Exception e) {
+            Log.log(Level.WARNING, session, "Uncaught exception handling room-bound message", e);
         }
     }
 

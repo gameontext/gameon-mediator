@@ -195,7 +195,7 @@ public class PlayerConnectionManager implements Runnable {
      * @throws IOException
      *             if the keystore for the JWT processing cannot be used.
      */
-    public PlayerConnectionMediator startSession(Session clientSession, String userName, RoutedMessage message)
+    public PlayerConnectionMediator startSession(Session clientSession, String userId, RoutedMessage message)
             throws IOException {
 
         JsonObject sessionData = message.getParsedBody();
@@ -248,14 +248,19 @@ public class PlayerConnectionManager implements Runnable {
             String newJwt = Jwts.builder().setHeaderParam("kid", "playerssl").setClaims(onwardsClaims)
                     .signWith(SignatureAlgorithm.RS256, signingKey).compact();
 
-            mediator = new PlayerConnectionMediator(userName, username, newJwt, mapClient, playerClient,
+            mediator = new PlayerConnectionMediator(userId, username, newJwt, mapClient, playerClient,
                     connectionUtils);
-            Log.log(Level.FINER, this, "Created new session {0} for user {1}", mediator, userName);
+            Log.log(Level.FINER, this, "Created new session {0} for user {1}", mediator, userId);
         } else {
-            Log.log(Level.FINER, this, "Resuming session session {0} for user {1}", mediator, userName);
+            Log.log(Level.FINER, this, "Resuming session session {0} for user {1}", mediator, userId);
         }
 
-        mediator.connect(clientSession, roomId, lastmessage);
+        try {
+            mediator.connect(clientSession, roomId, lastmessage);
+        } catch(Exception e) {
+            mediator.sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, PlayerConnectionMediator.BAD_RIDE));
+            mediator.connect(clientSession, "firstroom", 0);
+        }
         return mediator;
     }
 

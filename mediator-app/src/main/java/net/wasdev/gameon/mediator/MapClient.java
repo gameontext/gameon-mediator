@@ -26,7 +26,6 @@ import javax.ws.rs.ProcessingException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.ResponseProcessingException;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.GenericType;
@@ -98,6 +97,16 @@ public class MapClient {
      */
     @PostConstruct
     public void initClient() {
+        if ( mapLocation == null ) {
+            Log.log(Level.SEVERE, this, "Player client can not be initialized, 'mapUrl' is not defined");
+            throw new RuntimeException("Unable to initialize MapClient");
+        }
+
+        if ( querySecret == null ) {
+            Log.log(Level.SEVERE, this, "Player client can not be initialized, 'mapApiKey' is not defined");
+            throw new RuntimeException("Unable to initialize MapClient");
+        }
+
         Client queryClient = ClientBuilder.newClient().register(JacksonJsonProvider.class);
 
         // create the jax-rs 2.0 client
@@ -114,7 +123,7 @@ public class MapClient {
     /**
      * Construct an outbound {@code WebTarget} that builds on the root
      * {@code WebTarget#path(String)} to add the path segment required to
-     * request the first room. 
+     * request the first room.
      *
      * @return The Site representing first room from the Map Service, or null if it could not be retrieved.
      * @see #getRoomList(WebTarget)
@@ -143,7 +152,7 @@ public class MapClient {
         WebTarget target = this.queryRoot.path("{roomId}").resolveTemplate("roomId", roomId);
         return getSite(target);
     }
-    
+
     /**
      * Construct an outbound {@code WebTarget} that builds on the root
      * {@code WebTarget#path(String)} to add the path segment required to
@@ -152,8 +161,8 @@ public class MapClient {
      *
      * @param roomId
      *            The specific room to delete
-     * @param secret 
-     * @param userid 
+     * @param secret
+     * @param userid
      *
      * @return The list of available endpoints returned from the concierge. This
      *         may be null if the list could not be retrieved.
@@ -163,15 +172,15 @@ public class MapClient {
      */
     public boolean deleteSite(String roomId, String userid, String secret) {
         System.out.println("Asked to delete room id "+roomId+" for user "+userid+" with secret "+secret);
-        
+
         Client client = ClientBuilder.newClient();
-                       
+
         //use filter because this request has no body..
         GameOnHeaderAuth apikey = new GameOnHeaderAuthFilter(userid, secret);
         client.register(apikey);
 
         WebTarget target = client.target(mapLocation).path("{roomId}").resolveTemplate("roomId", roomId);
-        
+
         Log.log(Level.FINER, this, "making request to {0} for room", target.getUri().toString());
         Response r = null;
         try {
@@ -182,7 +191,7 @@ public class MapClient {
                 return true;
             }
             System.out.println("It failed "+r.getStatusInfo().getReasonPhrase()+" "+r.readEntity(String.class));
-            
+
             //delete failed.
             return false;
         } catch (ResponseProcessingException rpe) {

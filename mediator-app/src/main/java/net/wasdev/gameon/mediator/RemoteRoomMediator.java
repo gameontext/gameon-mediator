@@ -22,9 +22,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import javax.json.Json;
 import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
 import javax.websocket.ClientEndpointConfig;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
@@ -173,18 +171,7 @@ public class RemoteRoomMediator implements RoomMediator {
     @Override
     public JsonObject listExits() {
         Exits exits = getExits();
-
-        JsonObjectBuilder content = Json.createObjectBuilder();
-        content.add("N", exits.getN().getDoor());
-        content.add("S", exits.getS().getDoor());
-        content.add("E", exits.getE().getDoor());
-        content.add("W", exits.getW().getDoor());
-        if ( exits.getU() != null )
-            content.add("U", exits.getU().getDoor());
-        if ( exits.getD() != null )
-            content.add("D", exits.getD().getDoor());
-
-        return content.build();
+        return exits.toJson();
     }
 
     /**
@@ -230,8 +217,13 @@ public class RemoteRoomMediator implements RoomMediator {
                                 @Override
                                 public void onMessage(RoutedMessage message) {
                                     Log.log(Level.FINEST, session, "received from room {2}({0}): {1}", getId(), message, getName());
-                                    if (playerMediator != null)
-                                        playerMediator.sendToClient(message);
+                                    if (playerMediator != null) {
+                                        try {
+                                            playerMediator.sendToClient(message);
+                                        } catch(Exception e) {
+                                            Log.log(Level.WARNING, session, "Uncaught exception handling client-bound message", e);
+                                        }
+                                    }
                                 }
                             });
                         }
