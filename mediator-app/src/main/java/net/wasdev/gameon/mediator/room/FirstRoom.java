@@ -13,17 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-package net.wasdev.gameon.mediator;
+package net.wasdev.gameon.mediator.room;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
-import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
+import net.wasdev.gameon.mediator.Constants;
+import net.wasdev.gameon.mediator.Log;
+import net.wasdev.gameon.mediator.MapClient;
+import net.wasdev.gameon.mediator.PlayerClient;
+import net.wasdev.gameon.mediator.PlayerConnectionMediator;
+import net.wasdev.gameon.mediator.RoomMediator;
+import net.wasdev.gameon.mediator.RoutedMessage;
+import net.wasdev.gameon.mediator.models.ConnectionDetails;
 import net.wasdev.gameon.mediator.models.Exit;
 import net.wasdev.gameon.mediator.models.Exits;
 import net.wasdev.gameon.mediator.models.Site;
@@ -33,22 +40,7 @@ import net.wasdev.gameon.mediator.models.Site;
  */
 public class FirstRoom implements RoomMediator {
 
-    public static final String CONTENT = "content";
-    public static final String USER_ID = "userId";
-    public static final String EXIT_ID = "exitId";
-
     public static final String TELEPORT = "teleport";
-    public static final String NAME = "name";
-    public static final String FULL_NAME = "fullName";
-    public static final String DESCRIPTION = "description";
-
-    /** JSON element specifying the type of message. */
-    public static final String TYPE = "type";
-    public static final String CHAT = "chat";
-    public static final String EXIT = "exit";
-    public static final String EVENT = "event";
-    public static final String LOCATION = "location";
-
     public static final String FIRST_ROOM_DESC = "You've entered a vaguely squarish room, with walls of an indeterminate color.";
     public static final String FIRST_ROOM_EXTENDED = "\n\nYou are alone at the moment, and have a strong suspicion that "
             + " you're in a place that requires '/' before commands and is picky about syntax. You notice "
@@ -69,8 +61,8 @@ public class FirstRoom implements RoomMediator {
     boolean inventory = false;
 
     MapClient mapClient = null;
-    final String playerJwt;    
-    
+
+    final String playerJwt;
     final PlayerClient playerClient;
 
     public FirstRoom(String playerJwt, PlayerClient playerClient, MapClient mapClient) {
@@ -101,6 +93,11 @@ public class FirstRoom implements RoomMediator {
     }
 
     @Override
+    public ConnectionDetails getConnectionDetails() {
+        return null;
+    }
+
+    @Override
     public Exits getExits() {
         return mapClient.getFirstRoomExits();
     }
@@ -113,7 +110,8 @@ public class FirstRoom implements RoomMediator {
 
     @Override
     public JsonObject listExits() {
-        return buildExitsResponse();
+        Exits exits = getExits();
+        return exits.toJson();
     }
 
     @Override
@@ -177,14 +175,14 @@ public class FirstRoom implements RoomMediator {
         JsonObject response = builder.build();
 
         String target = Constants.PLAYER;
-        if (response.containsKey(FirstRoom.EXIT_ID)) {
+        if (response.containsKey(RoomUtils.EXIT_ID)) {
             target = Constants.PLAYER_LOCATION;
         }
-        session.sendToClient(RoutedMessage.createMessage(target, sourceMessage.getString(FirstRoom.USER_ID), response));
+        session.sendToClient(RoutedMessage.createMessage(target, sourceMessage.getString(RoomUtils.USER_ID), response));
     }
 
     protected void parseCommand(JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
-        String content = sourceMessage.getString(FirstRoom.CONTENT);
+        String content = sourceMessage.getString(RoomUtils.CONTENT);
         String contentToLower = content.toLowerCase();
 
         // The First Room will just look for the leading / with a few verbs.
@@ -193,28 +191,28 @@ public class FirstRoom implements RoomMediator {
         if (contentToLower.startsWith("/look")) {
             buildLocationResponse(responseBuilder);
         } else if (contentToLower.startsWith("/exits")) {
-            responseBuilder.add(FirstRoom.TYPE, Constants.ROOM_EXITS).add(FirstRoom.CONTENT, buildExitsResponse());
+            responseBuilder.add(RoomUtils.TYPE, Constants.ROOM_EXITS).add(RoomUtils.CONTENT, listExits());
         } else if (contentToLower.startsWith("/go")) {
-            String exitDirection = getDirection(contentToLower);
-            if ( exitDirection == null ) {
-                responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT)
-                .add(FirstRoom.CONTENT, buildContentResponse("Hmm. That direction didn't make sense. Try again?"));
+            String exitDirection = RoomUtils.getDirection(contentToLower);
+            if (exitDirection == null) {
+                responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
+                        RoomUtils.buildContentResponse("Hmm. That direction didn't make sense. Try again?"));
             } else {
-                responseBuilder.add(FirstRoom.TYPE, FirstRoom.EXIT).add(FirstRoom.EXIT_ID, exitDirection)
-                .add(FirstRoom.CONTENT, "You've found a way out, well done!");
+                responseBuilder.add(RoomUtils.TYPE, RoomUtils.EXIT).add(RoomUtils.EXIT_ID, exitDirection)
+                .add(RoomUtils.CONTENT, "You've found a way out, well done!");
             }
         } else if (contentToLower.startsWith("/inventory")) {
-            responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT, buildInventoryResponse());
+            responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT, buildInventoryResponse());
         } else if (contentToLower.startsWith("/examine")) {
-            responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT,
-                    buildContentResponse("You don't see anything of interest."));
+            responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
+                    RoomUtils.buildContentResponse("You don't see anything of interest."));
         } else if (contentToLower.startsWith("/help")) {
-            responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT, buildHelpResponse());
+            responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT, buildHelpResponse());
         } else if (contentToLower.startsWith("/listmyrooms")) {
             processListMyRoomsCommand(sourceMessage, responseBuilder);
         } else if (contentToLower.startsWith("/listmyrooms")) {
             processListSystemRoomsCommand(sourceMessage, responseBuilder);
-        } else if (contentToLower.startsWith("/deleteroom ")){
+        } else if (contentToLower.startsWith("/deleteroom ")) {
             System.out.println("calling delete.. ");
             processDeleteRoomCommand(contentToLower, sourceMessage, responseBuilder);
         } else if (contentToLower.startsWith("/teleport ")) {
@@ -222,60 +220,64 @@ public class FirstRoom implements RoomMediator {
                 String target = contentToLower.substring("/teleport ".length());
 
                 // TODO: use sommat friendlier than room id as the teleport
-                // argument.. needs update to listmyrooms above to tell it how to
+                // argument.. needs update to listmyrooms above to tell it how
+                // to
 
-                responseBuilder.add(FirstRoom.TYPE, FirstRoom.EXIT).add(FirstRoom.EXIT_ID, target)
-                .add(FirstRoom.TELEPORT, true).add(FirstRoom.CONTENT,
+                responseBuilder.add(RoomUtils.TYPE, RoomUtils.EXIT).add(RoomUtils.EXIT_ID, target)
+                .add(FirstRoom.TELEPORT, true).add(RoomUtils.CONTENT,
                         "You punch the coordinates into the console, a large tube appears from above you, and you are sucked into a maze of piping.");
             } else {
-                responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT, buildContentResponse(
-                        "You concentrate really hard, and teleport from your current location, to your current location.. Magic!!"));
+                responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
+                        RoomUtils.buildContentResponse(
+                                "You concentrate really hard, and teleport from your current location, to your current location.. Magic!!"));
             }
         } else if (contentToLower.startsWith("/")) {
-            responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT,
-                    buildContentResponse("This room is a basic model. It doesn't understand that command."));
+            responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
+                    RoomUtils.buildContentResponse("This room is a basic model. It doesn't understand that command."));
         } else {
             responseBuilder.add(Constants.USERNAME, sourceMessage.getString(Constants.USERNAME))
-            .add(FirstRoom.CONTENT, content).add(FirstRoom.TYPE, FirstRoom.CHAT);
+            .add(RoomUtils.CONTENT, content).add(RoomUtils.TYPE, RoomUtils.CHAT);
         }
     }
 
-    private void processDeleteRoomCommand(String contentToLower, JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
-        
-        System.out.println("Processing delete command.. "+contentToLower);
-        
-        String userid = sourceMessage.getString(USER_ID);     
-                        
+    private void processDeleteRoomCommand(String contentToLower, JsonObject sourceMessage,
+            JsonObjectBuilder responseBuilder) {
+
+        System.out.println("Processing delete command.. " + contentToLower);
+
+        String userid = sourceMessage.getString(RoomUtils.USER_ID);
+
         if (contentToLower.length() > "/deleteroom ".length()) {
             String target = contentToLower.substring("/deleteroom ".length());
-        
-            //obtain the users shared secret using their jwt.. 
+
+            // obtain the users shared secret using their jwt..
             String secret = playerClient.getSharedSecret(userid, playerJwt);
-            System.out.println("Got key for user of "+String.valueOf(secret));
-            if(secret==null){
-                responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT,
-                        buildContentResponse("Sqork. The Internal Cogs Rumble, but refuse to move, I'm not sure who you are."));
+            System.out.println("Got key for user of " + String.valueOf(secret));
+            if (secret == null) {
+                responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
+                        RoomUtils.buildContentResponse(
+                                "Sqork. The Internal Cogs Rumble, but refuse to move, I'm not sure who you are."));
                 return;
             }
-            
-            if(mapClient.deleteSite(target, userid, secret)){
-                responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT,
-                        buildContentResponse("The room has varnished. Like an old oak table."));
-            }else{
-                responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT,
-                        buildContentResponse("The room stubbornly refuses to be deleted.. "));
+
+            if (mapClient.deleteSite(target, userid, secret)) {
+                responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
+                        RoomUtils.buildContentResponse("The room has varnished. Like an old oak table."));
+            } else {
+                responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
+                        RoomUtils.buildContentResponse("The room stubbornly refuses to be deleted.. "));
             }
-        }else{
-            responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT,
-                    buildContentResponse("But how can you delete that, if you have no fingers?"));
+        } else {
+            responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
+                    RoomUtils.buildContentResponse("But how can you delete that, if you have no fingers?"));
             return;
         }
-        
+
     }
 
     private void processListMyRoomsCommand(JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
         // TODO: add cache / rate limit.
-        String userid = sourceMessage.getString(USER_ID);
+        String userid = sourceMessage.getString(RoomUtils.USER_ID);
         List<Site> rooms = mapClient.getRoomsByOwner(userid);
 
         StringBuffer roomSummary = new StringBuffer();
@@ -283,8 +285,7 @@ public class FirstRoom implements RoomMediator {
             roomSummary.append("You have registered the following rooms... \n");
             for (Site room : rooms) {
                 if (room.getInfo() != null) {
-                    roomSummary.append(
-                            " - '" + room.getInfo().getFullName() + "' with id " + room.getId() + "\n");
+                    roomSummary.append(" - '" + room.getInfo().getFullName() + "' with id " + room.getId() + "\n");
                 }
             }
             roomSummary.append("\nYou can go directly to your own rooms using /teleport <roomid>");
@@ -292,10 +293,10 @@ public class FirstRoom implements RoomMediator {
             roomSummary.append("You have no rooms registered!");
         }
 
-        responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT,
-                buildContentResponse(roomSummary.toString()));
+        responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
+                RoomUtils.buildContentResponse(roomSummary.toString()));
     }
-    
+
     private void processListSystemRoomsCommand(JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
         // TODO: add cache / rate limit.
         List<Site> rooms = mapClient.getRoomsByOwner(Constants.SYSTEM_ID);
@@ -305,8 +306,7 @@ public class FirstRoom implements RoomMediator {
             roomSummary.append("There are the following system rooms... \n");
             for (Site room : rooms) {
                 if (room.getInfo() != null) {
-                    roomSummary.append(
-                            " - '" + room.getInfo().getFullName() + "' with id " + room.getId() + "\n");
+                    roomSummary.append(" - '" + room.getInfo().getFullName() + "' with id " + room.getId() + "\n");
                 }
             }
             roomSummary.append("\nYou can go directly to a system room using /teleport <roomid>");
@@ -314,53 +314,31 @@ public class FirstRoom implements RoomMediator {
             roomSummary.append("There are no system rooms registered!");
         }
 
-        responseBuilder.add(FirstRoom.TYPE, FirstRoom.EVENT).add(FirstRoom.CONTENT,
-                buildContentResponse(roomSummary.toString()));
-    }
-
-    private JsonObject buildContentResponse(String message) {
-        JsonObjectBuilder content = Json.createObjectBuilder();
-        content.add("*", message);
-        return content.build();
+        responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
+                RoomUtils.buildContentResponse(roomSummary.toString()));
     }
 
     private void buildLocationResponse(JsonObjectBuilder responseBuilder) {
-        responseBuilder.add(FirstRoom.TYPE, FirstRoom.LOCATION);
-        responseBuilder.add(FirstRoom.NAME, Constants.FIRST_ROOM);
-        responseBuilder.add(FirstRoom.FULL_NAME, getFullName());
-        responseBuilder.add(Constants.ROOM_EXITS, buildExitsResponse());
+        responseBuilder.add(RoomUtils.TYPE, RoomUtils.LOCATION);
+        responseBuilder.add(Constants.NAME, Constants.FIRST_ROOM);
+        responseBuilder.add(Constants.FULL_NAME, getFullName());
+        responseBuilder.add(Constants.ROOM_EXITS, listExits());
         responseBuilder.add(Constants.COMMANDS, buildHelpResponse());
 
         if (newbie) {
-            responseBuilder.add(FirstRoom.DESCRIPTION, FIRST_ROOM_DESC + FIRST_ROOM_EXTENDED);
+            responseBuilder.add(RoomUtils.DESCRIPTION, FIRST_ROOM_DESC + FIRST_ROOM_EXTENDED);
             newbie = false;
         } else {
-            responseBuilder.add(FirstRoom.DESCRIPTION, FIRST_ROOM_DESC);
+            responseBuilder.add(RoomUtils.DESCRIPTION, FIRST_ROOM_DESC);
         }
-    }
-
-    private JsonObject buildExitsResponse() {
-        Exits exits = getExits();
-
-        JsonObjectBuilder content = Json.createObjectBuilder();
-        content.add("N", exits.getN().getDoor());
-        content.add("S", exits.getS().getDoor());
-        content.add("E", exits.getE().getDoor());
-        content.add("W", exits.getW().getDoor());
-        if ( exits.getU() != null )
-            content.add("U", exits.getU().getDoor());
-        if ( exits.getD() != null )
-            content.add("D", exits.getD().getDoor());
-
-        return content.build();
     }
 
     protected JsonObject buildInventoryResponse() {
         if (inventory)
-            return buildContentResponse(FIRST_ROOM_POCKETS);
+            return RoomUtils.buildContentResponse(FIRST_ROOM_POCKETS);
 
         inventory = true;
-        return buildContentResponse(FIRST_ROOM_POCKETS + FIRST_ROOM_POCKETS_EXTENDED);
+        return RoomUtils.buildContentResponse(FIRST_ROOM_POCKETS + FIRST_ROOM_POCKETS_EXTENDED);
     }
 
     protected JsonObject buildHelpResponse() {
@@ -370,22 +348,4 @@ public class FirstRoom implements RoomMediator {
         return content.build();
     }
 
-    private String getDirection(String direction) {
-        if ( direction == null || direction.isEmpty() || direction.length() < 5 )
-            return null;
-
-        char d = direction.charAt(4);
-
-        switch(d) {
-            case 'n':
-            case 's':
-            case 'e':
-            case 'w':
-            case 'u':
-            case 'd':
-                return "" + d;
-            default:
-                return null;
-        }
-    }
 }

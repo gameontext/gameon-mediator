@@ -54,15 +54,22 @@ public interface Constants {
     String FIRST_ROOM = "firstroom";
 
     String ROOM_ID = "roomId";
-    String ROOM_NAME = "name";
-    String ROOM_FULLNAME = "fullName";
+
+    /** Room name (ack, room location events) */
+    String NAME = "name";
+
+    /** Full room name (ack, room location events) */
+    String FULL_NAME = "fullName";
+
+    /** Room exits (ack, room location events) */
     String ROOM_EXITS = "exits";
+
+    /** Commands (ack, room location events) */
+    String COMMANDS = "commands";
 
     String BOOKMARK = "bookmark";
 
     String USERNAME = "username";
-
-    String COMMANDS = "commands";
 
     /**
      * List of common/always present commands
@@ -78,7 +85,7 @@ public interface Constants {
             .build();
 
     String MEDIATOR_ID = "mediatorId";
-    
+
     /**
      * The id under which system rooms are registered.
      */

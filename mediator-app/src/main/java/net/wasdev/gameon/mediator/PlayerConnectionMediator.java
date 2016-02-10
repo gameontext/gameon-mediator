@@ -24,11 +24,11 @@ import javax.json.Json;
 import javax.json.JsonObject;
 import javax.websocket.Session;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import net.wasdev.gameon.mediator.ConnectionUtils.Drain;
 import net.wasdev.gameon.mediator.models.Exit;
 import net.wasdev.gameon.mediator.models.Site;
+import net.wasdev.gameon.mediator.room.EmptyRoom;
+import net.wasdev.gameon.mediator.room.FirstRoom;
 
 /**
  * The mediator: mediates the inbound connection from the player's device to the
@@ -115,14 +115,14 @@ public class PlayerConnectionMediator {
      */
     public static final String CLIENT_ACK = "ack";
 
-    public static final String FINDROOM_FAIL = "{\"type\": \"joinpart\",\"content\": \"Oh dear. That is a door to Nowhere. Back to the First Room! \",\"bookmark\": 0}";
+    public static final String FINDROOM_FAIL = "{\"type\": \"event\",\"content\": \"Oh dear. That door led nowhere. \",\"bookmark\": 0}";
     public static final String CONNECTING = "{\"type\": \"joinpart\",\"content\": \"...connecting to %s...\",\"bookmark\": 0}";
-    public static final String FINDROOM = "{\"type\": \"joinpart\",\"content\": \"...asking map service for next room...\",\"bookmark\": 0}";
+    public static final String FINDROOM = "{\"type\": \"joinpart\",\"content\": \"...finding the next room...\",\"bookmark\": 0}";
     public static final String PART = "{\"type\": \"joinpart\",\"content\": \"exit %s\",\"bookmark\": 0}";
     public static final String JOIN = "{\"type\": \"joinpart\",\"content\": \"enter %s\",\"bookmark\": 0}";
     public static final String HIBYE = "{\"username\": \"%s\",\"userId\": \"%s\"}";
     public static final String ELECTRIC_THUMB = "{\"type\": \"exit\",\"content\": \"In a desperate plea for rescue, you stick out your <a href='http://everything2.com/title/Electronic+Thumb' target='_blank'>Electric Thumb</a> and hope for the best.\",\"bookmark\": 0}";
-    public static final String BAD_RIDE = "{\"type\": \"event\",\"content\": {\"*\": \"There is a sudden jerk, and you feel as though a hook somewhere behind your navel was yanking you ... somewhere. <br /><br />What just happened? Something bad, whatever it was, and now you notice you're in a different place than you were.\"},\"bookmark\": 0}";
+    public static final String BAD_RIDE = "{\"type\": \"event\",\"content\": {\"*\": \"There is a sudden jerk, and you feel as though a hook somewhere behind your navel was yanking you ... somewhere.\"},\"bookmark\": 0}";
     public static final String SPLINCHED = "{\"type\": \"event\",\"content\": {\"*\": \"Ow! You were splinched! After a brief jolt (getting unsplinched isn't comfortable), you're all back together again. At least, all instances of you are in the same room.\"},\"bookmark\": 0}";
 
     /**
@@ -242,9 +242,10 @@ public class PlayerConnectionMediator {
     private void switchRooms(RoutedMessage message) {
         Log.log(Level.FINER, this, "SWITCH ROOMS", currentRoom, message);
 
-        RoomMediator oldRoom = currentRoom;
-        String exitId = null;
         boolean teleport = false;
+        String exitId = null;
+        RoomMediator newRoom = null;
+        RoomMediator oldRoom = currentRoom;
 
         if (message != null) {
             if (message.isSOS()) {
@@ -253,18 +254,57 @@ public class PlayerConnectionMediator {
                         RoutedMessage.createMessage(Constants.PLAYER, userId, PlayerConnectionMediator.ELECTRIC_THUMB));
             } else {
                 JsonObject exitData = message.getParsedBody();
+
                 // If the room is firstRoom.. we might be teleporting..
                 // (moving to a room directly without looking up an exit)
                 if (Constants.FIRST_ROOM.equals(oldRoom.getId())) {
                     teleport = exitData.getBoolean("teleport", false);
                 }
+
                 // If we are properly exiting a room, we have the new room in
                 // the payload of the message from the old room
                 exitId = exitData.getString("exitId");
             }
         }
 
-        // Part the room
+        Log.log(Level.FINEST, this, "Room change requested: going {1} from {0}",
+                oldRoom.getName(),
+                (exitId == null ? "to firstroom" : exitId ));
+
+        // Let's make sure we can find the next room
+        sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
+                String.format(PlayerConnectionMediator.FINDROOM, oldRoom.getFullName())));
+
+        if (teleport) {
+            // when we are teleporting, the exitId is the destination room id.
+            newRoom = findMediatorForRoomId(exitId);
+        } else {
+            if (exitId == null) {
+                newRoom = findMediatorForRoomId(Constants.FIRST_ROOM);
+            } else {
+                newRoom = findMediatorForExitFromRoom(oldRoom, exitId);
+            }
+        }
+
+        if ( newRoom == null ) {
+            sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
+                    String.format(PlayerConnectionMediator.FINDROOM_FAIL)));
+        } else {
+            // If we have a room to go to, we can try switching from where we are.
+            try {
+                performSwitch(newRoom, teleport);
+            } catch(Exception e) {
+                Log.log(Level.SEVERE, this, "exception caught when switching rooms", e);
+                sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, PlayerConnectionMediator.BAD_RIDE));
+                performSwitch(findMediatorForRoomId(Constants.FIRST_ROOM), false); // revert to FirstRoom. OW.
+            }
+        }
+    }
+
+    private void performSwitch(RoomMediator newRoom, boolean teleport) {
+        RoomMediator oldRoom = currentRoom;
+
+        // Part the old room
         Log.log(Level.FINER, this, "GOODBYE {0} ({1})", oldRoom.getName(), oldRoom.getId());
         sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
                 String.format(PlayerConnectionMediator.PART, oldRoom.getFullName())));
@@ -275,53 +315,25 @@ public class PlayerConnectionMediator {
         oldRoom.unsubscribe(this);
         oldRoom.disconnect();
 
-        Log.log(Level.FINEST, this, "Room change requested: going {1} from {0}",
-                oldRoom.getName(),
-                (exitId == null ? "to firstroom" : exitId ));
+        sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
+                String.format(PlayerConnectionMediator.CONNECTING, newRoom.getFullName())));
 
-        // Find the next room.
-        RoomMediator newRoom = null;
-        if (teleport) {
-            // when we are teleporting, the exitId is the destination room id.
-            newRoom = findMediatorForRoomId(exitId);
+        if (newRoom.connect()) {
+            Log.log(Level.FINER, this, "playerConnectionMediator just set room for {0} to be {1}", userId,
+                    newRoom.getId());
+
+            currentRoom = newRoom;
         } else {
-            sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
-                    String.format(PlayerConnectionMediator.FINDROOM, oldRoom.getFullName())));
-
-            // if exitId is still null, its an SOS
-            if (exitId == null) {
-                newRoom = findMediatorForRoomId(Constants.FIRST_ROOM);
-            } else {
-                newRoom = findMediatorForExitFromRoom(oldRoom, exitId);
-            }
-        }
-
-        boolean bumpyRide = false;
-        if (newRoom != null) {
-            sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
-                    String.format(PlayerConnectionMediator.CONNECTING, newRoom.getFullName())));
-
-            if (newRoom.connect()) {
-                Log.log(Level.FINER, this, "playerConnectionMediator just set room for {0} to be {1}", userId,
-                        newRoom.getId());
-
-                currentRoom = newRoom;
-            } else {
-                bumpyRide = true;
-            }
-        } else {
-            bumpyRide = true;
-        }
-
-        if (bumpyRide) {
             // Bumpy ride! OW.
             sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, PlayerConnectionMediator.BAD_RIDE));
+
             sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
                     String.format(PlayerConnectionMediator.CONNECTING, currentRoom.getFullName())));
 
             if (currentRoom.connect()) {
                 // we were able to reconnect to the old room.
             } else {
+                // back to First Room. Extra Ow.
                 currentRoom = findMediatorForRoomId(null);
             }
         }
@@ -372,7 +384,8 @@ public class PlayerConnectionMediator {
 
     /**
      * Compose an acknowledgement to send back to the client that contains the
-     * mediator id and the current room id/name.
+     * mediator id and information about the current room (to set up/refresh the local
+     * cache).
      *
      * @return ack message with mediator id
      */
@@ -380,8 +393,8 @@ public class PlayerConnectionMediator {
         JsonObject ack = Json.createObjectBuilder()
                 .add(Constants.MEDIATOR_ID, id)
                 .add(Constants.ROOM_ID, currentRoom.getId())
-                .add(Constants.ROOM_NAME, currentRoom.getName())
-                .add(Constants.ROOM_FULLNAME, currentRoom.getFullName())
+                .add(Constants.NAME, currentRoom.getName())
+                .add(Constants.FULL_NAME, currentRoom.getFullName())
                 .add(Constants.ROOM_EXITS, currentRoom.listExits())
                 .add(Constants.COMMANDS, Constants.COMMON_COMMANDS).build();
 
@@ -398,7 +411,6 @@ public class PlayerConnectionMediator {
         // make sure we're only dealing with messages for everyone,
         // or messages for this user (ignore all others)
         if (message.isForUser(userId)) {
-            // TODO: Capacity?
             toClient.offer(message);
 
             // If we are additionally changing locations, ...
@@ -420,16 +432,9 @@ public class PlayerConnectionMediator {
     protected RoomMediator findMediatorForRoomId(String roomId) {
         Log.log(Level.FINEST, this, "findRoom  {0} {1}", roomId, currentRoom);
 
-        if (currentRoom != null) {
-            if (currentRoom.getId().equals(roomId)) {
-                // Room session resume
-                return currentRoom;
-            } else {
-                // The player moved rooms somewhere along the way
-                // we need to make sure we detach the old session
-                currentRoom.unsubscribe(this);
-                currentRoom.disconnect();
-            }
+        if (currentRoom != null && currentRoom.getId().equals(roomId)) {
+            // Room session resume
+            return currentRoom;
         }
 
         if (roomId == null || roomId.isEmpty() || Constants.FIRST_ROOM.equals(roomId)) {
@@ -451,12 +456,7 @@ public class PlayerConnectionMediator {
     protected RoomMediator findMediatorForExitFromRoom(RoomMediator currentRoom, String direction) {
         Exit nextExit =  currentRoom.getExit(direction);
 
-        // check for empty rooms...
-        if (nextExit == null) {
-            return null;
-        } else {
-            return createMediator(nextExit);
-        }
+        return createMediator(nextExit);
     }
 
     /**
@@ -467,11 +467,15 @@ public class PlayerConnectionMediator {
      * @return new mediator, or the FirstRoom if roomEndpoints is null
      */
     protected RoomMediator createMediator(Exit exit) {
-        if (exit == null || Constants.FIRST_ROOM.equals(exit.getId())) {
-            // safe fallback
-            sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
-                    String.format(PlayerConnectionMediator.FINDROOM_FAIL)));
-            return new FirstRoom(jwt,playerClient, mapClient);
+        if (exit == null ) {
+            return null;
+
+        } else if ( Constants.FIRST_ROOM.equals(exit.getId())) {
+            return new FirstRoom(jwt, playerClient, mapClient);
+
+        } else if ( exit.getConnectionDetails() == null ) {
+            return new EmptyRoom(mapClient, exit.getId(), currentRoom);
+
         } else {
             return new RemoteRoomMediator(exit, mapClient, connectionUtils);
         }
@@ -486,12 +490,13 @@ public class PlayerConnectionMediator {
      */
     protected RoomMediator createMediator(Site site) {
         if (site == null) {
-            // safe fallback
-            sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
-                    String.format(PlayerConnectionMediator.FINDROOM_FAIL)));
-            return new FirstRoom(jwt,playerClient, mapClient);
+            return null;
+
+        } else if ( "empty".equals(site.getType()) ) {
+            return new EmptyRoom(mapClient, site.getId(), currentRoom);
+
         } else {
-            return new RemoteRoomMediator(site, mapClient, connectionUtils);
+            return new RemoteRoomMediator(mapClient, site, connectionUtils);
         }
     }
 
@@ -501,7 +506,7 @@ public class PlayerConnectionMediator {
             return this.getClass().getName() + "[userId=" + userId + "]";
         } else {
             return this.getClass().getName() + "[userId=" + userId + ", roomId=" + currentRoom.getId()
-                    + ", suspendCount=" + suspendCount.get() + "]";
+            + ", suspendCount=" + suspendCount.get() + "]";
         }
     }
 

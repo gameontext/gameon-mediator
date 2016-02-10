@@ -30,18 +30,30 @@ public class Log {
     public static void log(Level level, Object source, String message, Object... args) {
         if (log.isLoggable(level)) {
             String msg = String.format(endpoint_log_format, getHash(source), message);
-            log.log(level, msg, args);
+            log.log(useLevel(level), msg, args);
         }
     }
 
     public static void log(Level level, Object source, String message, Throwable thrown) {
         if (log.isLoggable(level)) {
             String msg = String.format(endpoint_log_format, getHash(source), message);
-            log.log(level, msg, thrown);
+            log.log(useLevel(level), msg, thrown);
         }
     }
 
     private static String getHash(Object source) {
         return source == null ? "null" : Integer.toString(System.identityHashCode(source));
+    }
+
+    /**
+     * This bumps enabled trace up to INFO level, so it appears in messages.log
+     * @param level Original level
+     * @return Original Level or INFO level, whichever is greater
+     */
+    private static Level useLevel(Level level) {
+        if ( level.intValue() < Level.INFO.intValue() ) {
+            return Level.INFO;
+        }
+        return level;
     }
 }

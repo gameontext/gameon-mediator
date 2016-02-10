@@ -54,11 +54,12 @@ import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
  *
  * @see ApplicationScoped
  */
+@ApplicationScoped
 public class PlayerClient {
 
     /**
      * The player URL injected from JNDI via CDI.
-     * 
+     *
      * @see {@code playerUrl} in
      *      {@code /mediator-wlpcfg/servers/gameon-mediator/server.xml}
      */
@@ -73,13 +74,14 @@ public class PlayerClient {
      */
     WebTarget root;
 
-    
+
     public class TheNotVerySensibleHostnameVerifier implements HostnameVerifier {
+        @Override
         public boolean verify(String string, SSLSession sslSession) {
             return true;
         }
     }
-    
+
     /**
      * The {@code @PostConstruct} annotation indicates that this method should
      * be called immediately after the {@code PlayerClient} is instantiated
@@ -91,15 +93,20 @@ public class PlayerClient {
     @PostConstruct
     public void initClient() {
         try{
+            if ( playerLocation == null ) {
+                Log.log(Level.SEVERE, this, "Player client can not be initialized, 'playerUrl' is not defined");
+                throw new RuntimeException("Unable to initialize PlayerClient");
+            }
+
             Client client;
             ClientBuilder builder = ClientBuilder.newBuilder().sslContext(SSLContext.getDefault());
             if("development".equals(System.getenv("MAP_PLAYER_MODE"))){
                 builder.hostnameVerifier(new TheNotVerySensibleHostnameVerifier());
             }
             client = builder.build().register(JacksonJsonProvider.class);
+
             this.root = client.target(playerLocation);
         }catch(Exception e){
-            e.printStackTrace();
             throw new RuntimeException(e);
         }
         Log.log(Level.FINER, this, "Player client initialized with {0}", playerLocation);
@@ -151,7 +158,7 @@ public class PlayerClient {
         // return to old room
         return oldRoomId;
     }
-    
+
     /**
      * Get shared secret for player
      * @param playerId
@@ -171,7 +178,7 @@ public class PlayerClient {
             // string containing JSON
             String result = target.request(MediaType.APPLICATION_JSON)//.accept(MediaType.APPLICATION_JSON)
                     .header("Content-type", "application/json").get(String.class);
-            
+
             JsonReader p = Json.createReader(new StringReader(result));
             JsonObject j = p.readObject();
 
@@ -186,7 +193,7 @@ public class PlayerClient {
             Log.log(Level.FINEST, this, "Exception obtaining shared secret for player", rpe);
         } catch (ProcessingException | WebApplicationException ex) {
             Log.log(Level.FINEST, this, "Exception obtaining shared secret for player (" + target.getUri().toString() + ")", ex);
-        } 
+        }
 
         // Sadly, badness happened while trying to get the shared secret
         return null;
