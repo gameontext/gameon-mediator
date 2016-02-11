@@ -85,7 +85,7 @@ public class MapClient {
     long lastCheck;
 
     /** Cached exits for first room */
-    Exits firstRoomExits;
+    Exits firstRoomExits = new Exits();
 
     /**
      * The {@code @PostConstruct} annotation indicates that this method should
@@ -98,13 +98,13 @@ public class MapClient {
     @PostConstruct
     public void initClient() {
         if ( mapLocation == null ) {
-            Log.log(Level.SEVERE, this, "Player client can not be initialized, 'mapUrl' is not defined");
-            throw new RuntimeException("Unable to initialize MapClient");
+            Log.log(Level.SEVERE, this, "Map client can not be initialized, 'mapUrl' is not defined");
+            throw new IllegalStateException("Unable to initialize MapClient");
         }
 
         if ( querySecret == null ) {
-            Log.log(Level.SEVERE, this, "Player client can not be initialized, 'mapApiKey' is not defined");
-            throw new RuntimeException("Unable to initialize MapClient");
+            Log.log(Level.SEVERE, this, "Map client can not be initialized, 'mapApiKey' is not defined");
+            throw new IllegalStateException("Unable to initialize MapClient");
         }
 
         Client queryClient = ClientBuilder.newClient().register(JacksonJsonProvider.class);
