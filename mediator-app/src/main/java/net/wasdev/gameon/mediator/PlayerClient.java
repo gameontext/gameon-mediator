@@ -95,7 +95,7 @@ public class PlayerClient {
         try{
             if ( playerLocation == null ) {
                 Log.log(Level.SEVERE, this, "Player client can not be initialized, 'playerUrl' is not defined");
-                throw new RuntimeException("Unable to initialize PlayerClient");
+                throw new IllegalStateException("Unable to initialize PlayerClient");
             }
 
             Client client;
