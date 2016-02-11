@@ -115,7 +115,7 @@ public class PlayerConnectionMediator {
      */
     public static final String CLIENT_ACK = "ack";
 
-    public static final String FINDROOM_FAIL = "{\"type\": \"event\",\"content\": \"Oh dear. That door led nowhere. \",\"bookmark\": 0}";
+    public static final String FINDROOM_FAIL = "{\"type\": \"event\",\"content\": {\"*\": \"Oh dear. That door led nowhere. \"},\"bookmark\": 0}";
     public static final String CONNECTING = "{\"type\": \"joinpart\",\"content\": \"...connecting to %s...\",\"bookmark\": 0}";
     public static final String FINDROOM = "{\"type\": \"joinpart\",\"content\": \"...finding the next room...\",\"bookmark\": 0}";
     public static final String PART = "{\"type\": \"joinpart\",\"content\": \"exit %s\",\"bookmark\": 0}";
