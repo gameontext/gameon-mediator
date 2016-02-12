@@ -44,8 +44,6 @@ public class GameOnHeaderAuthInterceptor extends GameOnHeaderAuth implements Wri
     @Override
     public void aroundWriteTo(WriterInterceptorContext context) throws IOException, WebApplicationException {      
         try{     
-            System.out.println("Auth interceptor adding stuff.. userId:"+userId+" secret:"+secret);
-            
             //read the body from the request.. 
             OutputStream old = context.getOutputStream();
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
