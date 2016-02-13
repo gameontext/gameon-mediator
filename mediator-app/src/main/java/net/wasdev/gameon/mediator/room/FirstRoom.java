@@ -210,7 +210,7 @@ public class FirstRoom implements RoomMediator {
             responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT, buildHelpResponse());
         } else if (contentToLower.startsWith("/listmyrooms")) {
             processListMyRoomsCommand(sourceMessage, responseBuilder);
-        } else if (contentToLower.startsWith("/listmyrooms")) {
+        } else if (contentToLower.startsWith("/listsystemrooms")) {
             processListSystemRoomsCommand(sourceMessage, responseBuilder);
         } else if (contentToLower.startsWith("/deleteroom ")) {
             System.out.println("calling delete.. ");
