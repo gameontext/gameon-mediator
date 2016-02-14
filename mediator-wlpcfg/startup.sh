@@ -13,10 +13,19 @@ fi
 
 if [ "$ETCDCTL_ENDPOINT" != "" ]; then
   echo Setting up etcd...
-  wget https://github.com/coreos/etcd/releases/download/v2.2.2/etcd-v2.2.2-linux-amd64.tar.gz -q
-  tar xzf etcd-v2.2.2-linux-amd64.tar.gz etcd-v2.2.2-linux-amd64/etcdctl --strip-components=1
-  rm etcd-v2.2.2-linux-amd64.tar.gz
-  mv etcdctl /usr/local/bin/etcdctl
+  echo "** Testing etcd is accessible"
+  etcdctl --debug ls
+  RC=$?
+
+  while [ $RC -ne 0 ]; do
+      sleep 15
+
+      # recheck condition
+      echo "** Re-testing etcd connection"
+      etcdctl --debug ls
+      RC=$?
+  done
+  echo "etcdctl returned sucessfully, continuing"
   
   cd /opt/ibm/wlp/usr/servers/defaultServer/resources/
   etcdctl get /proxy/third-party-ssl-cert > cert.pem
@@ -29,16 +38,25 @@ if [ "$ETCDCTL_ENDPOINT" != "" ]; then
   export MAP_KEY=$(etcdctl get /passwords/map-key)
   export MAP_URL=$(etcdctl get /map/url)
   export MEDIATOR_PLAYER_URL=$(etcdctl get /player/url)
+  export LOGSTASH_ENDPOINT=$(etcdctl get /logstash/endpoint)
   
-  /opt/ibm/wlp/bin/server start defaultServer
-  echo Starting the logstash forwarder...
-  sed -i s/PLACEHOLDER_LOGHOST/$(etcdctl get /logstash/endpoint)/g /opt/forwarder.conf
-  cd /opt
-  chmod +x ./forwarder
-  etcdctl get /logstash/cert > logstash-forwarder.crt
-  etcdctl get /logstash/key > logstash-forwarder.key
-  sleep 0.5
-  ./forwarder --config ./forwarder.conf
+  # Softlayer needs a logstash endpoint so we set up the server
+  # to run in the background and the primary task is running the
+  # forwarder. In ICS, Liberty is the primary task so we need to
+  # run it in the foreground
+  if [ "$LOGSTASH_ENDPOINT" != "" ]; then
+    /opt/ibm/wlp/bin/server start defaultServer
+    echo Starting the logstash forwarder...
+    sed -i s/PLACEHOLDER_LOGHOST/$LOGSTASH_ENDPOINT/g /opt/forwarder.conf
+    cd /opt
+    chmod +x ./forwarder
+    etcdctl get /logstash/cert > logstash-forwarder.crt
+    etcdctl get /logstash/key > logstash-forwarder.key
+    sleep 0.5
+    ./forwarder --config ./forwarder.conf
+  else
+    /opt/ibm/wlp/bin/server run defaultServer
+  fi
 else
   exec /opt/ibm/wlp/bin/server run defaultServer
 fi
