@@ -42,18 +42,18 @@ public class FirstRoom implements RoomMediator {
 
     public static final String TELEPORT = "teleport";
     public static final String FIRST_ROOM_DESC = "You've entered a vaguely squarish room, with walls of an indeterminate color.";
-    public static final String FIRST_ROOM_EXTENDED = "\n\nYou are alone at the moment, and have a strong suspicion that "
-            + " you're in a place that requires '/' before commands and is picky about syntax. You notice "
-            + " buttons at the top right of the screen, and a button at the bottom left to help with that"
-            + " leading slash.\n\nYou feel a strong temptation to try the buttons.";
+    public static final String FIRST_ROOM_EXTENDED = "\n\nBRIEF README: \n\n"
+            + "* Commands start with '/'\n"
+            + "* `/help` will always list available commands. The list contents will change from room to room.\n"
+            + "* `/exits` will always show the list of available exits.\n"
+            + "* `/sos` will always return you to First Room\n";
 
     public static final String FIRST_ROOM_INV = "Sadly, there is nothing here.";
 
     public static final String FIRST_ROOM_POCKETS = "You do not appear to be carrying anything.";
-    public static final String FIRST_ROOM_POCKETS_EXTENDED = "\n\nBut you will be eventually! As you explore, use /TAKE"
-            + " to pick things up. Some things will remain with the room when you leave, others might stay"
-            + " in your pocket for a little longer. Nothing is guaranteed to stay with you indefinitely. "
-            + " Sneaky characters and self-healing rooms will foil most hoarder's plans.";
+    public static final String FIRST_ROOM_POCKETS_EXTENDED = "\n\nBut you might be eventually! Individual rooms "
+            + " may or may not support the notion of items. So whether or not you have things in your pockets"
+            + " will change from room to room, as will how long they stay there.";
 
     PlayerConnectionMediator session = null;
     private AtomicInteger counter = new AtomicInteger(0);
