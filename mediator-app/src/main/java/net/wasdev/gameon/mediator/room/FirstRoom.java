@@ -42,12 +42,12 @@ public class FirstRoom implements RoomMediator {
 
     public static final String TELEPORT = "teleport";
     public static final String FIRST_ROOM_DESC = "You've entered a vaguely squarish room, with walls of an indeterminate color.";
-    public static final String FIRST_ROOM_EXTENDED = "\n\nTL;DR README: \n\n"
+    public static final String FIRST_ROOM_EXTENDED = "\n\nTL;DR README (The extended edition is [here](https://gameontext.gitbooks.io/gameon-gitbook/content/)): \n\n"
             + "* Commands start with '/'\n"
-            + "* `/help` will always list available commands. The list contents will change from room to room.\n"
-            + "* `/exits` will always show the list of available exits.\n"
-            + "* `/sos` will always return you to First Room\n"
-            + "\n\nThe extended edition is [here](https://gameontext.gitbooks.io/gameon-gitbook/content/)";
+            + "* Use `/help` to list all available commands. The list will change from room to room\n"
+            + "* Use `/exits` to list all available exits\n"
+            + "* Use `/sos` to return to First Room if you're stuck\n"
+            + "* Rooms might try to fool you, but these three commands will always work. Don't panic.";
 
     public static final String FIRST_ROOM_INV = "Sadly, there is nothing here.";
 
