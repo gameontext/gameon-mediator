@@ -319,7 +319,7 @@ public class FirstRoom implements RoomMediator {
     }
     
     private void processSystemTeleportCommand(String content, String contentToLower, String username, JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
-        if (contentToLower.length() > "/teleport ".length()) {         
+        if (contentToLower.length() > "/xyzzy ".length()) {         
             String requestedTarget = content.substring("/xyzzy ".length());
             beamMeUp(Constants.SYSTEM_ID, username, requestedTarget, responseBuilder);
         } else {
