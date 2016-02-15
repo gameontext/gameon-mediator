@@ -52,6 +52,7 @@ public class RoomUtils {
     /** JSON element specifying the content of message. */
     public static final String CONTENT = "content";
     public static final String USER_ID = "userId";
+    public static final String USER_NAME = "username";
     public static final String EXIT_ID = "exitId";
 
 

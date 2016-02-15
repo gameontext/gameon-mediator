@@ -16,6 +16,7 @@
 package net.wasdev.gameon.mediator.room;
 
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
@@ -216,25 +217,14 @@ public class FirstRoom implements RoomMediator {
         } else if (contentToLower.startsWith("/listsystemrooms")) {
             processListSystemRoomsCommand(sourceMessage, responseBuilder);
         } else if (contentToLower.startsWith("/deleteroom")) {
-            System.out.println("calling delete.. ");
-            processDeleteRoomCommand(contentToLower, sourceMessage, responseBuilder);
+            processDeleteRoomCommand(content, contentToLower, sourceMessage, responseBuilder);
         } else if (contentToLower.startsWith("/teleport")) {
-            if (contentToLower.length() > "/teleport ".length()) {
-                String target = contentToLower.substring("/teleport ".length());
-
-                // TODO: use sommat friendlier than room id as the teleport
-                // argument.. needs update to listmyrooms above to tell it how
-                // to
-
-                responseBuilder.add(RoomUtils.TYPE, RoomUtils.EXIT).add(RoomUtils.EXIT_ID, target)
-                .add(FirstRoom.TELEPORT, true).add(RoomUtils.CONTENT,
-                        "You punch the coordinates into the console, a large tube appears from above you, and you are sucked into a maze of piping.");
-            } else {
-                responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
-                        RoomUtils.buildContentResponse(
-                                "You concentrate really hard, and teleport from your current location, to your current location.. Magic!!"));
-            }
-        } else if (contentToLower.startsWith("/")) {
+            String username = sourceMessage.getString(RoomUtils.USER_NAME);
+            processTeleportCommand(content, contentToLower,username,sourceMessage, responseBuilder);
+        } else if (contentToLower.startsWith("/xyzzy")) {
+            String username = sourceMessage.getString(RoomUtils.USER_NAME);
+            processSystemTeleportCommand(content, contentToLower,username,sourceMessage, responseBuilder);
+        }else if (contentToLower.startsWith("/")) {
             responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
                     RoomUtils.buildContentResponse("This room is a basic model. It doesn't understand that command."));
         } else {
@@ -243,7 +233,7 @@ public class FirstRoom implements RoomMediator {
         }
     }
 
-    private void processDeleteRoomCommand(String contentToLower, JsonObject sourceMessage,
+    private void processDeleteRoomCommand(String content, String contentToLower, JsonObject sourceMessage,
             JsonObjectBuilder responseBuilder) {
 
         System.out.println("Processing delete command.. " + contentToLower);
@@ -251,24 +241,31 @@ public class FirstRoom implements RoomMediator {
         String userid = sourceMessage.getString(RoomUtils.USER_ID);
 
         if (contentToLower.length() > "/deleteroom ".length()) {
-            String target = contentToLower.substring("/deleteroom ".length());
-
-            // obtain the users shared secret using their jwt..
-            String secret = playerClient.getSharedSecret(userid, playerJwt);
-            System.out.println("Got key for user of " + String.valueOf(secret));
-            if (secret == null) {
+            String targetId = content.substring("/deleteroom ".length());
+            
+            List<Site> possibleCandidates = mapClient.getRoomsByOwnerAndRoomName(userid,targetId);            
+            if(possibleCandidates.isEmpty()){
                 responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
                         RoomUtils.buildContentResponse(
-                                "Sqork. The Internal Cogs Rumble, but refuse to move, I'm not sure who you are."));
-                return;
-            }
-
-            if (mapClient.deleteSite(target, userid, secret)) {
-                responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
-                        RoomUtils.buildContentResponse("The room has varnished. Like an old oak table."));
-            } else {
-                responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
-                        RoomUtils.buildContentResponse("The room stubbornly refuses to be deleted.. "));
+                                "You don't appear to have a room with that id to delete. maybe you should check `/listmyrooms`"));
+            }else{
+                // obtain the users shared secret using their jwt..
+                String secret = playerClient.getSharedSecret(userid, playerJwt);
+                System.out.println("Got key for user of " + String.valueOf(secret));
+                if (secret == null) {
+                    responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
+                            RoomUtils.buildContentResponse(
+                                    "Sqork. The Internal Cogs Rumble, but refuse to move, I'm not sure who you are."));
+                    return;
+                }
+    
+                if (mapClient.deleteSite(possibleCandidates.get(0).getId(), userid, secret)) {
+                    responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
+                            RoomUtils.buildContentResponse("The room has varnished. Like an old oak table."));
+                } else {
+                    responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
+                            RoomUtils.buildContentResponse("The room stubbornly refuses to be deleted.. "));
+                }
             }
         } else {
             responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
@@ -288,7 +285,7 @@ public class FirstRoom implements RoomMediator {
             roomSummary.append("You have registered the following rooms... \n");
             for (Site room : rooms) {
                 if (room.getInfo() != null) {
-                    roomSummary.append(" - '" + room.getInfo().getFullName() + "' with id " + room.getId() + "\n");
+                    roomSummary.append(" - '" + room.getInfo().getFullName() + "' with id " + room.getInfo().getName() + "\n");
                 }
             }
             roomSummary.append("\nYou can go directly to your own rooms using /teleport <roomid>");
@@ -309,7 +306,7 @@ public class FirstRoom implements RoomMediator {
             roomSummary.append("There are the following system rooms... \n");
             for (Site room : rooms) {
                 if (room.getInfo() != null) {
-                    roomSummary.append(" - '" + room.getInfo().getFullName() + "' with id " + room.getId() + "\n");
+                    roomSummary.append(" - '" + room.getInfo().getFullName() + "' with id " + room.getInfo().getName() + "\n");
                 }
             }
             roomSummary.append("\nYou can go directly to a system room using /teleport <roomid>");
@@ -319,6 +316,48 @@ public class FirstRoom implements RoomMediator {
 
         responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
                 RoomUtils.buildContentResponse(roomSummary.toString()));
+    }
+    
+    private void processSystemTeleportCommand(String content, String contentToLower, String username, JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
+        if (contentToLower.length() > "/teleport ".length()) {         
+            String requestedTarget = content.substring("/xyzzy ".length());
+            beamMeUp(Constants.SYSTEM_ID, username, requestedTarget, responseBuilder);
+        } else {
+            responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
+                    RoomUtils.buildContentResponse(
+                            "This doesn't appear to be the correct way to use this command. Use the source, Fluke."));
+        }
+    }        
+    
+    private void processTeleportCommand(String content, String contentToLower, String username, JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
+        String userid = sourceMessage.getString(RoomUtils.USER_ID);
+        if (contentToLower.length() > "/teleport ".length()) {         
+            String requestedTarget = content.substring("/teleport ".length());
+            beamMeUp(userid, username, requestedTarget, responseBuilder);
+        } else {
+            responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
+                    RoomUtils.buildContentResponse(
+                            "You concentrate really hard, and teleport from your current location, to your current location.. Magic!!"));
+        }
+    }
+    
+    private void beamMeUp(String userid, String userName, String targetId, JsonObjectBuilder responseBuilder){
+            //teleport is only going to allow teleport to rooms owned by the player.
+            List<Site> possibleCandidates = mapClient.getRoomsByOwnerAndRoomName(userid,targetId);            
+            if(possibleCandidates.isEmpty()){
+                responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
+                        RoomUtils.buildContentResponse(
+                                "You don't appear to have a room with that id to teleport to.. maybe you should check `/listmyrooms`"));
+            }else{
+                String fly = "";
+                if((new Random()).nextInt(10)==0){
+                    fly = " Just before the teleporter engages, you hear a slight buzzing noise.. Good luck "+userName+"-Fly!";
+                }
+                responseBuilder.add(RoomUtils.TYPE, RoomUtils.EXIT).add(RoomUtils.EXIT_ID, possibleCandidates.get(0).getId())
+                .add(FirstRoom.TELEPORT, true).add(RoomUtils.CONTENT,
+                        "You punch the coordinates into the console, a large tube appears from above you, and you are sucked into a maze of piping."+fly);
+            }
+
     }
 
     private void buildLocationResponse(JsonObjectBuilder responseBuilder) {
@@ -348,6 +387,7 @@ public class FirstRoom implements RoomMediator {
         JsonObjectBuilder content = Json.createObjectBuilder();
         content.add("/listmyrooms", "List all of your rooms");
         content.add("/teleport", "Teleport to the specified room, e.g. `/teleport room-id`");
+        content.add("/deleteroom", "Deregisters a room you have registered. e.g. `/deleteroom room-id`");
         return content.build();
     }
 

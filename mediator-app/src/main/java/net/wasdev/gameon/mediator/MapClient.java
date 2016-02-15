@@ -122,6 +122,11 @@ public class MapClient {
         WebTarget target = this.queryRoot.queryParam("owner", ownerId);
         return getSites(target);
     }
+    
+    public List<Site> getRoomsByOwnerAndRoomName(String ownerId,String roomName) {
+        WebTarget target = this.queryRoot.queryParam("owner", ownerId).queryParam("name",roomName);
+        return getSites(target);
+    }
 
     /**
      * Construct an outbound {@code WebTarget} that builds on the root
@@ -239,8 +244,8 @@ public class MapClient {
         Log.log(Level.FINER, this, "making request to {0} for room", target.getUri().toString());
         Response r = null;
         try {
-            r = target.request(MediaType.APPLICATION_JSON).get(); // .accept(MediaType.APPLICATION_JSON).get();
-            if (r.getStatusInfo().getFamily().equals(Response.Status.Family.SUCCESSFUL)) {
+            r = target.request(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).get();
+            if (r.getStatusInfo().getStatusCode() == Response.Status.OK.getStatusCode() ) {
                 List<Site> list = r.readEntity(new GenericType<List<Site>>() {
                 });
                 return list;
