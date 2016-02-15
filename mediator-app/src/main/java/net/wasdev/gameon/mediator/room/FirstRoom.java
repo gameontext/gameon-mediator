@@ -179,7 +179,9 @@ public class FirstRoom implements RoomMediator {
         if (response.containsKey(RoomUtils.EXIT_ID)) {
             target = Constants.PLAYER_LOCATION;
         }
-        session.sendToClient(RoutedMessage.createMessage(target, sourceMessage.getString(RoomUtils.USER_ID), response));
+
+        if( session != null)
+            session.sendToClient(RoutedMessage.createMessage(target, sourceMessage.getString(RoomUtils.USER_ID), response));
     }
 
     protected void parseCommand(JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
