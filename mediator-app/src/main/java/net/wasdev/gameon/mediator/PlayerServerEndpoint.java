@@ -95,11 +95,10 @@ public class PlayerServerEndpoint {
                     PlayerConnectionMediator ps = playerSessionManager.getMediator(session);
 
                     // after a restart we may get messages before we've
-                    // re-established a
-                    // session or connection to a room. These are dropped.
+                    // re-established a session or connection to a room.
+                    // These are dropped.
                     if (ps == null) {
-                        Log.log(Level.FINEST, session, "no session, dropping message from client {0}: {1}", userId,
-                                message);
+                        Log.log(Level.FINEST, session, "no session, dropping message from client {0}: {1}", userId, message);
                     } else {
                         ps.sendToRoom(message);
                     }

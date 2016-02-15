@@ -121,7 +121,7 @@ public class PlayerConnectionMediator {
     public static final String PART = "{\"type\": \"joinpart\",\"content\": \"exit %s\",\"bookmark\": 0}";
     public static final String JOIN = "{\"type\": \"joinpart\",\"content\": \"enter %s\",\"bookmark\": 0}";
     public static final String HIBYE = "{\"username\": \"%s\",\"userId\": \"%s\"}";
-    public static final String ELECTRIC_THUMB = "{\"type\": \"exit\",\"content\": \"In a desperate plea for rescue, you stick out your <a href='http://everything2.com/title/Electronic+Thumb' target='_blank'>Electric Thumb</a> and hope for the best.\",\"bookmark\": 0}";
+    public static final String ELECTRIC_THUMB = "{\"type\": \"exit\",\"content\": \"In a desperate plea for rescue, you stick out your [Electric Thumb](http://hitchhikers.wikia.com/wiki/Electronic_Thumb) and hope for the best.\",\"bookmark\": 0}";
     public static final String BAD_RIDE = "{\"type\": \"event\",\"content\": {\"*\": \"There is a sudden jerk, and you feel as though a hook somewhere behind your navel was yanking you ... somewhere.\"},\"bookmark\": 0}";
     public static final String SPLINCHED = "{\"type\": \"event\",\"content\": {\"*\": \"Ow! You were splinched! After a brief jolt (getting unsplinched isn't comfortable), you're all back together again. At least, all instances of you are in the same room.\"},\"bookmark\": 0}";
 
@@ -200,6 +200,10 @@ public class PlayerConnectionMediator {
         // Double check that all is well and the client agrees with where we are
         // after possible bumpy rides or splinch repair
         sendClientAck();
+
+        // Make sure the room knows we're here. Trigger resend of room data to client.
+        sendToRoom(currentRoom, RoutedMessage.createMessage(Constants.ROOM_HELLO, currentRoom.getId(),
+                String.format(PlayerConnectionMediator.HIBYE, username, userId)));
 
         // Start flow of messages from room to player (if not previously
         // started)

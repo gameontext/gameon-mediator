@@ -43,11 +43,11 @@ public class FirstRoom implements RoomMediator {
     public static final String TELEPORT = "teleport";
     public static final String FIRST_ROOM_DESC = "You've entered a vaguely squarish room, with walls of an indeterminate color.";
     public static final String FIRST_ROOM_EXTENDED = "\n\nTL;DR README (The extended edition is [here](https://gameontext.gitbooks.io/gameon-gitbook/content/)): \n\n"
-            + "* Commands start with '/'\n"
-            + "* Use `/help` to list all available commands. The list will change from room to room\n"
-            + "* Use `/exits` to list all available exits\n"
-            + "* Use `/sos` to return to First Room if you're stuck\n"
-            + "* Rooms might try to fool you, but these three commands will always work. Don't panic.";
+            + "* Commands start with '/'.\n"
+            + "* Use `/help` to list all available commands. The list will change from room to room.\n"
+            + "* Use `/exits` to list all available exits.\n"
+            + "* Use `/sos` to return to First Room if you're stuck.\n"
+            + "* Rooms might try to fool you, but these three commands will always work.";
 
     public static final String FIRST_ROOM_INV = "Sadly, there is nothing here.";
 
@@ -213,10 +213,10 @@ public class FirstRoom implements RoomMediator {
             processListMyRoomsCommand(sourceMessage, responseBuilder);
         } else if (contentToLower.startsWith("/listsystemrooms")) {
             processListSystemRoomsCommand(sourceMessage, responseBuilder);
-        } else if (contentToLower.startsWith("/deleteroom ")) {
+        } else if (contentToLower.startsWith("/deleteroom")) {
             System.out.println("calling delete.. ");
             processDeleteRoomCommand(contentToLower, sourceMessage, responseBuilder);
-        } else if (contentToLower.startsWith("/teleport ")) {
+        } else if (contentToLower.startsWith("/teleport")) {
             if (contentToLower.length() > "/teleport ".length()) {
                 String target = contentToLower.substring("/teleport ".length());
 
