@@ -201,10 +201,6 @@ public class PlayerConnectionMediator {
         // after possible bumpy rides or splinch repair
         sendClientAck();
 
-        // Make sure the room knows we're here. Trigger resend of room data to client.
-        sendToRoom(currentRoom, RoutedMessage.createMessage(Constants.ROOM_HELLO, currentRoom.getId(),
-                String.format(PlayerConnectionMediator.HIBYE, username, userId)));
-
         // Start flow of messages from room to player (if not previously
         // started)
         currentRoom.subscribe(this, lastmessage);
