@@ -22,7 +22,10 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
+import javax.json.JsonArray;
+import javax.json.JsonNumber;
 import javax.json.JsonObject;
+import javax.json.JsonValue;
 import javax.websocket.ClientEndpointConfig;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
@@ -53,6 +56,11 @@ public class RemoteRoomMediator implements RoomMediator {
     private final String roomName;
     private final String roomFullName;
     private final ConnectionDetails details;
+    
+    /**
+     * The protocol version of this mediator.
+     */
+    private final Long protocolVersion = Long.valueOf(1);
 
     /**
      * Connection utilities for using the websocket. Passed in by the
@@ -217,7 +225,10 @@ public class RemoteRoomMediator implements RoomMediator {
                                 @Override
                                 public void onMessage(RoutedMessage message) {
                                     Log.log(Level.FINEST, session, "received from room {2}({0}): {1}", getId(), message, getName());
-                                    if (playerMediator != null) {
+                                    if(Constants.ACK.equals(message.getFlowTarget())){
+                                        //ack from room is meant for us.. 
+                                        handleAck(message);
+                                    }else if (playerMediator != null) {
                                         try {
                                             playerMediator.sendToClient(message);
                                         } catch(Exception e) {
@@ -260,6 +271,28 @@ public class RemoteRoomMediator implements RoomMediator {
         }
 
         return false;
+    }
+    
+    /**
+     * ack from room is sent to allow us to select a compatible websocket json protocol
+     * currently we only support the one, maybe in future we'll add more.
+     */
+    private void handleAck(RoutedMessage ackack){
+        JsonObject ackackobject = ackack.getParsedBody();
+        JsonArray versions = ackackobject.getJsonArray("version");
+        boolean foundMatch = false;
+        for(JsonValue version : versions){
+            if(JsonValue.ValueType.NUMBER.equals(version.getValueType())){
+                JsonNumber potentialVersion = (JsonNumber)version;
+                if(protocolVersion == potentialVersion.longValue()){
+                    foundMatch = true;
+                    break;  
+                }
+            }
+        }
+        if(!foundMatch){
+            throw new IllegalStateException("No matching websocket protocol version found when talking with room "+roomName+" "+id+" got ack : "+ackack.toString());
+        }
     }
 
     /**
@@ -337,6 +370,11 @@ public class RemoteRoomMediator implements RoomMediator {
         }
     }
 
+    @Override
+    public long getSelectedProtocolVersion() {
+        return protocolVersion;
+    }
+    
     @Override
     public String toString() {
         return this.getClass().getName() + "[roomId=" + id + "]";

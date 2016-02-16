@@ -259,4 +259,9 @@ public class EmptyRoom implements RoomMediator {
         }
         return "off... ";
     }
+
+    @Override
+    public long getSelectedProtocolVersion() {
+        return 1;
+    }
 }

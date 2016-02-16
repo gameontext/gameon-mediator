@@ -54,6 +54,8 @@ public interface Constants {
     String FIRST_ROOM = "firstroom";
 
     String ROOM_ID = "roomId";
+    
+    String ACK = "ack";
 
     /** Room name (ack, room location events) */
     String NAME = "name";
