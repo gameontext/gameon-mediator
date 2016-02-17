@@ -45,6 +45,11 @@ public interface RoomMediator {
      * @return connection details for room
      */
     ConnectionDetails getConnectionDetails();
+    
+    /**
+     * @return the protocol version to use when talking to room
+     */
+    long getSelectedProtocolVersion();
 
     /**
      * @return a list of the room's exits

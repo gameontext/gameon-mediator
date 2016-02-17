@@ -390,5 +390,9 @@ public class FirstRoom implements RoomMediator {
         content.add("/deleteroom", "Deregisters a room you have registered. e.g. `/deleteroom room-id`");
         return content.build();
     }
-
+    
+    @Override
+    public long getSelectedProtocolVersion() {
+        return 1;
+    }
 }
