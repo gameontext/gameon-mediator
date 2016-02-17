@@ -20,10 +20,12 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import javax.annotation.Resource;
+import javax.enterprise.concurrent.ManagedScheduledExecutorService;
 import javax.enterprise.concurrent.ManagedThreadFactory;
 import javax.enterprise.context.ApplicationScoped;
 import javax.websocket.ClientEndpointConfig;
@@ -54,6 +56,14 @@ public class ConnectionUtils {
     /** CDI injection of Java EE7 Managed thread factory */
     @Resource
     protected ManagedThreadFactory threadFactory;
+
+    /** CDI injection of Java EE7 Managed scheduled executor service */
+    @Resource
+    protected ManagedScheduledExecutorService executor;
+
+    public ScheduledExecutorService getScheduledExecutorService() {
+        return executor;
+    }
 
     /**
      * Simple text based broadcast.
@@ -102,7 +112,7 @@ public class ConnectionUtils {
     /**
      * {@code CloseReason} can include a value, but the length of the text is
      * limited.
-     * 
+     *
      * @param message
      *            String to trim
      * @return a string no longer than 123 characters.
@@ -198,7 +208,7 @@ public class ConnectionUtils {
 
         /**
          * Construct a drain around the given message queue.
-         * 
+         *
          * @param id
          *            An identifier for the drain (used in logs)
          * @param pending
