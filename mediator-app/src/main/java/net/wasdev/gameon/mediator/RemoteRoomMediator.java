@@ -238,8 +238,7 @@ public class RemoteRoomMediator implements RoomMediator {
 
                         @Override
                         public void onClose(Session session, CloseReason closeReason) {
-                            // let the room mediator know the connection was
-                            // closed
+                            // let the room mediator know the connection was closed
                             connectionClosed(closeReason);
                         }
 
@@ -320,8 +319,7 @@ public class RemoteRoomMediator implements RoomMediator {
      */
     @Override
     public void disconnect() {
-        connectionUtils.tryToClose(roomSession);
-        toRoom.clear();
+        // we don't close the socket: we rely on the room side to close the socket.
     }
 
     /**
@@ -335,6 +333,14 @@ public class RemoteRoomMediator implements RoomMediator {
         if (message.isForRoom(this)) {
             // TODO: Capacity?
             toRoom.offer(message);
+
+            // If we're sending a roomGoodbye, make sure the socket gets closed eventually.
+            if ( Constants.ROOM_GOODBYE.equals(message.getFlowTarget())) {
+                Runnable r = () -> {
+                    connectionUtils.tryToClose(roomSession);
+                };
+                connectionUtils.getScheduledExecutorService().schedule(r, 5, TimeUnit.SECONDS);
+            }
         } else {
             Log.log(Level.FINEST, this, "send -- Dropping message {0}", message);
         }
