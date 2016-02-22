@@ -203,10 +203,9 @@ public class MapClient {
             return false;
         } catch (ResponseProcessingException rpe) {
             Response response = rpe.getResponse();
-            Log.log(Level.SEVERE, this, "Exception deleting room uri: {0} resp code: {1} data: {2}",
+            Log.log(Level.SEVERE, this, "Exception deleting room uri: {0} resp code: {1} ",
                     target.getUri().toString(),
-                    response.getStatusInfo().getStatusCode() + " " + response.getStatusInfo().getReasonPhrase(),
-                    response.readEntity(String.class));
+                    response.getStatusInfo().getStatusCode() + " " + response.getStatusInfo().getReasonPhrase());
             Log.log(Level.SEVERE, this, "Exception deleting room ", rpe);
         } catch (ProcessingException e) {
             Log.log(Level.SEVERE, this, "Exception deleting room ", e);
@@ -245,10 +244,9 @@ public class MapClient {
             return null;
         } catch (ResponseProcessingException rpe) {
             Response response = rpe.getResponse();
-            Log.log(Level.FINER, this, "Exception fetching room list uri: {0} resp code: {1} data: {2}",
+            Log.log(Level.FINER, this, "Exception fetching room list uri: {0} resp code: {1} ",
                     target.getUri().toString(),
-                    response.getStatusInfo().getStatusCode() + " " + response.getStatusInfo().getReasonPhrase(),
-                    response.readEntity(String.class));
+                    response.getStatusInfo().getStatusCode() + " " + response.getStatusInfo().getReasonPhrase());
             Log.log(Level.FINEST, this, "Exception fetching room list", rpe);
         } catch (ProcessingException e) {
             Log.log(Level.FINEST, this, "Exception fetching room list (" + target.getUri().toString() + ")", e);
@@ -285,10 +283,9 @@ public class MapClient {
             return null;
         } catch (ResponseProcessingException rpe) {
             Response response = rpe.getResponse();
-            Log.log(Level.FINER, this, "Exception fetching room list uri: {0} resp code: {1} data: {2}",
+            Log.log(Level.FINER, this, "Exception fetching room list uri: {0} resp code: {1} ",
                     target.getUri().toString(),
-                    response.getStatusInfo().getStatusCode() + " " + response.getStatusInfo().getReasonPhrase(),
-                    response.readEntity(String.class));
+                    response.getStatusInfo().getStatusCode() + " " + response.getStatusInfo().getReasonPhrase());
             Log.log(Level.FINEST, this, "Exception fetching room list", rpe);
         } catch (ProcessingException e) {
             Log.log(Level.FINEST, this, "Exception fetching room list (" + target.getUri().toString() + ")", e);
