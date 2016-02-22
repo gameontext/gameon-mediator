@@ -1,14 +1,7 @@
 #!/bin/bash
 
-if [ "$SSL_CERT" != "" ]; then
-  echo Found an SSL cert to use.
-  cd /opt/ibm/wlp/usr/servers/defaultServer/resources/
-  echo -e $SSL_CERT > cert.pem
-  openssl pkcs12 -passin pass:keystore -passout pass:keystore -export -out cert.pkcs12 -in cert.pem
-  keytool -import -v -trustcacerts -alias default -file cert.pem -storepass truststore -keypass keystore -noprompt -keystore security/truststore.jks
-  keytool -genkey -storepass testOnlyKeystore -keypass wefwef -keyalg RSA -alias endeca -keystore security/key.jks -dname CN=rsssl,OU=unknown,O=unknown,L=unknown,ST=unknown,C=CA
-  keytool -delete -storepass testOnlyKeystore -alias endeca -keystore security/key.jks
-  keytool -v -importkeystore -srcalias 1 -alias 1 -destalias default -noprompt -srcstorepass keystore -deststorepass testOnlyKeystore -srckeypass keystore -destkeypass testOnlyKeystore -srckeystore cert.pkcs12 -srcstoretype PKCS12 -destkeystore security/key.jks -deststoretype JKS
+if [ "$SERVERDIRNAME" == "" ]; then
+  SERVERDIRNAME=defaultServer
 fi
 
 if [ "$ETCDCTL_ENDPOINT" != "" ]; then
@@ -26,8 +19,9 @@ if [ "$ETCDCTL_ENDPOINT" != "" ]; then
       RC=$?
   done
   echo "etcdctl returned sucessfully, continuing"
-  
-  cd /opt/ibm/wlp/usr/servers/defaultServer/resources/
+ 
+  mkdir -p /opt/ibm/wlp/usr/servers/$SERVERDIRNAME/resources/security
+  cd /opt/ibm/wlp/usr/servers/$SERVERDIRNAME/resources/
   etcdctl get /proxy/third-party-ssl-cert > cert.pem
   openssl pkcs12 -passin pass:keystore -passout pass:keystore -export -out cert.pkcs12 -in cert.pem
   keytool -import -v -trustcacerts -alias default -file cert.pem -storepass truststore -keypass keystore -noprompt -keystore security/truststore.jks
@@ -39,13 +33,17 @@ if [ "$ETCDCTL_ENDPOINT" != "" ]; then
   export MAP_URL=$(etcdctl get /map/url)
   export MEDIATOR_PLAYER_URL=$(etcdctl get /player/url)
   export LOGSTASH_ENDPOINT=$(etcdctl get /logstash/endpoint)
+  export LOGMET_HOST=$(etcdctl get /logmet/host)
+  export LOGMET_PORT=$(etcdctl get /logmet/port)
+  export LOGMET_TENANT=$(etcdctl get /logmet/tenant)
+  export LOGMET_PWD=$(etcdctl get /logmet/pwd)
   
   # Softlayer needs a logstash endpoint so we set up the server
   # to run in the background and the primary task is running the
   # forwarder. In ICS, Liberty is the primary task so we need to
   # run it in the foreground
   if [ "$LOGSTASH_ENDPOINT" != "" ]; then
-    /opt/ibm/wlp/bin/server start defaultServer
+    /opt/ibm/wlp/bin/server start $SERVERDIRNAME
     echo Starting the logstash forwarder...
     sed -i s/PLACEHOLDER_LOGHOST/$LOGSTASH_ENDPOINT/g /opt/forwarder.conf
     cd /opt
@@ -55,8 +53,8 @@ if [ "$ETCDCTL_ENDPOINT" != "" ]; then
     sleep 0.5
     ./forwarder --config ./forwarder.conf
   else
-    /opt/ibm/wlp/bin/server run defaultServer
+    /opt/ibm/wlp/bin/server run $SERVERDIRNAME
   fi
 else
-  exec /opt/ibm/wlp/bin/server run defaultServer
+  exec /opt/ibm/wlp/bin/server run $SERVERDIRNAME
 fi
