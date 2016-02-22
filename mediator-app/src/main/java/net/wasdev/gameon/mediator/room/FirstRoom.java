@@ -236,7 +236,7 @@ public class FirstRoom implements RoomMediator {
     private void processDeleteRoomCommand(String content, String contentToLower, JsonObject sourceMessage,
             JsonObjectBuilder responseBuilder) {
 
-        System.out.println("Processing delete command.. " + contentToLower);
+        Log.log(Level.INFO, this, "Processing delete command.. {0}" ,contentToLower);
 
         String userid = sourceMessage.getString(RoomUtils.USER_ID);
 
@@ -251,7 +251,7 @@ public class FirstRoom implements RoomMediator {
             }else{
                 // obtain the users shared secret using their jwt..
                 String secret = playerClient.getSharedSecret(userid, playerJwt);
-                System.out.println("Got key for user of " + String.valueOf(secret));
+                Log.log(Level.INFO, this, "Got key for user of (first4chars) {0}" ,String.valueOf(secret).substring(0,4));
                 if (secret == null) {
                     responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
                             RoomUtils.buildContentResponse(

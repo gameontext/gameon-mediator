@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<server description="new server">
+
+    <featureManager>
+        <feature>logmetCollector-1.0</feature>
+    </featureManager>
+
+    <keyStore id="javaKeyStore" location="${java.home}/lib/security/cacerts" password="changeit" />
+    <ssl id="mySSLConfig" trustStoreRef="javaKeyStore" keyStoreRef="defaultKeyStore" />
+
+    
+    <logmetCollector hostName="${env.LOGMET_HOST}" port="${env.LOGMET_PORT}" tenant="${env.LOGMET_TENANT}" password="${env.LOGMET_PWD}" sslRef="mySSLConfig">
+        <source>message</source>
+        <source>trace</source>
+        <source>garbageCollection</source>
+        <source>ffdc</source>
+        <source>accessLog</source>
+    </logmetCollector>
+
+</server>

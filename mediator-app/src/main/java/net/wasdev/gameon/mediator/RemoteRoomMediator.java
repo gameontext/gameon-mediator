@@ -190,9 +190,6 @@ public class RemoteRoomMediator implements RoomMediator {
      */
     @Override
     public boolean connect() {
-        System.out.println("Asked to connect.. roomSession is null? " + (roomSession == null)
-                + (roomSession != null ? " roomSession is Open?" + roomSession.isOpen() : ""));
-
         if (roomSession != null && roomSession.isOpen()) {
             return true;
         }
