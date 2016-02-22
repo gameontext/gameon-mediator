@@ -107,7 +107,7 @@ public class MapClient {
             throw new IllegalStateException("Unable to initialize MapClient");
         }
 
-        Client queryClient = ClientBuilder.newClient().register(JacksonJsonProvider.class);
+        Client queryClient = ClientBuilder.newClient().register(JsonProvider.class);
         
         //add our shared secret so all our queries come from the game-on.org id
         queryClient.register(new GameOnHeaderAuthFilter("game-on.org", querySecret));
@@ -181,7 +181,7 @@ public class MapClient {
     public boolean deleteSite(String roomId, String userid, String secret) {
         Log.log(Level.FINER, this, "Asked to delete room id {0} for user {1} with secret(first2chars) {2}",roomId,userid,secret.substring(0,2));
 
-        Client client = ClientBuilder.newClient();
+        Client client = ClientBuilder.newClient().register(JsonProvider.class);
 
         //use filter because this request has no body..
         GameOnHeaderAuth apikey = new GameOnHeaderAuthFilter(userid, secret);

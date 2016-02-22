@@ -61,7 +61,7 @@ docker {
 
 task buildDockerImage(type: DockerBuildImage, dependsOn: ['copyWAR']) {
 	inputDir = file('.')
-    dockerFile = file('Dockerfile')
+    dockerFile = file('Dockerfile.live')
     tag = 'gameon-mediator'
     quiet = false
 }
