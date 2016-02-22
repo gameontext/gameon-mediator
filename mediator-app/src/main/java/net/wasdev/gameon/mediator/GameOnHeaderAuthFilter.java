@@ -3,6 +3,7 @@ package net.wasdev.gameon.mediator;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.logging.Level;
 
 import javax.ws.rs.client.ClientRequestContext;
 import javax.ws.rs.client.ClientRequestFilter;
@@ -32,8 +33,7 @@ public class GameOnHeaderAuthFilter extends GameOnHeaderAuth implements ClientRe
             headers.add("gameon-signature", hmac);
 
         } catch (Exception e) {
-            System.out.println("Bad stuff happened .. " + e.getMessage());
-            e.printStackTrace();
+            Log.log(Level.SEVERE, this, "Error calculating hmac headers", e);
             throw new IOException(e);
         }
     }

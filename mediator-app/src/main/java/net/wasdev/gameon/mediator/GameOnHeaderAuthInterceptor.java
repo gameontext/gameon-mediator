@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.logging.Level;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MultivaluedMap;
@@ -68,7 +69,7 @@ public class GameOnHeaderAuthInterceptor extends GameOnHeaderAuth implements Wri
                                        bodyHash
                                    }),secret);
             
-            System.out.println("hmac "+hmac+" FROM "+userId+dateValue+bodyHash);
+            Log.log(Level.INFO,this,"hmac(first4chars) {0} FROM {1}",hmac.substring(0, 4), userId+dateValue+bodyHash);
     
             MultivaluedMap<String, Object> headers = context.getHeaders();
             headers.add("gameon-id", userId);
@@ -79,8 +80,7 @@ public class GameOnHeaderAuthInterceptor extends GameOnHeaderAuth implements Wri
             old.write(body);
         
         }catch(Exception e){
-            System.out.println("Bad stuff happened .. "+e.getMessage());
-            e.printStackTrace();
+            Log.log(Level.INFO, this, "Error constructing hmac during interceptor", e);
             throw new IOException(e);
         }
     }

@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.StringTokenizer;
+import java.util.logging.Level;
 import java.util.stream.Stream;
 
 import javax.naming.InitialContext;
@@ -49,7 +50,7 @@ public class LogView extends HttpServlet {
                 count++;
             }
         } else {
-            System.out.println(" - Is empty, or not a directory." + "<br>");
+            out.println(" - Is empty, or not a directory." + "<br>");
         }
     }
 
@@ -59,8 +60,7 @@ public class LogView extends HttpServlet {
             long count = 0;
             for (String c : f.list()) {
                 if (countString.equals("" + count)) {
-                    System.out.println(
-                            "LOGVIEW: Asked to view " + dir + " " + countString + " " + Paths.get(dir, c).toString());
+                    Log.log(Level.INFO, this, "LOGVIEW: Asked to view {0} {1} {2}",dir,countString,Paths.get(dir, c).toString());
                     try (Stream<String> stream = Files.lines(Paths.get(dir, c))) {
                         stream.forEach(out::println);
                     } catch (IOException io) {
@@ -141,15 +141,14 @@ public class LogView extends HttpServlet {
                                             String outdir = System.getenv("WLP_OUTPUT_DIR");
                                             viewFile(out, outdir, choice.substring(1).trim());
                                         } else if (choice.startsWith("l")) {
-                                            String logdir = System.getenv("LOG_DIR");
+                                            String logdir = System.getenv("X_LOG_DIR");
                                             if (logdir == null) {
                                                 String outdir = System.getenv("WLP_OUTPUT_DIR");
                                                 logdir = Paths.get(outdir, "defaultServer", "logs").toString();
                                             }
                                             viewFile(out, logdir, choice.substring(1).trim());
                                         } else if (choice.startsWith("f")) {
-
-                                            String logdir = System.getenv("LOG_DIR");
+                                            String logdir = System.getenv("X_LOG_DIR");
                                             if (logdir == null) {
                                                 String outdir = System.getenv("WLP_OUTPUT_DIR");
                                                 logdir = Paths.get(outdir, "defaultServer", "logs").toString();

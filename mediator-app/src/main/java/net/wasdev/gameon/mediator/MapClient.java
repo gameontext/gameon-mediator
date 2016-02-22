@@ -179,7 +179,7 @@ public class MapClient {
      * @see WebTarget#resolveTemplate(String, Object)
      */
     public boolean deleteSite(String roomId, String userid, String secret) {
-        System.out.println("Asked to delete room id "+roomId+" for user "+userid+" with secret "+secret);
+        Log.log(Level.FINER, this, "Asked to delete room id {0} for user {1} with secret(first2chars) {2}",roomId,userid,secret.substring(0,2));
 
         Client client = ClientBuilder.newClient();
 
@@ -192,36 +192,26 @@ public class MapClient {
         Log.log(Level.FINER, this, "making request to {0} for room", target.getUri().toString());
         Response r = null;
         try {
-            System.out.println("Issuing delete.. ");
             r = target.request().delete(); //
-            if (r.getStatusInfo().getFamily().equals(Response.Status.Family.SUCCESSFUL)) {
-                System.out.println("It worked.."+r.getStatusInfo().getStatusCode()+" "+r.readEntity(String.class));
+            if (r.getStatus() == 204) {
+                Log.log(Level.FINER, this, "delete reported success (204)", target.getUri().toString());
                 return true;
             }
-            System.out.println("It failed "+r.getStatusInfo().getReasonPhrase()+" "+r.readEntity(String.class));
+            Log.log(Level.FINER, this, "delete failed reason:{0} entity:{1}", r.getStatusInfo().getReasonPhrase(),r.readEntity(String.class));
 
             //delete failed.
             return false;
         } catch (ResponseProcessingException rpe) {
             Response response = rpe.getResponse();
-            Log.log(Level.FINER, this, "Exception deleting room uri: {0} resp code: {1} data: {2}",
+            Log.log(Level.SEVERE, this, "Exception deleting room uri: {0} resp code: {1} data: {2}",
                     target.getUri().toString(),
                     response.getStatusInfo().getStatusCode() + " " + response.getStatusInfo().getReasonPhrase(),
                     response.readEntity(String.class));
-            Log.log(Level.FINEST, this, "Exception deleting room ", rpe);
-
-            System.out.println("ResponseProcessingException " + rpe.getMessage());
-            rpe.printStackTrace();
-            System.out.println("Response toString " + rpe.getResponse().toString());
-            System.out.println("Response as String " + rpe.getResponse().readEntity(String.class));
+            Log.log(Level.SEVERE, this, "Exception deleting room ", rpe);
         } catch (ProcessingException e) {
-            System.out.println("ResponseProcessingException " + e.getMessage());
-            e.printStackTrace();
-            System.out.println("Response toString " + r.toString());
-            System.out.println("Response as String " + r.readEntity(String.class));
+            Log.log(Level.SEVERE, this, "Exception deleting room ", e);
         } catch (WebApplicationException ex) {
-            Log.log(Level.FINEST, this, "Exception deleting room (" + target.getUri().toString() + ")", ex);
-            System.out.println("WebApplicationException " + ex.getMessage());
+            Log.log(Level.SEVERE, this, "Exception deleting room ", ex);
         }
         // Sadly, badness happened while trying to do the delete
         return false;
@@ -260,19 +250,10 @@ public class MapClient {
                     response.getStatusInfo().getStatusCode() + " " + response.getStatusInfo().getReasonPhrase(),
                     response.readEntity(String.class));
             Log.log(Level.FINEST, this, "Exception fetching room list", rpe);
-
-            System.out.println("ResponseProcessingException " + rpe.getMessage());
-            rpe.printStackTrace();
-            System.out.println("Response toString " + rpe.getResponse().toString());
-            System.out.println("Response as String " + rpe.getResponse().readEntity(String.class));
         } catch (ProcessingException e) {
-            System.out.println("ResponseProcessingException " + e.getMessage());
-            e.printStackTrace();
-            System.out.println("Response toString " + r.toString());
-            System.out.println("Response as String " + r.readEntity(String.class));
+            Log.log(Level.FINEST, this, "Exception fetching room list (" + target.getUri().toString() + ")", e);
         } catch (WebApplicationException ex) {
             Log.log(Level.FINEST, this, "Exception fetching room list (" + target.getUri().toString() + ")", ex);
-            System.out.println("WebApplicationException " + ex.getMessage());
         }
         // Sadly, badness happened while trying to get the endpoints
         return null;
@@ -309,19 +290,10 @@ public class MapClient {
                     response.getStatusInfo().getStatusCode() + " " + response.getStatusInfo().getReasonPhrase(),
                     response.readEntity(String.class));
             Log.log(Level.FINEST, this, "Exception fetching room list", rpe);
-
-            System.out.println("ResponseProcessingException " + rpe.getMessage());
-            rpe.printStackTrace();
-            System.out.println("Response toString " + rpe.getResponse().toString());
-            System.out.println("Response as String " + rpe.getResponse().readEntity(String.class));
         } catch (ProcessingException e) {
-            System.out.println("ResponseProcessingException " + e.getMessage());
-            e.printStackTrace();
-            System.out.println("Response toString " + r.toString());
-            System.out.println("Response as String " + r.readEntity(String.class));
+            Log.log(Level.FINEST, this, "Exception fetching room list (" + target.getUri().toString() + ")", e);
         } catch (WebApplicationException ex) {
             Log.log(Level.FINEST, this, "Exception fetching room list (" + target.getUri().toString() + ")", ex);
-            System.out.println("WebApplicationException " + ex.getMessage());
         }
         // Sadly, badness happened while trying to get the endpoints
         return null;
