@@ -103,7 +103,7 @@ public class PlayerClient {
             if("development".equals(System.getenv("MAP_PLAYER_MODE"))){
                 builder.hostnameVerifier(new TheNotVerySensibleHostnameVerifier());
             }
-            client = builder.build().register(JacksonJsonProvider.class);
+            client = builder.build().register(JsonProvider.class);
 
             this.root = client.target(playerLocation);
         }catch(Exception e){
