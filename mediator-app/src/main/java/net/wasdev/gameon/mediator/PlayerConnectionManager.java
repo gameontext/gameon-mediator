@@ -42,6 +42,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import net.wasdev.gameon.mediator.auth.JWT;
 
 /**
  * Lifecycle management for mediators. When a "ready" message is received, the
@@ -220,7 +221,14 @@ public class PlayerConnectionManager implements Runnable {
             // mediator that doesn't,
             // ends here..
 
-            // get the jwt from the ws query url.
+            if (signingKey == null)
+                getKeyStoreInfo();
+            
+            // get the jwt from the message
+            String token = message.getOptionalValue("jwt", null);
+            JWT jwt = new JWT(signingKey, token);
+            
+            /*
             String query = clientSession.getQueryString();
             String params[] = query.split("&");
             String jwtParam = null;
@@ -238,9 +246,11 @@ public class PlayerConnectionManager implements Runnable {
             Jws<Claims> jwt = Jwts.parser().setSigningKey(signingKey).parseClaimsJws(jwtParam);
 
             // create a new jwt with type server for use by this session.
+             */
+            
             Claims onwardsClaims = Jwts.claims();
             // add all the client claims
-            onwardsClaims.putAll(jwt.getBody());
+            onwardsClaims.putAll(jwt.getClaims());
             // upgrade the type to server
             onwardsClaims.setAudience("server");
 

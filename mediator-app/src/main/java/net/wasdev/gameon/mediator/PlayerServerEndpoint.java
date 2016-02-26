@@ -55,6 +55,7 @@ public class PlayerServerEndpoint {
      */
     @OnOpen
     public void onOpen(@PathParam("userId") String userId, Session session, EndpointConfig ec) {
+        System.out.println("Connection from user : " + userId);
         Log.log(Level.FINER, session, "client open - {0}", userId, session, session.getQueryString(), session.getUserProperties());
     }
 
