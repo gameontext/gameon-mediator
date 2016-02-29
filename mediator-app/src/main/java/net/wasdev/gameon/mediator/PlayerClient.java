@@ -32,12 +32,11 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.Invocation;
 import javax.ws.rs.client.ResponseProcessingException;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
-import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
 
 /**
  * A wrapped/encapsulation of outbound REST requests to the player service.
@@ -168,16 +167,17 @@ public class PlayerClient {
      * @return
      */
     public String getSharedSecret(String playerId, String jwt) {
-        WebTarget target = this.root.path("{playerId}").resolveTemplate("playerId", playerId).queryParam("jwt",
-                jwt);
-
+        WebTarget target = this.root.path("{playerId}").resolveTemplate("playerId", playerId);
+        
         Log.log(Level.FINER, this, "requesting shared secret using {0}", target.getUri().toString());
 
         try {
             // Make PUT request using the specified target, get result as a
             // string containing JSON
-            String result = target.request(MediaType.APPLICATION_JSON)//.accept(MediaType.APPLICATION_JSON)
-                    .header("Content-type", "application/json").get(String.class);
+            Invocation.Builder builder = target.request(MediaType.APPLICATION_JSON);
+            builder.header("Content-type", "application/json");
+            builder.header("gameon-jwt", jwt);
+            String result = builder.get(String.class);
 
             JsonReader p = Json.createReader(new StringReader(result));
             JsonObject j = p.readObject();

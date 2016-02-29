@@ -39,7 +39,6 @@ import javax.json.JsonObject;
 import javax.websocket.Session;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import net.wasdev.gameon.mediator.auth.JWT;
@@ -221,33 +220,15 @@ public class PlayerConnectionManager implements Runnable {
             // mediator that doesn't,
             // ends here..
 
-            if (signingKey == null)
+            if (signingKey == null) {
                 getKeyStoreInfo();
+            }
+                
             
             // get the jwt from the message
             String token = message.getOptionalValue("jwt", null);
             JWT jwt = new JWT(signingKey, token);
-            
-            /*
-            String query = clientSession.getQueryString();
-            String params[] = query.split("&");
-            String jwtParam = null;
-            for (String param : params) {
-                if (param.startsWith("jwt=")) {
-                    jwtParam = param.substring("jwt=".length());
-                }
-            }
-
-            // grab the key if needed
-            if (signingKey == null)
-                getKeyStoreInfo();
-
-            // parse the jwt into an object..
-            Jws<Claims> jwt = Jwts.parser().setSigningKey(signingKey).parseClaimsJws(jwtParam);
-
-            // create a new jwt with type server for use by this session.
-             */
-            
+                        
             Claims onwardsClaims = Jwts.claims();
             // add all the client claims
             onwardsClaims.putAll(jwt.getClaims());
