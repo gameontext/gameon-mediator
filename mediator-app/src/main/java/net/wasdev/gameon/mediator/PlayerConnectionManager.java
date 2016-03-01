@@ -224,10 +224,22 @@ public class PlayerConnectionManager implements Runnable {
                 getKeyStoreInfo();
             }
                 
+         // get the jwt from the ws query url.
+            String jwtParam = null;
+            String query = clientSession.getQueryString();
+            if((query != null) && !query.isEmpty()) {
+                String params[] = query.split("&");
+                for (String param : params) {
+                    if (param.startsWith("jwt=")) {
+                        jwtParam = param.substring("jwt=".length());
+                    }
+                }
+            }
             
             // get the jwt from the message
             String token = message.getOptionalValue("jwt", null);
-            JWT jwt = new JWT(signingKey, token);
+            
+            JWT jwt = new JWT(signingKey, token, jwtParam);
                         
             Claims onwardsClaims = Jwts.claims();
             // add all the client claims

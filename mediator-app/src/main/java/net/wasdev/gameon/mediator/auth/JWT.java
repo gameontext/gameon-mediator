@@ -17,11 +17,13 @@ package net.wasdev.gameon.mediator.auth;
 
 import java.security.Key;
 import java.security.cert.Certificate;
+import java.util.logging.Level;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
+import net.wasdev.gameon.mediator.Log;
 
 /**
  * Common class for handling JSON Web Tokens
@@ -46,8 +48,6 @@ public class JWT {
     
     // the authentication steps that are performed on an incoming request
     public enum AuthenticationState {
-        UNKNOWN,                        // starting state
-        hasJWTParam, hasJWTHeader, isJWTValid, 
         PASSED, ACCESS_DENIED           // end state
     }
     
@@ -80,12 +80,10 @@ public class JWT {
                     jwtValid = true;
                     code = FailureCode.NONE;
                 } catch (io.jsonwebtoken.SignatureException e) {
-                    // thrown if the signature on id_token cannot be verified.
-                    System.out.println("JWT did NOT validate ok, bad signature.");
+                    Log.log(Level.WARNING, this, "JWT did NOT validate ok, bad signature.");
                     code = FailureCode.BAD_SIGNATURE;
                 } catch (ExpiredJwtException e) {
-                    // thrown if the jwt had expired.
-                    System.out.println("JWT did NOT validate ok, jwt had expired");
+                    Log.log(Level.WARNING, this, "JWT did NOT validate ok, jwt had expired");
                     code = FailureCode.EXPIRED;
                 }
                 state = !jwtValid ? AuthenticationState.ACCESS_DENIED : AuthenticationState.PASSED;
