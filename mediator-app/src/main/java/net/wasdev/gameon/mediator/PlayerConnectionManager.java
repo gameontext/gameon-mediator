@@ -39,9 +39,9 @@ import javax.json.JsonObject;
 import javax.websocket.Session;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import net.wasdev.gameon.mediator.auth.JWT;
 
 /**
  * Lifecycle management for mediators. When a "ready" message is received, the
@@ -220,27 +220,30 @@ public class PlayerConnectionManager implements Runnable {
             // mediator that doesn't,
             // ends here..
 
-            // get the jwt from the ws query url.
-            String query = clientSession.getQueryString();
-            String params[] = query.split("&");
+            if (signingKey == null) {
+                getKeyStoreInfo();
+            }
+                
+         // get the jwt from the ws query url.
             String jwtParam = null;
-            for (String param : params) {
-                if (param.startsWith("jwt=")) {
-                    jwtParam = param.substring("jwt=".length());
+            String query = clientSession.getQueryString();
+            if((query != null) && !query.isEmpty()) {
+                String params[] = query.split("&");
+                for (String param : params) {
+                    if (param.startsWith("jwt=")) {
+                        jwtParam = param.substring("jwt=".length());
+                    }
                 }
             }
-
-            // grab the key if needed
-            if (signingKey == null)
-                getKeyStoreInfo();
-
-            // parse the jwt into an object..
-            Jws<Claims> jwt = Jwts.parser().setSigningKey(signingKey).parseClaimsJws(jwtParam);
-
-            // create a new jwt with type server for use by this session.
+            
+            // get the jwt from the message
+            String token = message.getOptionalValue("jwt", null);
+            
+            JWT jwt = new JWT(signingKey, token, jwtParam);
+                        
             Claims onwardsClaims = Jwts.claims();
             // add all the client claims
-            onwardsClaims.putAll(jwt.getBody());
+            onwardsClaims.putAll(jwt.getClaims());
             // upgrade the type to server
             onwardsClaims.setAudience("server");
 
