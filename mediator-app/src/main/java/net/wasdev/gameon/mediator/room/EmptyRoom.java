@@ -89,6 +89,11 @@ public class EmptyRoom implements RoomMediator {
     public String getFullName() {
         return EMPTY_FULLNAME;
     }
+    
+    @Override
+    public String getToken() {
+        return null;
+    }
 
     @Override
     public ConnectionDetails getConnectionDetails() {

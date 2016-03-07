@@ -47,6 +47,8 @@ import net.wasdev.gameon.mediator.models.Site;
  * messages that need to be sent.
  */
 public class RemoteRoomMediator implements RoomMediator {
+    
+    private static final String ROOM_INIT = "{\"token\": \"%s\"}";
 
     /**
      * Information about the remote endpoint. Used to construct the client
@@ -56,6 +58,7 @@ public class RemoteRoomMediator implements RoomMediator {
     private final String roomName;
     private final String roomFullName;
     private final ConnectionDetails details;
+    private final String token;
     
     /**
      * The protocol version of this mediator.
@@ -105,8 +108,9 @@ public class RemoteRoomMediator implements RoomMediator {
         this.details = room.getInfo().getConnectionDetails();
         this.roomName = room.getInfo().getName();
         this.roomFullName = room.getInfo().getFullName();
-
+        this.token = room.getInfo().getToken();
         this.exits = room.getExits();
+        
         lastCheck = System.nanoTime();
     }
 
@@ -124,6 +128,7 @@ public class RemoteRoomMediator implements RoomMediator {
         this.details = exit.getConnectionDetails();
         this.roomName = exit.getName();
         this.roomFullName = exit.getFullName();
+        this.token = exit.getToken();
 
         this.exits = null;
     }
@@ -147,6 +152,11 @@ public class RemoteRoomMediator implements RoomMediator {
     @Override
     public String getFullName() {
         return roomFullName;
+    }
+
+    @Override
+    public String getToken() {
+        return token;
     }
 
     @Override
@@ -234,6 +244,11 @@ public class RemoteRoomMediator implements RoomMediator {
                                     }
                                 }
                             });
+                            
+                            //TODO decide if this is based on the protocol version .... ?
+                            if((token != null) && !token.isEmpty()) {
+                                sendRoomInit();     //initialise the room
+                            }
                         }
 
                         @Override
@@ -267,6 +282,15 @@ public class RemoteRoomMediator implements RoomMediator {
         }
 
         return false;
+    }
+    
+    /**
+     * Sends an intialisation message to those rooms that support it.
+     */
+    private void sendRoomInit() {
+        String msg = String.format(ROOM_INIT, token);
+        RoutedMessage rmsg = RoutedMessage.createMessage("roomInit", id, msg);
+        send(rmsg);
     }
     
     /**

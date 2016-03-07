@@ -9,6 +9,7 @@ public class Exit {
     String id;
     String name;
     String fullName;
+    String token;
     String door = null;
     ConnectionDetails connectionDetails = null;
 
@@ -21,6 +22,7 @@ public class Exit {
             this.name = targetSite.getInfo().getName();
             this.fullName = targetSite.getInfo().getFullName();
             this.connectionDetails = targetSite.getInfo().getConnectionDetails();
+            this.token = targetSite.getInfo().getToken();
 
             // Note the direction flip. Assume we're in a room,
             // and there is a room to the North:
@@ -97,5 +99,9 @@ public class Exit {
 
     public void setConnectionDetails(ConnectionDetails connectionDetails) {
         this.connectionDetails = connectionDetails;
+    }
+    
+    public String getToken() {
+        return token;
     }
 }

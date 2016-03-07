@@ -40,6 +40,11 @@ public interface RoomMediator {
      * @return The room's pretty name
      */
     String getFullName();
+    
+    /**
+     * @return The token supplied by the room at registration (optional)
+     */
+    String getToken();
 
     /**
      * @return connection details for room

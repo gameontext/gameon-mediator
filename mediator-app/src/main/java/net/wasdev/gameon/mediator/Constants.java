@@ -25,6 +25,13 @@ import javax.json.JsonObject;
 public interface Constants {
 
     /**
+     * Routing: Mediator sends init when establishing a connection to a room. This will let
+     * the room perform any validation or additional processing that needs to occur before
+     * players connect e.g. load additional resources.
+     */
+    String ROOM_INIT = "roomInit";
+    
+    /**
      * Routing: Mediator sends hello when a player enters the room (new room)
      */
     String ROOM_HELLO = "roomHello";

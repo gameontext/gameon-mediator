@@ -40,7 +40,6 @@ import net.wasdev.gameon.mediator.models.Site;
  *
  */
 public class FirstRoom implements RoomMediator {
-
     public static final String TELEPORT = "teleport";
     public static final String FIRST_ROOM_DESC = "You've entered a vaguely squarish room, with walls of an indeterminate color.";
     public static final String FIRST_ROOM_EXTENDED = "\n\nTL;DR README (The extended edition is [here](https://gameontext.gitbooks.io/gameon-gitbook/content/)): \n\n"
@@ -92,6 +91,11 @@ public class FirstRoom implements RoomMediator {
     @Override
     public String getFullName() {
         return "The First Room";
+    }
+
+    @Override
+    public String getToken() {
+        return null;
     }
 
     @Override
