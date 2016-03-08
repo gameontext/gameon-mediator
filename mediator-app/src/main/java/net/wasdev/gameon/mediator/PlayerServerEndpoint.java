@@ -55,7 +55,10 @@ public class PlayerServerEndpoint {
      */
     @OnOpen
     public void onOpen(@PathParam("userId") String userId, Session session, EndpointConfig ec) {
-        Log.log(Level.FINER, session, "client open - {0}", userId, session, session.getQueryString(), session.getUserProperties());
+        Log.log(Level.FINER, session, "client open - {0} {1}", userId,
+                session.getQueryString(), session.getUserProperties(), System.identityHashCode(this));
+
+        playerSessionManager.validateJwt(userId, session);
     }
 
     /**
@@ -82,7 +85,7 @@ public class PlayerServerEndpoint {
     @OnMessage
     public void onMessage(@PathParam("userId") String userId, RoutedMessage message, Session session)
             throws IOException {
-        Log.log(Level.FINEST, session, "received from client {0}: {1}", userId, message);
+        Log.log(Level.FINEST, session, "received from client {0}: {1}", userId, message, System.identityHashCode(this));
         try {
             switch (message.getFlowTarget()) {
                 case PlayerConnectionMediator.CLIENT_READY: {
