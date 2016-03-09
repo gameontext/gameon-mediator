@@ -16,6 +16,8 @@
 package net.wasdev.gameon.mediator;
 
 import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import javax.inject.Inject;
@@ -32,9 +34,15 @@ import javax.websocket.server.ServerEndpoint;
 /**
  * Server-side endpoint for the Player Client (phone/browser). This endpoint is
  * scoped to the player's id to avoid session sharing between different users.
+ * <p>
+ * Relies on default deployment cardinality: there will be one instance of this
+ * class per websocket client.
  */
 @ServerEndpoint(value = "/ws/{userId}", decoders = RoutedMessageDecoder.class, encoders = RoutedMessageEncoder.class)
 public class PlayerServerEndpoint {
+
+    static final String VALID_JWT = "{\"type\": \"joinpart\",\"content\": \"connected: validating JWT\",\"bookmark\": 0}";
+    static final String GET_SESSION = "{\"type\": \"joinpart\",\"content\": \"preparing mediator\",\"bookmark\": 0}";
 
     /** CDI injection of player session manager */
     @Inject
@@ -47,6 +55,8 @@ public class PlayerServerEndpoint {
     @Inject
     ConnectionUtils connectionUtils;
 
+    CountDownLatch validatedJwt = new CountDownLatch(0);
+
     /**
      * Called when a new connection has been established to this endpoint.
      *
@@ -55,10 +65,14 @@ public class PlayerServerEndpoint {
      */
     @OnOpen
     public void onOpen(@PathParam("userId") String userId, Session session, EndpointConfig ec) {
-        Log.log(Level.FINER, session, "client open - {0} {1}", userId,
+        Log.log(Level.FINER, session, "client open - {0} {1} {2} {3}", userId,
                 session.getQueryString(), session.getUserProperties(), System.identityHashCode(this));
 
-        playerSessionManager.validateJwt(userId, session);
+        connectionUtils.sendMessage(session, RoutedMessage.createMessage(Constants.PLAYER, userId, VALID_JWT));
+        // Connection will be closed if the JWT is not valid.
+        if ( playerSessionManager.validateJwt(userId, session) ) {
+            validatedJwt.countDown();
+        }
     }
 
     /**
@@ -85,10 +99,13 @@ public class PlayerServerEndpoint {
     @OnMessage
     public void onMessage(@PathParam("userId") String userId, RoutedMessage message, Session session)
             throws IOException {
-        Log.log(Level.FINEST, session, "received from client {0}: {1}", userId, message, System.identityHashCode(this));
+        Log.log(Level.FINEST, session, "received from client {0}: {1}, {2}", userId, message, System.identityHashCode(this));
         try {
             switch (message.getFlowTarget()) {
                 case PlayerConnectionMediator.CLIENT_READY: {
+                    validatedJwt.await(1, TimeUnit.SECONDS); // should N.E.V.E.R. take this long, ever.
+                    connectionUtils.sendMessage(session, RoutedMessage.createMessage(Constants.PLAYER, userId, GET_SESSION));
+
                     // create a new or resume an existing player session
                     PlayerConnectionMediator ps = playerSessionManager.startSession(session, userId, message);
                     playerSessionManager.setMediator(session, ps);

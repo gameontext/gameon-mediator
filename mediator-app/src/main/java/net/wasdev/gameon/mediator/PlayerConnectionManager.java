@@ -253,7 +253,7 @@ public class PlayerConnectionManager implements Runnable {
         }
     }
 
-    public void validateJwt(String userId, Session clientSession) {
+    public boolean validateJwt(String userId, Session clientSession) {
         // create ourselves a token for server operations for this user.
 
         // get the jwt from the ws query url.
@@ -277,13 +277,16 @@ public class PlayerConnectionManager implements Runnable {
             onwardsClaims.setAudience("server");
 
             // build the new jwt
-            String newJwt = Jwts.builder().setHeaderParam("kid", "playerssl").setClaims(onwardsClaims)
+            String newJwt = Jwts.builder().setHeaderParam("kid", "playerssl")
+                    .setClaims(onwardsClaims)
                     .signWith(SignatureAlgorithm.RS256, signingKey).compact();
 
             clientSession.getUserProperties().put("jwt", newJwt);
+            return true;
         } else {
             // Invalid JWT: Close the connection & provide a reason
             connectionUtils.tryToClose(clientSession, new CloseReason(CloseCodes.VIOLATED_POLICY, jwt.getCode().getReason()));
+            return false;
         }
     }
 }
