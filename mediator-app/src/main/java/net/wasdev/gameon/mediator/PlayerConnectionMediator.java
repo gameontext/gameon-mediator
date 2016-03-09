@@ -462,7 +462,7 @@ public class PlayerConnectionMediator {
     protected RoomMediator findMediatorForExitFromRoom(RoomMediator currentRoom, String direction) {
         Exit nextExit =  currentRoom.getExit(direction);
 
-        return createMediator(nextExit, currentRoom.getToken());
+        return createMediator(nextExit);
     }
 
     /**
@@ -472,7 +472,7 @@ public class PlayerConnectionMediator {
      *            Room and possible endpoints to reach that room
      * @return new mediator, or the FirstRoom if roomEndpoints is null
      */
-    protected RoomMediator createMediator(Exit exit, String token) {
+    protected RoomMediator createMediator(Exit exit) {
         if (exit == null ) {
             return null;
 

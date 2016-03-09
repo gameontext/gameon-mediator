@@ -110,7 +110,7 @@ public class RemoteRoomMediator implements RoomMediator {
         this.roomFullName = room.getInfo().getFullName();
         this.token = room.getInfo().getToken();
         this.exits = room.getExits();
-        
+
         lastCheck = System.nanoTime();
     }
 
@@ -244,11 +244,6 @@ public class RemoteRoomMediator implements RoomMediator {
                                     }
                                 }
                             });
-                            
-                            //TODO decide if this is based on the protocol version .... ?
-                            if((token != null) && !token.isEmpty()) {
-                                sendRoomInit();     //initialise the room
-                            }
                         }
 
                         @Override
@@ -266,6 +261,11 @@ public class RemoteRoomMediator implements RoomMediator {
                         }
                     }, cec, uriServerEP);
                     Log.log(Level.FINEST, s, "CONNECTED to room {1}({0})", id, roomName);
+                    
+                    //TODO decide if this is based on the protocol version .... ?
+                    if((token != null) && !token.isEmpty()) {
+                        sendRoomInit();     //initialise the room
+                    }
 
                     return true;
                 } catch (DeploymentException e) {
@@ -392,7 +392,9 @@ public class RemoteRoomMediator implements RoomMediator {
         if (drainToRoom != null)
             drainToRoom.stop();
 
-        if (playerMediator != null && !reason.getCloseCode().equals(CloseCodes.NORMAL_CLOSURE)) {
+        //VIOLATED_POLICY = security violation
+        boolean retry = !(reason.getCloseCode().equals(CloseCodes.NORMAL_CLOSURE) || reason.getCloseCode().equals(CloseCodes.VIOLATED_POLICY));
+        if (playerMediator != null && retry) {
             connect();
         }
     }
