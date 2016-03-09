@@ -67,6 +67,9 @@ import net.wasdev.gameon.mediator.auth.JWT;
  */
 @ApplicationScoped
 public class PlayerConnectionManager implements Runnable {
+    static final String CREATE_SESSION = "{\"type\": \"joinpart\",\"content\": \"building a mediator\",\"bookmark\": 0}";
+    static final String RESUME_SESSION = "{\"type\": \"joinpart\",\"content\": \"reconstituting mediator\",\"bookmark\": 0}";
+
     private final ConcurrentHashMap<String, PlayerConnectionMediator> suspendedMediators = new ConcurrentHashMap<String, PlayerConnectionMediator>();
 
     /** CDI injection of Java EE7 Managed scheduled executor service */
@@ -217,11 +220,13 @@ public class PlayerConnectionManager implements Runnable {
         }
 
         if (mediator == null) {
+            connectionUtils.sendMessage(clientSession, RoutedMessage.createMessage(Constants.PLAYER, userId, CREATE_SESSION));
             String newJwt = (String) clientSession.getUserProperties().get("jwt");
             mediator = new PlayerConnectionMediator(userId, username, newJwt, mapClient, playerClient,
                     connectionUtils);
             Log.log(Level.FINER, this, "Created new session {0} for user {1}", mediator, userId);
         } else {
+            connectionUtils.sendMessage(clientSession, RoutedMessage.createMessage(Constants.PLAYER, userId, RESUME_SESSION));
             Log.log(Level.FINER, this, "Resuming session session {0} for user {1}", mediator, userId);
         }
 

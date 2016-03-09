@@ -516,9 +516,9 @@ public class PlayerConnectionMediator {
     @Override
     public String toString() {
         if (currentRoom == null) {
-            return this.getClass().getName() + "[userId=" + userId + "]";
+            return this.getClass().getName() + "[id="+ id +", userId=" + userId +"]";
         } else {
-            return this.getClass().getName() + "[userId=" + userId + ", roomId=" + currentRoom.getId()
+            return this.getClass().getName() + "[id="+ id +", userId=" + userId + ", roomId=" + currentRoom.getId()
             + ", suspendCount=" + suspendCount.get() + "]";
         }
     }

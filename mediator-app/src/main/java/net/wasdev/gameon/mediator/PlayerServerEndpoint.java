@@ -42,7 +42,6 @@ import javax.websocket.server.ServerEndpoint;
 public class PlayerServerEndpoint {
 
     static final String VALID_JWT = "{\"type\": \"joinpart\",\"content\": \"connected: validating JWT\",\"bookmark\": 0}";
-    static final String GET_SESSION = "{\"type\": \"joinpart\",\"content\": \"preparing mediator\",\"bookmark\": 0}";
 
     /** CDI injection of player session manager */
     @Inject
@@ -104,7 +103,6 @@ public class PlayerServerEndpoint {
             switch (message.getFlowTarget()) {
                 case PlayerConnectionMediator.CLIENT_READY: {
                     validatedJwt.await(1, TimeUnit.SECONDS); // should N.E.V.E.R. take this long, ever.
-                    connectionUtils.sendMessage(session, RoutedMessage.createMessage(Constants.PLAYER, userId, GET_SESSION));
 
                     // create a new or resume an existing player session
                     PlayerConnectionMediator ps = playerSessionManager.startSession(session, userId, message);
