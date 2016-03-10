@@ -179,9 +179,15 @@ public class PlayerConnectionMediator {
         // set up delivery thread to send messages to the client as they arrive
         drainToClient = connectionUtils.drain("TO PLAYER[" + userId + "]", toClient, clientSession);
 
-        // Find the required room (should keep existing on a reconnect, if
-        // possible) will fall back to FirstRoom if we don't already have a mediator, and
-        // the map service can't find the room
+        // If we're going to move rooms, make sure to leave the previous one
+        if ( currentRoom != null && !currentRoom.getId().equals(roomId) ) {
+            sendToRoom(currentRoom, RoutedMessage.createMessage(Constants.ROOM_GOODBYE, currentRoom.getId(),
+                    String.format(PlayerConnectionMediator.BYE, username, userId)));
+            currentRoom.unsubscribe(this);
+            currentRoom.disconnect();
+            Log.log(Level.FINE, this, "User {0} disconnected from old room {1}", userId, currentRoom.getId());
+        }
+
         sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, PlayerConnectionMediator.PLACEMENT));
         currentRoom = findMediatorForRoomId(roomId);
 

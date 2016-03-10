@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
 import javax.enterprise.concurrent.ManagedScheduledExecutorService;
 import javax.enterprise.context.ApplicationScoped;
@@ -124,40 +125,19 @@ public class PlayerConnectionManager implements Runnable {
 
     private void updateReaper() {
         if (suspendedMediators.isEmpty()) {
-            // no more suspended sessions, clear the reaper rather than
-            // resetting
+            // no more suspended sessions, clear the reaper
             reaper.set(null);
         } else {
-            // We still have suspended sessions, reschedule for 2 minutes from
-            // now.
+            // We still have suspended sessions, reschedule for 2 minutes from now.
             reaper.set(executor.schedule(this, 2, TimeUnit.MINUTES));
         }
     }
 
-    /**
-     * Set the PlayerSession into the websocket session user properties.
-     *
-     * @param session
-     *            target websocket session
-     * @param mediator
-     *            {@code PlayerConnectionMediator}
-     */
-    public void setMediator(Session session, PlayerConnectionMediator mediator) {
-        session.getUserProperties().put(PlayerConnectionMediator.class.getName(), mediator);
-    }
-
-    /**
-     * Get the mediator from the websocket session user properties.
-     *
-     * @param session
-     *            source websocket session
-     * @return cached {@code PlayerConnectionMediator}
-     */
-    public PlayerConnectionMediator getMediator(Session session) {
-        if (session == null || session.getUserProperties() == null)
-            return null;
-
-        return (PlayerConnectionMediator) session.getUserProperties().get(PlayerConnectionMediator.class.getName());
+    @PreDestroy
+    private void stopReaper() {
+        ScheduledFuture<?> future = reaper.getAndSet(null);
+        if ( future != null )
+            future.cancel(true);
     }
 
     /**
@@ -167,7 +147,7 @@ public class PlayerConnectionManager implements Runnable {
      *             if there are any issues with the keystore processing.
      */
     @PostConstruct
-    private void getKeyStoreInfo() throws IOException {
+    private void getKeyStoreInfo() {
         try {
             // load up the keystore..
             FileInputStream is = new FileInputStream(keyStore);
@@ -177,14 +157,8 @@ public class PlayerConnectionManager implements Runnable {
             // grab the key we'll use to sign
             signingKey = signingKeystore.getKey(keyStoreAlias, keyStorePW.toCharArray());
 
-        } catch (KeyStoreException e) {
-            throw new IOException(e);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IOException(e);
-        } catch (CertificateException e) {
-            throw new IOException(e);
-        } catch (UnrecoverableKeyException e) {
-            throw new IOException(e);
+        } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | UnrecoverableKeyException | IOException e) {
+            throw new IllegalStateException("Unable to retrieve keystore required to sign JWTs", e);
         }
     }
 
@@ -197,14 +171,20 @@ public class PlayerConnectionManager implements Runnable {
      *            the player
      * @param userId
      *            User's unique id
-     * @param clientCache
-     *            Information from the client: updated room, last message seen
+     * @param newJwt
+     *            JWT string
+     * @param message
+     *            Ready message from client containing information it had cached (mediator id, username, etc)
      * @return a new or resumed {@code PlayerConnectionMediator}
-     * @throws IOException
-     *             if the keystore for the JWT processing cannot be used.
+     * @throws NullPointerException
+     *             if the newJWT is null
      */
-    public PlayerConnectionMediator startSession(Session clientSession, String userId, RoutedMessage message)
+    public PlayerConnectionMediator startSession(Session clientSession, String userId, String newJwt, RoutedMessage message)
             throws IOException {
+
+        if ( newJwt == null ) {
+            throw new NullPointerException("Must provide a JWT string");
+        }
 
         JsonObject sessionData = message.getParsedBody();
 
@@ -221,7 +201,6 @@ public class PlayerConnectionManager implements Runnable {
 
         if (mediator == null) {
             connectionUtils.sendMessage(clientSession, RoutedMessage.createMessage(Constants.PLAYER, userId, CREATE_SESSION));
-            String newJwt = (String) clientSession.getUserProperties().get("jwt");
             mediator = new PlayerConnectionMediator(userId, username, newJwt, mapClient, playerClient,
                     connectionUtils);
             Log.log(Level.FINER, this, "Created new session {0} for user {1}", mediator, userId);
@@ -258,7 +237,7 @@ public class PlayerConnectionManager implements Runnable {
         }
     }
 
-    public boolean validateJwt(String userId, Session clientSession) {
+    public String validateJwt(String userId, Session clientSession) {
         // create ourselves a token for server operations for this user.
 
         // get the jwt from the ws query url.
@@ -286,12 +265,11 @@ public class PlayerConnectionManager implements Runnable {
                     .setClaims(onwardsClaims)
                     .signWith(SignatureAlgorithm.RS256, signingKey).compact();
 
-            clientSession.getUserProperties().put("jwt", newJwt);
-            return true;
+            return newJwt;
         } else {
             // Invalid JWT: Close the connection & provide a reason
             connectionUtils.tryToClose(clientSession, new CloseReason(CloseCodes.VIOLATED_POLICY, jwt.getCode().getReason()));
-            return false;
+            return null;
         }
     }
 }

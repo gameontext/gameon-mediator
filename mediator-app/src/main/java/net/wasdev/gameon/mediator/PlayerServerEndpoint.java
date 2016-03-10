@@ -17,7 +17,6 @@ package net.wasdev.gameon.mediator;
 
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import javax.inject.Inject;
@@ -55,6 +54,8 @@ public class PlayerServerEndpoint {
     ConnectionUtils connectionUtils;
 
     CountDownLatch validatedJwt = new CountDownLatch(0);
+    volatile String jwt;
+    volatile PlayerConnectionMediator mediator;
 
     /**
      * Called when a new connection has been established to this endpoint.
@@ -68,8 +69,10 @@ public class PlayerServerEndpoint {
                 session.getQueryString(), session.getUserProperties(), System.identityHashCode(this));
 
         connectionUtils.sendMessage(session, RoutedMessage.createMessage(Constants.PLAYER, userId, VALID_JWT));
-        // Connection will be closed if the JWT is not valid.
-        if ( playerSessionManager.validateJwt(userId, session) ) {
+
+        // Connection will be closed with appropriate reason if the JWT is not valid.
+        jwt = playerSessionManager.validateJwt(userId, session);
+        if ( jwt != null ) {
             validatedJwt.countDown();
         }
     }
@@ -84,8 +87,10 @@ public class PlayerServerEndpoint {
     public void onClose(@PathParam("userId") String userId, Session session, CloseReason reason) {
         Log.log(Level.FINER, session, "client closed - {0}: {1}", userId, reason);
 
-        PlayerConnectionMediator ps = playerSessionManager.getMediator(session);
-        playerSessionManager.suspendMediator(ps);
+        // make sure not blocked.
+        validatedJwt.countDown();
+
+        playerSessionManager.suspendMediator(mediator);
     }
 
     /**
@@ -102,23 +107,22 @@ public class PlayerServerEndpoint {
         try {
             switch (message.getFlowTarget()) {
                 case PlayerConnectionMediator.CLIENT_READY: {
-                    validatedJwt.await(1, TimeUnit.SECONDS); // should N.E.V.E.R. take this long, ever.
+                    validatedJwt.await(); // wait and wait and wait... (see onError/onClose)
+                    if( jwt == null )
+                        return;
 
                     // create a new or resume an existing player session
-                    PlayerConnectionMediator ps = playerSessionManager.startSession(session, userId, message);
-                    playerSessionManager.setMediator(session, ps);
+                    mediator = playerSessionManager.startSession(session, userId, jwt, message);
                     break;
                 }
                 default: {
-                    PlayerConnectionMediator ps = playerSessionManager.getMediator(session);
-
                     // after a restart we may get messages before we've
                     // re-established a session or connection to a room.
                     // These are dropped.
-                    if (ps == null) {
+                    if (mediator == null) {
                         Log.log(Level.FINEST, session, "no session, dropping message from client {0}: {1}", userId, message);
                     } else {
-                        ps.sendToRoom(message);
+                        mediator.sendToRoom(message);
                     }
                     break;
                 }
