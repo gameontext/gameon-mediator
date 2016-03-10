@@ -115,9 +115,10 @@ public class PlayerConnectionMediator {
      */
     public static final String CLIENT_ACK = "ack";
 
+    public static final String FINDROOM = "{\"type\": \"joinpart\",\"content\": \"%s: knock, knock\",\"bookmark\": 0}";
     public static final String FINDROOM_FAIL = "{\"type\": \"event\",\"content\": {\"*\": \"Oh dear. That door led nowhere. \"},\"bookmark\": 0}";
-    public static final String CONNECTING = "{\"type\": \"joinpart\",\"content\": \"...connecting to %s...\",\"bookmark\": 0}";
-    public static final String FINDROOM = "{\"type\": \"joinpart\",\"content\": \"...finding the next room...\",\"bookmark\": 0}";
+    public static final String CONNECTING = "{\"type\": \"joinpart\",\"content\": \"connecting to %s\",\"bookmark\": 0}";
+    public static final String PLACEMENT = "{\"type\": \"joinpart\",\"content\": \"discovering location\",\"bookmark\": 0}";
     public static final String PART = "{\"type\": \"joinpart\",\"content\": \"exit %s\",\"bookmark\": 0}";
     public static final String JOIN = "{\"type\": \"joinpart\",\"content\": \"enter %s\",\"bookmark\": 0}";
     public static final String BYE = "{\"username\": \"%s\",\"userId\": \"%s\"}";
@@ -178,11 +179,19 @@ public class PlayerConnectionMediator {
         // set up delivery thread to send messages to the client as they arrive
         drainToClient = connectionUtils.drain("TO PLAYER[" + userId + "]", toClient, clientSession);
 
-        // Find the required room (should keep existing on a reconnect, if
-        // possible)
-        // will fall back to FirstRoom if we don't already have a mediator, and
-        // the map service can't find the room
+        // If we're going to move rooms, make sure to leave the previous one
+        if ( currentRoom != null && !currentRoom.getId().equals(roomId) ) {
+            sendToRoom(currentRoom, RoutedMessage.createMessage(Constants.ROOM_GOODBYE, currentRoom.getId(),
+                    String.format(PlayerConnectionMediator.BYE, username, userId)));
+            currentRoom.unsubscribe(this);
+            Log.log(Level.FINE, this, "User {0} disconnected from old room {1}", userId, currentRoom.getId());
+        }
+
+        sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, PlayerConnectionMediator.PLACEMENT));
         currentRoom = findMediatorForRoomId(roomId);
+
+        sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
+                String.format(PlayerConnectionMediator.CONNECTING, currentRoom.getFullName())));
 
         if (currentRoom.connect()) {
             if (roomId != null && !currentRoom.getId().equals(roomId)) {
@@ -273,23 +282,26 @@ public class PlayerConnectionMediator {
                 (exitId == null ? "to firstroom" : exitId ));
 
         // Let's make sure we can find the next room
-        sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
-                String.format(PlayerConnectionMediator.FINDROOM, oldRoom.getFullName())));
 
         if (teleport) {
             // when we are teleporting, the exitId is the destination room id.
+            sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
+                    String.format(PlayerConnectionMediator.FINDROOM, exitId)));
+
             newRoom = findMediatorForRoomId(exitId);
         } else {
             if (exitId == null) {
                 newRoom = findMediatorForRoomId(Constants.FIRST_ROOM);
             } else {
+                sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
+                        String.format(PlayerConnectionMediator.FINDROOM, exitId.toUpperCase())));
+
                 newRoom = findMediatorForExitFromRoom(oldRoom, exitId);
             }
         }
 
         if ( newRoom == null ) {
-            sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
-                    String.format(PlayerConnectionMediator.FINDROOM_FAIL)));
+            sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId, PlayerConnectionMediator.FINDROOM_FAIL));
         } else {
             // If we have a room to go to, we can try switching from where we are.
             try {
@@ -312,9 +324,7 @@ public class PlayerConnectionMediator {
         sendToRoom(oldRoom, RoutedMessage.createMessage(Constants.ROOM_GOODBYE, oldRoom.getId(),
                 String.format(PlayerConnectionMediator.BYE, username, userId)));
 
-        // allow room to close connection after receiving the roomGoodbye
         oldRoom.unsubscribe(this);
-        oldRoom.disconnect();
 
         sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
                 String.format(PlayerConnectionMediator.CONNECTING, newRoom.getFullName())));
@@ -352,11 +362,11 @@ public class PlayerConnectionMediator {
 
         // Say hello to the new room!
         Log.log(Level.FINER, this, "HELLO {0}", currentRoom.getId());
-        
-        //TODO: we should really test here that the currentRoom has received it's 'ack' when we subscribed, 
+
+        //TODO: we should really test here that the currentRoom has received it's 'ack' when we subscribed,
         //      and that it has successfully negotiated a compatible protocol version
         //      if not.. we might want to then switch back to the last room again.
-        
+
         sendToRoom(currentRoom, RoutedMessage.createMessage(Constants.ROOM_HELLO, currentRoom.getId(),
                 String.format(PlayerConnectionMediator.HI, currentRoom.getSelectedProtocolVersion(), username, userId)));
     }
@@ -509,9 +519,9 @@ public class PlayerConnectionMediator {
     @Override
     public String toString() {
         if (currentRoom == null) {
-            return this.getClass().getName() + "[userId=" + userId + "]";
+            return this.getClass().getName() + "[id="+ id +", userId=" + userId +"]";
         } else {
-            return this.getClass().getName() + "[userId=" + userId + ", roomId=" + currentRoom.getId()
+            return this.getClass().getName() + "[id="+ id +", userId=" + userId + ", roomId=" + currentRoom.getId()
             + ", suspendCount=" + suspendCount.get() + "]";
         }
     }

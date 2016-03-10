@@ -1,4 +1,4 @@
-package net.wasdev.gameon.mediator;
+package net.wasdev.gameon.mediator.auth;
 
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
@@ -10,6 +10,9 @@ import java.util.List;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+/**
+ * Base authentication class dealing with HMAC / Hashed keys
+ */
 public class GameOnHeaderAuth {
 
     public static final String SYSPROP_LOGGING = "apikey.log";
@@ -26,20 +29,20 @@ public class GameOnHeaderAuth {
 
     protected String buildHmac(List<String> stuffToHash, String key)
             throws NoSuchAlgorithmException, InvalidKeyException, UnsupportedEncodingException {
-                Mac mac = Mac.getInstance(HMAC_ALGORITHM);
-                mac.init(new SecretKeySpec(key.getBytes("UTF-8"), HMAC_ALGORITHM));
-                
-                StringBuffer hashData = new StringBuffer();
-                for(String s: stuffToHash){
-                    hashData.append(s);            
-                }
-                
-                return Base64.getEncoder().encodeToString( mac.doFinal(hashData.toString().getBytes(CHAR_SET)) );
-            }
+        Mac mac = Mac.getInstance(HMAC_ALGORITHM);
+        mac.init(new SecretKeySpec(key.getBytes("UTF-8"), HMAC_ALGORITHM));
+
+        StringBuffer hashData = new StringBuffer();
+        for(String s: stuffToHash){
+            hashData.append(s);
+        }
+
+        return Base64.getEncoder().encodeToString( mac.doFinal(hashData.toString().getBytes(CHAR_SET)) );
+    }
 
     protected String buildHash(byte[] data) throws NoSuchAlgorithmException, UnsupportedEncodingException {
         MessageDigest md = MessageDigest.getInstance(HASH_ALGORITHM);
-        md.update(data); 
+        md.update(data);
         byte[] digest = md.digest();
         return Base64.getEncoder().encodeToString( digest );
     }

@@ -16,6 +16,7 @@
 package net.wasdev.gameon.mediator;
 
 import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
 
 import javax.inject.Inject;
@@ -32,9 +33,14 @@ import javax.websocket.server.ServerEndpoint;
 /**
  * Server-side endpoint for the Player Client (phone/browser). This endpoint is
  * scoped to the player's id to avoid session sharing between different users.
+ * <p>
+ * Relies on default deployment cardinality: there will be one instance of this
+ * class per websocket client.
  */
 @ServerEndpoint(value = "/ws/{userId}", decoders = RoutedMessageDecoder.class, encoders = RoutedMessageEncoder.class)
 public class PlayerServerEndpoint {
+
+    static final String VALID_JWT = "{\"type\": \"joinpart\",\"content\": \"connected: validating JWT\",\"bookmark\": 0}";
 
     /** CDI injection of player session manager */
     @Inject
@@ -47,6 +53,10 @@ public class PlayerServerEndpoint {
     @Inject
     ConnectionUtils connectionUtils;
 
+    CountDownLatch validatedJwt = new CountDownLatch(0);
+    volatile String jwt;
+    volatile PlayerConnectionMediator mediator;
+
     /**
      * Called when a new connection has been established to this endpoint.
      *
@@ -55,7 +65,16 @@ public class PlayerServerEndpoint {
      */
     @OnOpen
     public void onOpen(@PathParam("userId") String userId, Session session, EndpointConfig ec) {
-        Log.log(Level.FINER, session, "client open - {0}", userId, session, session.getQueryString(), session.getUserProperties());
+        Log.log(Level.FINER, session, "client open - {0} {1} {2} {3}", userId,
+                session.getQueryString(), session.getUserProperties(), System.identityHashCode(this));
+
+        connectionUtils.sendMessage(session, RoutedMessage.createMessage(Constants.PLAYER, userId, VALID_JWT));
+
+        // Connection will be closed with appropriate reason if the JWT is not valid.
+        jwt = playerSessionManager.validateJwt(userId, session);
+        if ( jwt != null ) {
+            validatedJwt.countDown();
+        }
     }
 
     /**
@@ -68,8 +87,10 @@ public class PlayerServerEndpoint {
     public void onClose(@PathParam("userId") String userId, Session session, CloseReason reason) {
         Log.log(Level.FINER, session, "client closed - {0}: {1}", userId, reason);
 
-        PlayerConnectionMediator ps = playerSessionManager.getMediator(session);
-        playerSessionManager.suspendMediator(ps);
+        // make sure not blocked.
+        validatedJwt.countDown();
+
+        playerSessionManager.suspendMediator(mediator);
     }
 
     /**
@@ -82,25 +103,26 @@ public class PlayerServerEndpoint {
     @OnMessage
     public void onMessage(@PathParam("userId") String userId, RoutedMessage message, Session session)
             throws IOException {
-        Log.log(Level.FINEST, session, "received from client {0}: {1}", userId, message);
+        Log.log(Level.FINEST, session, "received from client {0}: {1}, {2}", userId, message, System.identityHashCode(this));
         try {
             switch (message.getFlowTarget()) {
                 case PlayerConnectionMediator.CLIENT_READY: {
+                    validatedJwt.await(); // wait and wait and wait... (see onError/onClose)
+                    if( jwt == null )
+                        return;
+
                     // create a new or resume an existing player session
-                    PlayerConnectionMediator ps = playerSessionManager.startSession(session, userId, message);
-                    playerSessionManager.setMediator(session, ps);
+                    mediator = playerSessionManager.startSession(session, userId, jwt, message);
                     break;
                 }
                 default: {
-                    PlayerConnectionMediator ps = playerSessionManager.getMediator(session);
-
                     // after a restart we may get messages before we've
                     // re-established a session or connection to a room.
                     // These are dropped.
-                    if (ps == null) {
+                    if (mediator == null) {
                         Log.log(Level.FINEST, session, "no session, dropping message from client {0}: {1}", userId, message);
                     } else {
-                        ps.sendToRoom(message);
+                        mediator.sendToRoom(message);
                     }
                     break;
                 }

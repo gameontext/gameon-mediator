@@ -31,11 +31,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
 import javax.enterprise.concurrent.ManagedScheduledExecutorService;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.json.JsonObject;
+import javax.websocket.CloseReason;
+import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.Session;
 
 import io.jsonwebtoken.Claims;
@@ -64,6 +68,9 @@ import net.wasdev.gameon.mediator.auth.JWT;
  */
 @ApplicationScoped
 public class PlayerConnectionManager implements Runnable {
+    static final String CREATE_SESSION = "{\"type\": \"joinpart\",\"content\": \"building a mediator\",\"bookmark\": 0}";
+    static final String RESUME_SESSION = "{\"type\": \"joinpart\",\"content\": \"reconstituting mediator\",\"bookmark\": 0}";
+
     private final ConcurrentHashMap<String, PlayerConnectionMediator> suspendedMediators = new ConcurrentHashMap<String, PlayerConnectionMediator>();
 
     /** CDI injection of Java EE7 Managed scheduled executor service */
@@ -92,7 +99,9 @@ public class PlayerConnectionManager implements Runnable {
     String keyStorePW;
     @Resource(lookup = "jwtKeyStoreAlias")
     String keyStoreAlias;
-    private static Key signingKey = null;
+
+    /** JWT Signing key */
+    private Key signingKey = null;
 
     private AtomicReference<ScheduledFuture<?>> reaper = new AtomicReference<ScheduledFuture<?>>(null);
 
@@ -116,40 +125,19 @@ public class PlayerConnectionManager implements Runnable {
 
     private void updateReaper() {
         if (suspendedMediators.isEmpty()) {
-            // no more suspended sessions, clear the reaper rather than
-            // resetting
+            // no more suspended sessions, clear the reaper
             reaper.set(null);
         } else {
-            // We still have suspended sessions, reschedule for 2 minutes from
-            // now.
+            // We still have suspended sessions, reschedule for 2 minutes from now.
             reaper.set(executor.schedule(this, 2, TimeUnit.MINUTES));
         }
     }
 
-    /**
-     * Set the PlayerSession into the websocket session user properties.
-     *
-     * @param session
-     *            target websocket session
-     * @param mediator
-     *            {@code PlayerConnectionMediator}
-     */
-    public void setMediator(Session session, PlayerConnectionMediator mediator) {
-        session.getUserProperties().put(PlayerConnectionMediator.class.getName(), mediator);
-    }
-
-    /**
-     * Get the mediator from the websocket session user properties.
-     *
-     * @param session
-     *            source websocket session
-     * @return cached {@code PlayerConnectionMediator}
-     */
-    public PlayerConnectionMediator getMediator(Session session) {
-        if (session == null || session.getUserProperties() == null)
-            return null;
-
-        return (PlayerConnectionMediator) session.getUserProperties().get(PlayerConnectionMediator.class.getName());
+    @PreDestroy
+    private void stopReaper() {
+        ScheduledFuture<?> future = reaper.getAndSet(null);
+        if ( future != null )
+            future.cancel(true);
     }
 
     /**
@@ -158,7 +146,8 @@ public class PlayerConnectionManager implements Runnable {
      * @throws IOException
      *             if there are any issues with the keystore processing.
      */
-    private synchronized void getKeyStoreInfo() throws IOException {
+    @PostConstruct
+    private void getKeyStoreInfo() {
         try {
             // load up the keystore..
             FileInputStream is = new FileInputStream(keyStore);
@@ -168,16 +157,9 @@ public class PlayerConnectionManager implements Runnable {
             // grab the key we'll use to sign
             signingKey = signingKeystore.getKey(keyStoreAlias, keyStorePW.toCharArray());
 
-        } catch (KeyStoreException e) {
-            throw new IOException(e);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IOException(e);
-        } catch (CertificateException e) {
-            throw new IOException(e);
-        } catch (UnrecoverableKeyException e) {
-            throw new IOException(e);
+        } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | UnrecoverableKeyException | IOException e) {
+            throw new IllegalStateException("Unable to retrieve keystore required to sign JWTs", e);
         }
-
     }
 
     /**
@@ -189,14 +171,20 @@ public class PlayerConnectionManager implements Runnable {
      *            the player
      * @param userId
      *            User's unique id
-     * @param clientCache
-     *            Information from the client: updated room, last message seen
+     * @param newJwt
+     *            JWT string
+     * @param message
+     *            Ready message from client containing information it had cached (mediator id, username, etc)
      * @return a new or resumed {@code PlayerConnectionMediator}
-     * @throws IOException
-     *             if the keystore for the JWT processing cannot be used.
+     * @throws NullPointerException
+     *             if the newJWT is null
      */
-    public PlayerConnectionMediator startSession(Session clientSession, String userId, RoutedMessage message)
+    public PlayerConnectionMediator startSession(Session clientSession, String userId, String newJwt, RoutedMessage message)
             throws IOException {
+
+        if ( newJwt == null ) {
+            throw new NullPointerException("Must provide a JWT string");
+        }
 
         JsonObject sessionData = message.getParsedBody();
 
@@ -212,49 +200,12 @@ public class PlayerConnectionManager implements Runnable {
         }
 
         if (mediator == null) {
-            // create ourselves a token for server operations for this user.
-
-            // TODO maybe there's a better place to put this.. but the
-            // integration between the
-            // http session that knew the jwt as part of the url, and the
-            // mediator that doesn't,
-            // ends here..
-
-            if (signingKey == null) {
-                getKeyStoreInfo();
-            }
-                
-         // get the jwt from the ws query url.
-            String jwtParam = null;
-            String query = clientSession.getQueryString();
-            if((query != null) && !query.isEmpty()) {
-                String params[] = query.split("&");
-                for (String param : params) {
-                    if (param.startsWith("jwt=")) {
-                        jwtParam = param.substring("jwt=".length());
-                    }
-                }
-            }
-            
-            // get the jwt from the message
-            String token = message.getOptionalValue("jwt", null);
-            
-            JWT jwt = new JWT(signingKey, token, jwtParam);
-                        
-            Claims onwardsClaims = Jwts.claims();
-            // add all the client claims
-            onwardsClaims.putAll(jwt.getClaims());
-            // upgrade the type to server
-            onwardsClaims.setAudience("server");
-
-            // build the new jwt
-            String newJwt = Jwts.builder().setHeaderParam("kid", "playerssl").setClaims(onwardsClaims)
-                    .signWith(SignatureAlgorithm.RS256, signingKey).compact();
-
+            connectionUtils.sendMessage(clientSession, RoutedMessage.createMessage(Constants.PLAYER, userId, CREATE_SESSION));
             mediator = new PlayerConnectionMediator(userId, username, newJwt, mapClient, playerClient,
                     connectionUtils);
             Log.log(Level.FINER, this, "Created new session {0} for user {1}", mediator, userId);
         } else {
+            connectionUtils.sendMessage(clientSession, RoutedMessage.createMessage(Constants.PLAYER, userId, RESUME_SESSION));
             Log.log(Level.FINER, this, "Resuming session session {0} for user {1}", mediator, userId);
         }
 
@@ -283,6 +234,42 @@ public class PlayerConnectionManager implements Runnable {
             if (reaper.get() == null) {
                 updateReaper();
             }
+        }
+    }
+
+    public String validateJwt(String userId, Session clientSession) {
+        // create ourselves a token for server operations for this user.
+
+        // get the jwt from the ws query url.
+        String jwtParam = null;
+        String query = clientSession.getQueryString();
+        if((query != null) && !query.isEmpty()) {
+            String params[] = query.split("&");
+            for (String param : params) {
+                if (param.startsWith("jwt=")) {
+                    jwtParam = param.substring("jwt=".length());
+                }
+            }
+        }
+
+        JWT jwt = new JWT(signingKey, jwtParam);
+        if ( JWT.AuthenticationState.PASSED == jwt.getState()) {
+            Claims onwardsClaims = Jwts.claims();
+            // add all the client claims
+            onwardsClaims.putAll(jwt.getClaims());
+            // upgrade the type to server
+            onwardsClaims.setAudience("server");
+
+            // build the new jwt
+            String newJwt = Jwts.builder().setHeaderParam("kid", "playerssl")
+                    .setClaims(onwardsClaims)
+                    .signWith(SignatureAlgorithm.RS256, signingKey).compact();
+
+            return newJwt;
+        } else {
+            // Invalid JWT: Close the connection & provide a reason
+            connectionUtils.tryToClose(clientSession, new CloseReason(CloseCodes.VIOLATED_POLICY, jwt.getCode().getReason()));
+            return null;
         }
     }
 }

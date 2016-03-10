@@ -34,6 +34,8 @@ import javax.ws.rs.core.Response;
 
 import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
 
+import net.wasdev.gameon.mediator.auth.GameOnHeaderAuth;
+import net.wasdev.gameon.mediator.auth.GameOnHeaderAuthFilter;
 import net.wasdev.gameon.mediator.models.Exits;
 import net.wasdev.gameon.mediator.models.Site;
 

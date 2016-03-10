@@ -23,77 +23,78 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.SignatureException;
 import net.wasdev.gameon.mediator.Log;
 
 /**
  * Common class for handling JSON Web Tokens
- * 
+ *
  * @author marknsweep
  *
  */
 
 public class JWT {
     private final AuthenticationState state;
-    private FailureCode code;
+    private FailureCode code = FailureCode.NONE;
+
     private String token = null;
     private Jws<Claims> jwt = null;
 
     public JWT(Certificate cert, String... sources) {
         state = processSources(cert.getPublicKey(), sources);
     }
-    
+
     public JWT(Key key, String... sources) {
         state = processSources(key, sources);
     }
-    
+
     // the authentication steps that are performed on an incoming request
     public enum AuthenticationState {
-        PASSED, ACCESS_DENIED           // end state
+        PASSED,
+        ACCESS_DENIED // end state
     }
-    
+
     public enum FailureCode {
-        NONE,
-        BAD_SIGNATURE,
-        EXPIRED
+        NONE("ok"),
+        MISSING_JWT("JWT not found in header or query string"),
+        BAD_SIGNATURE("JWT did NOT validate ok, bad signature."),
+        EXPIRED("JWT did NOT validate ok, jwt had expired");
+
+        final String reason;
+
+        FailureCode(String reason) {
+            this.reason = reason;
+        }
+
+        public String getReason() {
+            return reason;
+        }
     }
-    
-    private enum ProcessState {
-        FIND_SOURCE,
-        VALIDATE,
-        COMPLETE
-    }
-    
+
     private AuthenticationState processSources(Key key, String[] sources) {
         AuthenticationState state = AuthenticationState.ACCESS_DENIED; // default
-        ProcessState process = ProcessState.FIND_SOURCE;
-        while (!process.equals(ProcessState.COMPLETE)) {
-            switch (process) {
-            case FIND_SOURCE :
-                //find the first non-empty source
-                for(int i = 0; i < sources.length && ((token == null) || token.isEmpty()); token = sources[i++]);
-                process = ((token == null) || token.isEmpty()) ? ProcessState.COMPLETE : ProcessState.VALIDATE;  
-                break;
-            case VALIDATE: // validate the jwt
-                boolean jwtValid = false;
-                try {
-                    jwt = Jwts.parser().setSigningKey(key).parseClaimsJws(token);
-                    jwtValid = true;
-                    code = FailureCode.NONE;
-                } catch (io.jsonwebtoken.SignatureException e) {
-                    Log.log(Level.WARNING, this, "JWT did NOT validate ok, bad signature.");
-                    code = FailureCode.BAD_SIGNATURE;
-                } catch (ExpiredJwtException e) {
-                    Log.log(Level.WARNING, this, "JWT did NOT validate ok, jwt had expired");
-                    code = FailureCode.EXPIRED;
-                }
-                state = !jwtValid ? AuthenticationState.ACCESS_DENIED : AuthenticationState.PASSED;
-                process = ProcessState.COMPLETE;
-                break;
-            default:
-                process = ProcessState.COMPLETE;
-                break;
+
+        //find the first non-empty source, assign to token
+        for(int i = 0; i < sources.length && ((token == null) || token.isEmpty()); token = sources[i++]);
+
+        if ((token == null) || token.isEmpty()) {
+            // we couldn't find a non-empty token. No dice.
+            code = FailureCode.MISSING_JWT;
+        } else {
+            try {
+                jwt = Jwts.parser().setSigningKey(key).parseClaimsJws(token);
+                state = AuthenticationState.PASSED;
+                code = FailureCode.NONE;
+            } catch (MalformedJwtException | SignatureException e) {
+                code = FailureCode.BAD_SIGNATURE;
+                Log.log(Level.WARNING, this, code.getReason(), token);
+            } catch (ExpiredJwtException e) {
+                code = FailureCode.EXPIRED;
+                Log.log(Level.WARNING, this, code.getReason());
             }
         }
+
         return state;
     }
 
@@ -112,6 +113,6 @@ public class JWT {
     public Claims getClaims() {
         return jwt.getBody();
     }
-    
-    
+
+
 }

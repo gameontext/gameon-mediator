@@ -56,7 +56,7 @@ public class RemoteRoomMediator implements RoomMediator {
     private final String roomName;
     private final String roomFullName;
     private final ConnectionDetails details;
-    
+
     /**
      * The protocol version of this mediator.
      */
@@ -223,7 +223,7 @@ public class RemoteRoomMediator implements RoomMediator {
                                 public void onMessage(RoutedMessage message) {
                                     Log.log(Level.FINEST, session, "received from room {2}({0}): {1}", getId(), message, getName());
                                     if(Constants.ACK.equals(message.getFlowTarget())){
-                                        //ack from room is meant for us.. 
+                                        //ack from room is meant for us..
                                         handleAck(message);
                                     }else if (playerMediator != null) {
                                         try {
@@ -268,7 +268,7 @@ public class RemoteRoomMediator implements RoomMediator {
 
         return false;
     }
-    
+
     /**
      * ack from room is sent to allow us to select a compatible websocket json protocol
      * currently we only support the one, maybe in future we'll add more.
@@ -282,7 +282,7 @@ public class RemoteRoomMediator implements RoomMediator {
                 JsonNumber potentialVersion = (JsonNumber)version;
                 if(protocolVersion == potentialVersion.longValue()){
                     foundMatch = true;
-                    break;  
+                    break;
                 }
             }
         }
@@ -319,7 +319,10 @@ public class RemoteRoomMediator implements RoomMediator {
      */
     @Override
     public void disconnect() {
-        // we don't close the socket: we rely on the room side to close the socket.
+        Runnable r = () -> {
+            connectionUtils.tryToClose(roomSession);
+        };
+        connectionUtils.getScheduledExecutorService().schedule(r, 5, TimeUnit.SECONDS);
     }
 
     /**
@@ -336,10 +339,7 @@ public class RemoteRoomMediator implements RoomMediator {
 
             // If we're sending a roomGoodbye, make sure the socket gets closed eventually.
             if ( Constants.ROOM_GOODBYE.equals(message.getFlowTarget())) {
-                Runnable r = () -> {
-                    connectionUtils.tryToClose(roomSession);
-                };
-                connectionUtils.getScheduledExecutorService().schedule(r, 5, TimeUnit.SECONDS);
+                disconnect();
             }
         } else {
             Log.log(Level.FINEST, this, "send -- Dropping message {0}", message);
@@ -377,7 +377,7 @@ public class RemoteRoomMediator implements RoomMediator {
     public long getSelectedProtocolVersion() {
         return protocolVersion;
     }
-    
+
     @Override
     public String toString() {
         return this.getClass().getName() + "[roomId=" + id + "]";

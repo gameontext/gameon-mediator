@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  *******************************************************************************/
-package net.wasdev.gameon.mediator;
+package net.wasdev.gameon.mediator.auth;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -26,6 +26,8 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.WriterInterceptor;
 import javax.ws.rs.ext.WriterInterceptorContext;
+
+import net.wasdev.gameon.mediator.Log;
 
 public class GameOnHeaderAuthInterceptor extends GameOnHeaderAuth implements WriterInterceptor {
     /**
