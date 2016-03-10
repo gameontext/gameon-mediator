@@ -184,7 +184,6 @@ public class PlayerConnectionMediator {
             sendToRoom(currentRoom, RoutedMessage.createMessage(Constants.ROOM_GOODBYE, currentRoom.getId(),
                     String.format(PlayerConnectionMediator.BYE, username, userId)));
             currentRoom.unsubscribe(this);
-            currentRoom.disconnect();
             Log.log(Level.FINE, this, "User {0} disconnected from old room {1}", userId, currentRoom.getId());
         }
 
@@ -325,9 +324,7 @@ public class PlayerConnectionMediator {
         sendToRoom(oldRoom, RoutedMessage.createMessage(Constants.ROOM_GOODBYE, oldRoom.getId(),
                 String.format(PlayerConnectionMediator.BYE, username, userId)));
 
-        // allow room to close connection after receiving the roomGoodbye
         oldRoom.unsubscribe(this);
-        oldRoom.disconnect();
 
         sendToClient(RoutedMessage.createMessage(Constants.PLAYER, userId,
                 String.format(PlayerConnectionMediator.CONNECTING, newRoom.getFullName())));

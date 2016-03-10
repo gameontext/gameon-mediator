@@ -45,7 +45,7 @@ public interface RoomMediator {
      * @return connection details for room
      */
     ConnectionDetails getConnectionDetails();
-    
+
     /**
      * @return the protocol version to use when talking to room
      */
@@ -92,7 +92,7 @@ public interface RoomMediator {
     void unsubscribe(PlayerConnectionMediator playerSession);
 
     /**
-     * Disconnect from the room (stop sending messages to the room)
+     * Close the room connection (where one room per player session)
      */
     void disconnect();
 
