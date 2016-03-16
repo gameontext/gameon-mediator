@@ -37,6 +37,8 @@ public class GameOnHeaderAuthFilter extends GameOnHeaderAuth implements ClientRe
             headers.add("gameon-id", userId);
             headers.add("gameon-date", dateValue);
             headers.add("gameon-signature", hmac);
+            
+            Log.log(Level.FINER, this, "Added headers to request to {0} for id {1}", context.getUri(), userId);
 
         } catch (Exception e) {
             Log.log(Level.SEVERE, this, "Error calculating hmac headers", e);

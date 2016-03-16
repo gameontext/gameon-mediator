@@ -31,6 +31,8 @@
 
   <jndiEntry jndiName="mapUrl" value="${env.MAP_URL}"/>
   <jndiEntry jndiName="mapApiKey" value="${env.MAP_KEY}"/>
+  
+  <jndiEntry jndiName="systemId" value="${env.SYSTEM_ID}"/>
 
   <logging consoleLogLevel="INFO" traceSpecification="*=info:net.wasdev.gameon.*=all"/>
 

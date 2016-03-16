@@ -20,6 +20,7 @@ import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
+import javax.annotation.Resource;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
@@ -40,7 +41,12 @@ import net.wasdev.gameon.mediator.models.Site;
  *
  */
 public class FirstRoom implements RoomMediator {
-
+    /**
+     * The id under which system rooms are registered.
+     */
+    @Resource(lookup="systemId")
+    String SYSTEM_ID;
+    
     public static final String TELEPORT = "teleport";
     public static final String FIRST_ROOM_DESC = "You've entered a vaguely squarish room, with walls of an indeterminate color.";
     public static final String FIRST_ROOM_EXTENDED = "\n\nTL;DR README (The extended edition is [here](https://gameontext.gitbooks.io/gameon-gitbook/content/)): \n\n"
@@ -299,7 +305,7 @@ public class FirstRoom implements RoomMediator {
 
     private void processListSystemRoomsCommand(JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
         // TODO: add cache / rate limit.
-        List<Site> rooms = mapClient.getRoomsByOwner(Constants.SYSTEM_ID);
+        List<Site> rooms = mapClient.getRoomsByOwner(SYSTEM_ID);
 
         StringBuffer roomSummary = new StringBuffer();
         if (rooms != null && !rooms.isEmpty()) {
@@ -321,7 +327,7 @@ public class FirstRoom implements RoomMediator {
     private void processSystemTeleportCommand(String content, String contentToLower, String username, JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
         if (contentToLower.length() > "/xyzzy ".length()) {         
             String requestedTarget = content.substring("/xyzzy ".length());
-            beamMeUp(Constants.SYSTEM_ID, username, requestedTarget, responseBuilder);
+            beamMeUp(SYSTEM_ID, username, requestedTarget, responseBuilder);
         } else {
             responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
                     RoomUtils.buildContentResponse(

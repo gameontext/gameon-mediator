@@ -74,6 +74,15 @@ public class MapClient {
      */
     @Resource(lookup = "mapApiKey")
     String querySecret;
+    
+    /**
+     * The system id, that we use when making our map queries.
+     * 
+     * @see {@code systemId} in
+     *      {@code /mediator-wlpcfg/servers/gameon-mediator/server.xml}
+     */
+    @Resource(lookup = "systemId")
+    String SYSTEM_ID;
 
     /**
      * The root target used to define the root path and common query parameters
@@ -111,13 +120,13 @@ public class MapClient {
 
         Client queryClient = ClientBuilder.newClient().register(JsonProvider.class);
         
-        //add our shared secret so all our queries come from the game-on.org id
-        queryClient.register(new GameOnHeaderAuthFilter("game-on.org", querySecret));
+        //add our shared secret so all our queries come from the system id
+        queryClient.register(new GameOnHeaderAuthFilter(SYSTEM_ID, querySecret));
 
         // create the jax-rs 2.0 client
         this.queryRoot = queryClient.target(mapLocation);
 
-        Log.log(Level.FINER, this, "Map client initialized with url {0}", mapLocation);
+        Log.log(Level.FINER, this, "Map client initialized with url {0}, system-id {1}", mapLocation, SYSTEM_ID);
     }
 
     public List<Site> getRoomsByOwner(String ownerId) {

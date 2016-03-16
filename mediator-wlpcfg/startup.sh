@@ -37,6 +37,7 @@ if [ "$ETCDCTL_ENDPOINT" != "" ]; then
   export LOGMET_PORT=$(etcdctl get /logmet/port)
   export LOGMET_TENANT=$(etcdctl get /logmet/tenant)
   export LOGMET_PWD=$(etcdctl get /logmet/pwd)
+  export SYSTEM_ID=$(etcdctl get /player/system_id)
   
   # Softlayer needs a logstash endpoint so we set up the server
   # to run in the background and the primary task is running the
