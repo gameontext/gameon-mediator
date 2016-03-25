@@ -1,3 +1,18 @@
+/*******************************************************************************
+ * Copyright (c) 2016 IBM Corp.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
 package net.wasdev.gameon.mediator;
 
 import java.io.File;
@@ -78,6 +93,7 @@ public class LogView extends HttpServlet {
      * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse
      *      response)
      */
+    @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String authHeader = request.getHeader("Authorization");
@@ -98,16 +114,16 @@ public class LogView extends HttpServlet {
                             try {
                                 expectedPassword = (String) new InitialContext().lookup("mapApiKey");
                             } catch (NamingException e) {
-                                ((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN,
+                                response.sendError(HttpServletResponse.SC_FORBIDDEN,
                                         "unable to obtain pw to auth against");
                                 return;
                             }
 
                             if ("admin".equals(login) && expectedPassword.equals(password)) {
-                                
+
                                 String cmd = request.getParameter("cmd");
                                 PrintWriter out = response.getWriter();
-                                
+
                                 if ("list".equals(cmd)) {
                                     response.addHeader("Content-Type", MediaType.TEXT_HTML);
                                     String outdir = System.getenv("WLP_OUTPUT_DIR");
@@ -157,7 +173,7 @@ public class LogView extends HttpServlet {
                                             viewFile(out, ffdcDir, choice.substring(1).trim());
                                         }
                                     } else {
-                                        ((HttpServletResponse) response).sendError(HttpServletResponse.SC_BAD_REQUEST,
+                                        response.sendError(HttpServletResponse.SC_BAD_REQUEST,
                                                 "view cmd requires choice param");
                                     }
                                 } else {
@@ -168,12 +184,12 @@ public class LogView extends HttpServlet {
                                 }
                             }
                         } else {
-                            ((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN,
+                            response.sendError(HttpServletResponse.SC_FORBIDDEN,
                                     "badly formed auth header.");
                             return;
                         }
                     } catch (UnsupportedEncodingException e) {
-                        ((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN,
+                        response.sendError(HttpServletResponse.SC_FORBIDDEN,
                                 "Error decoding auth");
                         return;
                     }
@@ -181,7 +197,7 @@ public class LogView extends HttpServlet {
             }
         } else {
             response.addHeader("WWW-Authenticate", "Basic realm=\"Ozzy LogView\"");
-            ((HttpServletResponse) response).sendError(HttpServletResponse.SC_UNAUTHORIZED, "Access denied");
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Access denied");
             return;
         }
     }
@@ -190,6 +206,7 @@ public class LogView extends HttpServlet {
      * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse
      *      response)
      */
+    @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         // TODO Auto-generated method stub
