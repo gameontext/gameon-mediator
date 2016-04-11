@@ -365,8 +365,9 @@ public class RemoteRoomMediator implements RoomMediator {
     private void connectionClosed(CloseReason reason) {
         Log.log(Level.FINER, this, "ROOM CONNECTION CLOSED {0}: {1}", id, reason);
 
-        if (drainToRoom != null)
+        if (drainToRoom != null) {
             drainToRoom.stop();
+        }
 
         if (playerMediator != null && !reason.getCloseCode().equals(CloseCodes.NORMAL_CLOSURE)) {
             connect();

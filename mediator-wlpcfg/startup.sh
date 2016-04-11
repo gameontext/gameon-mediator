@@ -2,6 +2,13 @@
 
 if [ "$SERVERDIRNAME" == "" ]; then
   SERVERDIRNAME=defaultServer
+else
+  # Share the configuration directory via symlink
+  ln -s /opt/ibm/wlp/usr/servers/defaultServer /opt/ibm/wlp/usr/servers/$SERVERDIRNAME
+
+  # move the convenience output dir link to the new output location
+  rm /output
+  ln -s $WLP_OUTPUT_DIR/$SERVERDIRNAME /output
 fi
 
 if [ "$ETCDCTL_ENDPOINT" != "" ]; then
@@ -19,7 +26,7 @@ if [ "$ETCDCTL_ENDPOINT" != "" ]; then
       RC=$?
   done
   echo "etcdctl returned sucessfully, continuing"
- 
+
   mkdir -p /opt/ibm/wlp/usr/servers/$SERVERDIRNAME/resources/security
   cd /opt/ibm/wlp/usr/servers/$SERVERDIRNAME/resources/
   etcdctl get /proxy/third-party-ssl-cert > cert.pem
@@ -38,7 +45,7 @@ if [ "$ETCDCTL_ENDPOINT" != "" ]; then
   export LOGMET_TENANT=$(etcdctl get /logmet/tenant)
   export LOGMET_PWD=$(etcdctl get /logmet/pwd)
   export SYSTEM_ID=$(etcdctl get /player/system_id)
-  
+
   # Softlayer needs a logstash endpoint so we set up the server
   # to run in the background and the primary task is running the
   # forwarder. In ICS, Liberty is the primary task so we need to

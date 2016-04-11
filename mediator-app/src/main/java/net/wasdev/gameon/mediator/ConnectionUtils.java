@@ -264,19 +264,25 @@ public class ConnectionUtils {
             ended.countDown();
         }
 
+
         public void stop() {
             keepGoing = false;
 
             // Interrupt the other thread
-            if (t != null)
+            if (t != null) {
                 t.interrupt();
 
-            // Wait for the interrupted thread to finish
-            try {
-                ended.await(400, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+                // Wait for the interrupted thread to finish
+                try {
+                    ended.await(400, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+
+                t = null;
             }
+
+            connectionUtils.tryToClose(targetSession);
         }
     }
 

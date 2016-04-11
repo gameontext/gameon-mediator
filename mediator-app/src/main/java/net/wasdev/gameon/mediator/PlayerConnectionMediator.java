@@ -220,8 +220,9 @@ public class PlayerConnectionMediator {
      * Stop draining the client-bound queue
      */
     public void disconnect() {
-        if (drainToClient != null)
+        if (drainToClient != null) {
             drainToClient.stop();
+        }
     }
 
     /**
@@ -231,13 +232,14 @@ public class PlayerConnectionMediator {
         Log.log(Level.FINE, this, "session {0} destroyed", userId);
         // session expired.
         toClient.clear();
+        disconnect();
 
         Log.log(Level.FINER, this,
                 "playerConnectionMediator for {1} unsubscribing from currentRoom {0} and setting it to null",
                 currentRoom.getName(), userId);
 
         currentRoom.unsubscribe(this);
-        currentRoom.disconnect();
+        currentRoom.disconnect(); // make sure the websocket to the server is closed
         currentRoom = null;
     }
 
