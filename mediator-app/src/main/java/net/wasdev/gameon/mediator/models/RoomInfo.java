@@ -19,8 +19,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class RoomInfo {
-    /** Origin with which the room was registered **/
-    String origin;
     String name;
     ConnectionDetails connectionDetails = null;
     String fullName;
@@ -33,14 +31,6 @@ public class RoomInfo {
         this.name = exit.getName();
         this.fullName = exit.getFullName();
         this.connectionDetails = exit.getConnectionDetails();
-    }
-
-    public String getOrigin() {
-        return origin;
-    }
-
-    public void setOrigin(String origin) {
-        this.origin = origin;
     }
     
     public String getName() {
