@@ -24,7 +24,7 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 public class ConnectionDetails {
     String type;
     String target;
-    String origin;
+    String token;
 
     public String getType() {
         return type;
@@ -42,10 +42,10 @@ public class ConnectionDetails {
         this.target = target;
     }
     
-    public String getOrigin() {
-        return origin;
+    public String getToken() {
+        return token;
     }
-    public void setOrigin(String origin) {
-        this.origin = origin;
+    public void setToken(String token) {
+        this.token = token;
     }
 }

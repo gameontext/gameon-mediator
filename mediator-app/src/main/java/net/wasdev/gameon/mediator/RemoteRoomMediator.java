@@ -17,10 +17,7 @@ package net.wasdev.gameon.mediator;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -39,6 +36,7 @@ import javax.websocket.MessageHandler;
 import javax.websocket.Session;
 
 import net.wasdev.gameon.mediator.ConnectionUtils.Drain;
+import net.wasdev.gameon.mediator.auth.GameOnHeaderAuthConfigurator;
 import net.wasdev.gameon.mediator.models.ConnectionDetails;
 import net.wasdev.gameon.mediator.models.Exit;
 import net.wasdev.gameon.mediator.models.Exits;
@@ -207,31 +205,11 @@ public class RemoteRoomMediator implements RoomMediator {
 
         Log.log(Level.FINE, this, "Creating connection to room {0}", id);
 
+        String protocol = protocol_id + "," + protocolVersion + "." + protocolVersionMinor;
+        final GameOnHeaderAuthConfigurator authConfigurator = new GameOnHeaderAuthConfigurator(details.getToken(), protocol); 
         final ClientEndpointConfig cec = ClientEndpointConfig.Builder.create()
                 .decoders(Arrays.asList(RoutedMessageDecoder.class)).encoders(Arrays.asList(RoutedMessageEncoder.class))
-                .configurator(new ClientEndpointConfig.Configurator() {
-
-                    //adds a header
-                    private void addHeader(Map<String, List<String>> headers, String key, String value) {
-                        List<String> entries = headers.get(key);
-                        if(entries == null) {
-                            entries = new ArrayList<String>();
-                            headers.put(key, entries);
-                        }
-                        entries.add(value);
-                    }
-                    
-                    @Override
-                    public void beforeRequest(Map<String, List<String>> headers) {
-                        super.beforeRequest(headers);
-                        //add the registration origin which is in fact what is causing this connection to be made 
-                        if((details.getOrigin() != null) && !details.getOrigin().isEmpty()) {
-                            addHeader(headers, "Origin", details.getOrigin());
-                        }
-                        addHeader(headers, "gameon-protocol", protocol_id + "," + protocolVersion + "." + protocolVersionMinor);
-                    }
-                    
-                })
+                .configurator(authConfigurator)
                 .build();
 
         switch (details.getType()) {
@@ -247,6 +225,12 @@ public class RemoteRoomMediator implements RoomMediator {
 
                         @Override
                         public void onOpen(Session session, EndpointConfig config) {
+                            //check all validations passed before proceeding with the session
+                            if(!authConfigurator.isResponseValid()) {
+                                connectionUtils.tryToClose(session,
+                                        new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "Handshake validation failed"));
+                                return;
+                            }
                             // let the room mediator know the connection was opened
                             connectionOpened(session);
 
