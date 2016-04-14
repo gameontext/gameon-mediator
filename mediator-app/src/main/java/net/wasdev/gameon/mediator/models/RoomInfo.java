@@ -32,7 +32,7 @@ public class RoomInfo {
         this.fullName = exit.getFullName();
         this.connectionDetails = exit.getConnectionDetails();
     }
-
+    
     public String getName() {
         return name;
     }

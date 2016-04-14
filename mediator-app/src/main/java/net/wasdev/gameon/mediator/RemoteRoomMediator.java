@@ -36,6 +36,7 @@ import javax.websocket.MessageHandler;
 import javax.websocket.Session;
 
 import net.wasdev.gameon.mediator.ConnectionUtils.Drain;
+import net.wasdev.gameon.mediator.auth.GameOnHeaderAuthConfigurator;
 import net.wasdev.gameon.mediator.models.ConnectionDetails;
 import net.wasdev.gameon.mediator.models.Exit;
 import net.wasdev.gameon.mediator.models.Exits;
@@ -58,9 +59,17 @@ public class RemoteRoomMediator implements RoomMediator {
     private final ConnectionDetails details;
 
     /**
-     * The protocol version of this mediator.
+     * The major protocol version of this mediator.
+     * Changes to this value indicate a breaking change with earlier versions.
      */
     private final Long protocolVersion = Long.valueOf(1);
+    
+    /**
+     * The minor protocol version of this mediator.
+     * This is incremented to reflect new, but backwards compatible changes in the protocol.
+     */
+    private final Long protocolVersionMinor = Long.valueOf(1);
+    private final String protocol_id = "mediator";
 
     /**
      * Connection utilities for using the websocket. Passed in by the
@@ -196,13 +205,15 @@ public class RemoteRoomMediator implements RoomMediator {
 
         Log.log(Level.FINE, this, "Creating connection to room {0}", id);
 
+        String protocol = protocol_id + "," + protocolVersion + "." + protocolVersionMinor;
+        final GameOnHeaderAuthConfigurator authConfigurator = new GameOnHeaderAuthConfigurator(details.getToken(), protocol); 
         final ClientEndpointConfig cec = ClientEndpointConfig.Builder.create()
                 .decoders(Arrays.asList(RoutedMessageDecoder.class)).encoders(Arrays.asList(RoutedMessageEncoder.class))
+                .configurator(authConfigurator)
                 .build();
 
         switch (details.getType()) {
             case "websocket": {
-
                 Log.log(Level.FINE, this, "Creating websocket to {0}", details.getTarget());
 
                 URI uriServerEP = URI.create(details.getTarget());
@@ -214,6 +225,12 @@ public class RemoteRoomMediator implements RoomMediator {
 
                         @Override
                         public void onOpen(Session session, EndpointConfig config) {
+                            //check all validations passed before proceeding with the session
+                            if(!authConfigurator.isResponseValid()) {
+                                connectionUtils.tryToClose(session,
+                                        new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "Handshake validation failed"));
+                                return;
+                            }
                             // let the room mediator know the connection was opened
                             connectionOpened(session);
 
