@@ -115,12 +115,12 @@ public class PlayerConnectionMediator {
      */
     public static final String CLIENT_ACK = "ack";
 
-    public static final String FINDROOM = "{\"type\": \"joinpart\",\"content\": \"%s: knock, knock\",\"bookmark\": 0}";
+    public static final String FINDROOM = "{\"type\": \"joinpart\",\"content\": \"%s: knock, knock\"}";
     public static final String FINDROOM_FAIL = "{\"type\": \"event\",\"content\": {\"*\": \"Oh dear. That door led nowhere. \"},\"bookmark\": 0}";
-    public static final String CONNECTING = "{\"type\": \"joinpart\",\"content\": \"connecting to %s\",\"bookmark\": 0}";
-    public static final String PLACEMENT = "{\"type\": \"joinpart\",\"content\": \"discovering location\",\"bookmark\": 0}";
-    public static final String PART = "{\"type\": \"joinpart\",\"content\": \"exit %s\",\"bookmark\": 0}";
-    public static final String JOIN = "{\"type\": \"joinpart\",\"content\": \"enter %s\",\"bookmark\": 0}";
+    public static final String CONNECTING = "{\"type\": \"joinpart\",\"content\": \"connecting to %s\"}";
+    public static final String PLACEMENT = "{\"type\": \"joinpart\",\"content\": \"discovering location\"}";
+    public static final String PART = "{\"type\": \"joinpart\",\"content\": \"exit %s\"}";
+    public static final String JOIN = "{\"type\": \"joinpart\",\"content\": \"enter %s\"}";
     public static final String BYE = "{\"username\": \"%s\",\"userId\": \"%s\"}";
     public static final String HI = "{\"version\": %d,\"username\": \"%s\",\"userId\": \"%s\"}";
     public static final String ELECTRIC_THUMB = "{\"type\": \"exit\",\"content\": \"In a desperate plea for rescue, you stick out your [Electric Thumb](http://hitchhikers.wikia.com/wiki/Electronic_Thumb) and hope for the best.\",\"bookmark\": 0}";
