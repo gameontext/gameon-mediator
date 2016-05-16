@@ -20,7 +20,12 @@
 
   <!-- To access this server from a remote client add a host attribute to
     the following element, e.g. host="*" -->
-  <httpEndpoint host="*" httpPort="9080" httpsPort="9443" id="defaultHttpEndpoint"/>
+  <httpEndpoint host="*" httpPort="9080" httpsPort="9443" id="defaultHttpEndpoint">
+    <accessLogging
+        filepath="${server.output.dir}/logs/http_defaultEndpoint_access.log"
+        logFormat='%h %u %t "%r" %s %b %D %{User-agent}i'>
+    </accessLogging>
+  </httpEndpoint>
 
   <!-- Signed JWT keystore info -->
   <jndiEntry jndiName="jwtKeyStore" value="${server.config.dir}/resources/security/key.jks"/>
@@ -35,6 +40,9 @@
   <jndiEntry jndiName="systemId" value="${env.SYSTEM_ID}"/>
 
   <logging consoleLogLevel="INFO" traceSpecification="*=info:net.wasdev.gameon.*=all:TCPChannel=fine:websockets=all"/>
+
+  <!-- The JVM can get confused about available CPU in virtualized envs -->
+  <executor coreThreads="10"  />
 
   <applicationMonitor dropinsEnabled="false"/>
   <webApplication contextRoot="/mediator" id="mediator-app" location="mediator-app.war" name="mediator-app"/>
