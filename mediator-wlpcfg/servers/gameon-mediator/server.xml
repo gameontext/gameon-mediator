@@ -39,7 +39,7 @@
 
   <jndiEntry jndiName="systemId" value="${env.SYSTEM_ID}"/>
 
-  <logging consoleLogLevel="INFO" traceSpecification="*=info:net.wasdev.gameon.*=all:TCPChannel=fine:websockets=all"/>
+  <logging consoleLogLevel="INFO" traceSpecification="*=info:net.wasdev.gameon.*=all"/>
 
   <!-- The JVM can get confused about available CPU in virtualized envs -->
   <executor coreThreads="10"  />
