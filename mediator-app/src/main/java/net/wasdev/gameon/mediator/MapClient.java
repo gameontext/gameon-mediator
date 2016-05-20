@@ -244,7 +244,7 @@ public class MapClient {
         Response r = null;
         try {
             r = target.request(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).get();
-             int statusCode = r.getStatusInfo().getStatusCode();
+            int statusCode = r.getStatusInfo().getStatusCode();
             if (statusCode == Response.Status.OK.getStatusCode() ) {
                 List<Site> list = r.readEntity(new GenericType<List<Site>>() {
                 });
