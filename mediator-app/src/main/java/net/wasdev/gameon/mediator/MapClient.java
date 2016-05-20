@@ -15,6 +15,7 @@
  *******************************************************************************/
 package net.wasdev.gameon.mediator;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -31,8 +32,6 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
-import com.fasterxml.jackson.jaxrs.json.JacksonJsonProvider;
 
 import net.wasdev.gameon.mediator.auth.GameOnHeaderAuth;
 import net.wasdev.gameon.mediator.auth.GameOnHeaderAuthFilter;
@@ -245,13 +244,17 @@ public class MapClient {
         Response r = null;
         try {
             r = target.request(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON).get();
-            if (r.getStatusInfo().getStatusCode() == Response.Status.OK.getStatusCode() ) {
+            int statusCode = r.getStatusInfo().getStatusCode();
+            if (statusCode == Response.Status.OK.getStatusCode() ) {
                 List<Site> list = r.readEntity(new GenericType<List<Site>>() {
                 });
                 return list;
+            } else if (statusCode == Response.Status.NO_CONTENT.getStatusCode()) {
+                // If there was no content returned but there is no error, then we don't want to return a null
+                return Collections.emptyList();
             }
 
-            // Sadly, no endpoints found!
+            // The return code indicates something went wrong, but it wasn't bad enough to cause an exception
             return null;
         } catch (ResponseProcessingException rpe) {
             Response response = rpe.getResponse();
