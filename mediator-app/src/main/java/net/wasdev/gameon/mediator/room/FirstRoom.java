@@ -250,7 +250,7 @@ public class FirstRoom implements RoomMediator {
             String targetId = content.substring("/deleteroom ".length());
             
             List<Site> possibleCandidates = mapClient.getRoomsByOwnerAndRoomName(userid,targetId);            
-            if(possibleCandidates == null || possibleCandidates.isEmpty()){
+            if(possibleCandidates.isEmpty()){
                 responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
                         RoomUtils.buildContentResponse(
                                 "You don't appear to have a room with that id to delete. maybe you should check `/listmyrooms`"));
@@ -287,7 +287,7 @@ public class FirstRoom implements RoomMediator {
         List<Site> rooms = mapClient.getRoomsByOwner(userid);
 
         StringBuffer roomSummary = new StringBuffer();
-        if (rooms != null && !rooms.isEmpty()) {
+        if (!rooms.isEmpty()) {
             roomSummary.append("You have registered the following rooms... \n");
             for (Site room : rooms) {
                 if (room.getInfo() != null) {
@@ -308,7 +308,7 @@ public class FirstRoom implements RoomMediator {
         List<Site> rooms = mapClient.getRoomsByOwner(SYSTEM_ID);
 
         StringBuffer roomSummary = new StringBuffer();
-        if (rooms != null && !rooms.isEmpty()) {
+        if (!rooms.isEmpty()) {
             roomSummary.append("There are the following system rooms... \n");
             for (Site room : rooms) {
                 if (room.getInfo() != null) {
@@ -350,7 +350,7 @@ public class FirstRoom implements RoomMediator {
     private void beamMeUp(String userid, String userName, String targetId, JsonObjectBuilder responseBuilder){
             //teleport is only going to allow teleport to rooms owned by the player.
             List<Site> possibleCandidates = mapClient.getRoomsByOwnerAndRoomName(userid,targetId);            
-            if(possibleCandidates == null || possibleCandidates.isEmpty()){
+            if(possibleCandidates.isEmpty()){
                 responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
                         RoomUtils.buildContentResponse(
                                 "You don't appear to have a room with that id to teleport to.. maybe you should check `/listmyrooms`"));
