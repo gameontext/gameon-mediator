@@ -347,23 +347,46 @@ public class FirstRoom implements RoomMediator {
         }
     }
     
-    private void beamMeUp(String userid, String userName, String targetId, JsonObjectBuilder responseBuilder){
-            //teleport is only going to allow teleport to rooms owned by the player.
-            List<Site> possibleCandidates = mapClient.getRoomsByOwnerAndRoomName(userid,targetId);            
-            if(possibleCandidates.isEmpty()){
-                responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
-                        RoomUtils.buildContentResponse(
-                                "You don't appear to have a room with that id to teleport to.. maybe you should check `/listmyrooms`"));
-            }else{
-                String fly = "";
-                if((new Random()).nextInt(10)==0){
-                    fly = " Just before the teleporter engages, you hear a slight buzzing noise.. Good luck "+userName+"-Fly!";
-                }
-                responseBuilder.add(RoomUtils.TYPE, RoomUtils.EXIT).add(RoomUtils.EXIT_ID, possibleCandidates.get(0).getId())
-                .add(FirstRoom.TELEPORT, true).add(RoomUtils.CONTENT,
-                        "You punch the coordinates into the console, a large tube appears from above you, and you are sucked into a maze of piping."+fly);
-            }
+    private void beamMeUp(String userId, String userName, String targetId, JsonObjectBuilder responseBuilder){
+        // First , see if we can find an exact match for this
+        Site siteToBeamTo = findSite(userId, userName, targetId, responseBuilder);
 
+        if (siteToBeamTo != null) {
+            String fly = "";
+            if((new Random()).nextInt(10)==0){
+                fly = " Just before the teleporter engages, you hear a slight buzzing noise.. Good luck "+userName+"-Fly!";
+            }
+            responseBuilder.add(RoomUtils.TYPE, RoomUtils.EXIT).add(RoomUtils.EXIT_ID, siteToBeamTo.getId())
+            .add(FirstRoom.TELEPORT, true).add(RoomUtils.CONTENT,
+                    "You punch the coordinates into the console, a large tube appears from above you, and you are sucked into a maze of piping."+fly);
+        }
+    }
+
+    private Site findSite(String userId, String userName, String targetId, JsonObjectBuilder responseBuilder) {
+        Site singleSite = mapClient.getSite(targetId);
+
+        if (singleSite != null) {
+            return singleSite;
+        }
+
+        List<Site> possibleCandidates = mapClient.getRoomsByRoomName(targetId);            
+        if(possibleCandidates.isEmpty()){
+            responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
+                    RoomUtils.buildContentResponse(
+                            "You don't appear to have a room with that id to teleport to.. maybe you should check `/listmyrooms`"));
+            return null;
+        }
+        if (possibleCandidates.size() > 1) {
+            StringBuilder returnedMessage = new StringBuilder("There are multiple rooms with the same ID. To get to the correct room, use one of the following long IDs (you may need to ask the room owner which ID is for their room):\n");
+            for (Site site : possibleCandidates) {
+                returnedMessage.append(" - /teleport "+site.getId()+"\n");
+            }
+            responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
+                    RoomUtils.buildContentResponse(
+                            returnedMessage.toString()));    
+            return null;
+        }
+        return possibleCandidates.get(0);
     }
 
     private void buildLocationResponse(JsonObjectBuilder responseBuilder) {

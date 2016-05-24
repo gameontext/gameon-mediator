@@ -133,6 +133,11 @@ public class MapClient {
         return getSites(target);
     }
     
+    public List<Site> getRoomsByRoomName(String name) {
+        WebTarget target = this.queryRoot.queryParam("name", name);
+        return getSites(target);
+    }
+    
     public List<Site> getRoomsByOwnerAndRoomName(String ownerId,String roomName) {
         WebTarget target = this.queryRoot.queryParam("owner", ownerId).queryParam("name",roomName);
         return getSites(target);
