@@ -133,6 +133,11 @@ public class MapClient {
         return getSites(target);
     }
     
+    public List<Site> getRoomsByRoomName(String name) {
+        WebTarget target = this.queryRoot.queryParam("name", name);
+        return getSites(target);
+    }
+    
     public List<Site> getRoomsByOwnerAndRoomName(String ownerId,String roomName) {
         WebTarget target = this.queryRoot.queryParam("owner", ownerId).queryParam("name",roomName);
         return getSites(target);
@@ -236,8 +241,7 @@ public class MapClient {
      *            retrieve information about available or specified exits. All
      *            of the REST requests that find or work with exits return the
      *            same result structure
-     * @return A populated {@code List<Site>}, or null if the request
-     *         failed.
+     * @return A populated {@code List<Site>}. Never null
      */
     protected List<Site> getSites(WebTarget target) {
         Log.log(Level.FINER, this, "making request to {0} for room", target.getUri().toString());
@@ -248,6 +252,11 @@ public class MapClient {
             if (statusCode == Response.Status.OK.getStatusCode() ) {
                 List<Site> list = r.readEntity(new GenericType<List<Site>>() {
                 });
+                if (list == null) {
+                    Log.log(Level.FINER, this, "Could not find rooms in the repsonse from uri: {0}",
+                            target.getUri().toString());
+                    return Collections.emptyList();
+                }
                 return list;
             } else if (statusCode == Response.Status.NO_CONTENT.getStatusCode()) {
                 // If there was no content returned but there is no error, then we don't want to return a null
@@ -255,7 +264,7 @@ public class MapClient {
             }
 
             // The return code indicates something went wrong, but it wasn't bad enough to cause an exception
-            return null;
+            return Collections.emptyList();
         } catch (ResponseProcessingException rpe) {
             Response response = rpe.getResponse();
             Log.log(Level.FINER, this, "Exception fetching room list uri: {0} resp code: {1} ",
@@ -268,7 +277,7 @@ public class MapClient {
             Log.log(Level.FINEST, this, "Exception fetching room list (" + target.getUri().toString() + ")", ex);
         }
         // Sadly, badness happened while trying to get the endpoints
-        return null;
+        return Collections.emptyList();
     }
 
     /**
