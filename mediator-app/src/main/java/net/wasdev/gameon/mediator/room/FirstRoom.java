@@ -227,9 +227,6 @@ public class FirstRoom implements RoomMediator {
         } else if (contentToLower.startsWith("/teleport")) {
             String username = sourceMessage.getString(RoomUtils.USER_NAME);
             processTeleportCommand(content, contentToLower,username,sourceMessage, responseBuilder);
-        } else if (contentToLower.startsWith("/xyzzy")) {
-            String username = sourceMessage.getString(RoomUtils.USER_NAME);
-            processSystemTeleportCommand(content, contentToLower,username,sourceMessage, responseBuilder);
         }else if (contentToLower.startsWith("/")) {
             responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
                     RoomUtils.buildContentResponse("This room is a basic model. It doesn't understand that command."));
@@ -312,10 +309,10 @@ public class FirstRoom implements RoomMediator {
             roomSummary.append("There are the following system rooms... \n");
             for (Site room : rooms) {
                 if (room.getInfo() != null) {
-                    roomSummary.append(" - '" + room.getInfo().getFullName() + "' with id " + room.getInfo().getName() + "\n");
+                    roomSummary.append(" - '" + room.getInfo().getFullName() + "' with id " + room.getInfo().getName() + " (teleport id " + room.getId() + ")\n");
                 }
             }
-            roomSummary.append("\nYou can go directly to a system room using /teleport <roomid>");
+            roomSummary.append("\nYou can go directly to a system room using /teleport <teleportid>");
         } else {
             roomSummary.append("There are no system rooms registered!");
         }
@@ -323,17 +320,6 @@ public class FirstRoom implements RoomMediator {
         responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
                 RoomUtils.buildContentResponse(roomSummary.toString()));
     }
-    
-    private void processSystemTeleportCommand(String content, String contentToLower, String username, JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
-        if (contentToLower.length() > "/xyzzy ".length()) {         
-            String requestedTarget = content.substring("/xyzzy ".length());
-            beamMeUp(SYSTEM_ID, username, requestedTarget, responseBuilder);
-        } else {
-            responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
-                    RoomUtils.buildContentResponse(
-                            "This doesn't appear to be the correct way to use this command. Use the source, Fluke."));
-        }
-    }        
     
     private void processTeleportCommand(String content, String contentToLower, String username, JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
         String userid = sourceMessage.getString(RoomUtils.USER_ID);
