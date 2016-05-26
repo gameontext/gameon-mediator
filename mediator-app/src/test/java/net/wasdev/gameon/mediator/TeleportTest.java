@@ -53,13 +53,11 @@ public class TeleportTest {
         RoutedMessage routedMessage = RoutedMessage.createMessage("room", "firstRoom",
                 "{\"username\":\"DevUser\",\"userId\":\"dummy.DevUser\",\"content\":\"/teleport steve\"}");
 
-        new Expectations() {
-            {
-                mapClient.getSite("steve"); returns(null);
-                mapClient.getRoomsByRoomName("steve");
-                returns(Collections.emptyList());
-            }
-        };
+        new Expectations() {{
+            mapClient.getSite("steve"); returns(null);
+            mapClient.getRoomsByRoomName("steve"); returns(Collections.emptyList());
+        }};
+
         firstRoom.send(routedMessage);
         RoutedMessage lastClientMessage = playerSession.getLastClientMessage();
 
@@ -87,13 +85,13 @@ public class TeleportTest {
         Site singleReturnedRoom = new Site();
         singleReturnedRoom.setId("steve");
         returnedSites.add(singleReturnedRoom);
-        new Expectations() {
-            {
-                mapClient.getSite("steve"); returns(null);
-                mapClient.getRoomsByRoomName("steve");
-                returns(returnedSites);
-            }
-        };
+
+        new Expectations() {{
+            mapClient.getSite("steve"); returns(null);
+            mapClient.getRoomsByRoomName("steve");
+            returns(returnedSites);
+        }};
+
         firstRoom.send(routedMessage);
         RoutedMessage lastClientMessage = playerSession.getLastClientMessage();
 
@@ -121,11 +119,11 @@ public class TeleportTest {
         Site singleReturnedRoom = new Site();
         singleReturnedRoom.setId("steve");
         returnedSites.add(singleReturnedRoom);
-        new Expectations() {
-            {
-                mapClient.getSite("steve"); returns(singleReturnedRoom);
-            }
-        };
+
+        new Expectations() {{
+            mapClient.getSite("steve"); returns(singleReturnedRoom);
+        }};
+
         firstRoom.send(routedMessage);
         RoutedMessage lastClientMessage = playerSession.getLastClientMessage();
 
@@ -156,13 +154,13 @@ public class TeleportTest {
         Site room2 = new Site();
         room2.setId("siteIdForRoom2");
         returnedSites.add(room2);
-        new Expectations() {
-            {
-                mapClient.getSite("steve"); returns(null);
-                mapClient.getRoomsByRoomName("steve");
-                returns(returnedSites);
-            }
-        };
+
+        new Expectations() {{
+            mapClient.getSite("steve"); returns(null);
+            mapClient.getRoomsByRoomName("steve");
+            returns(returnedSites);
+        }};
+
         firstRoom.send(routedMessage);
         RoutedMessage lastClientMessage = playerSession.getLastClientMessage();
 
