@@ -48,8 +48,8 @@ public class MapClientTest {
     MapClient mapClient = new MapClient();
     
     @Before
-    public void setup() {
-        
+    public void setUp() {
+
         new Expectations() {{
             target.request(new String[] {MediaType.APPLICATION_JSON}); returns(builder);
             builder.accept(MediaType.APPLICATION_JSON); returns(builder);
@@ -60,6 +60,7 @@ public class MapClientTest {
 
     @Test
     public void test204() {
+        
         new Expectations() {{
             statusInfo.getStatusCode(); returns(204);
         }};
@@ -72,6 +73,7 @@ public class MapClientTest {
     @Test
     public void test200WithNoSites() {
         List<Site> returnedSiteList = new ArrayList<Site>();
+
         new Expectations() {{
             statusInfo.getStatusCode(); returns(200);
             response.readEntity(new GenericType<List<Site>>() {}); returns (returnedSiteList);
@@ -87,6 +89,7 @@ public class MapClientTest {
         List<Site> returnedSiteList = new ArrayList<Site>();
         Site site1 = new Site();
         returnedSiteList.add(site1);
+
         new Expectations() {{
             statusInfo.getStatusCode(); returns(200);
             response.readEntity(new GenericType<List<Site>>() {}); returns (returnedSiteList);

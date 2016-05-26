@@ -322,10 +322,9 @@ public class FirstRoom implements RoomMediator {
     }
     
     private void processTeleportCommand(String content, String contentToLower, String username, JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
-        String userid = sourceMessage.getString(RoomUtils.USER_ID);
         if (contentToLower.length() > "/teleport ".length()) {         
             String requestedTarget = content.substring("/teleport ".length());
-            beamMeUp(userid, username, requestedTarget, responseBuilder);
+            beamMeUp( username, requestedTarget, responseBuilder);
         } else {
             responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
                     RoomUtils.buildContentResponse(
@@ -333,9 +332,9 @@ public class FirstRoom implements RoomMediator {
         }
     }
     
-    private void beamMeUp(String userId, String userName, String targetId, JsonObjectBuilder responseBuilder){
+    private void beamMeUp(String userName, String targetId, JsonObjectBuilder responseBuilder){
         // First , see if we can find an exact match for this
-        Site siteToBeamTo = findSite(userId, userName, targetId, responseBuilder);
+        Site siteToBeamTo = findSite(targetId, responseBuilder);
 
         if (siteToBeamTo != null) {
             String fly = "";
@@ -348,7 +347,7 @@ public class FirstRoom implements RoomMediator {
         }
     }
 
-    private Site findSite(String userId, String userName, String targetId, JsonObjectBuilder responseBuilder) {
+    private Site findSite(String targetId, JsonObjectBuilder responseBuilder) {
         Site singleSite = mapClient.getSite(targetId);
 
         if (singleSite != null) {
