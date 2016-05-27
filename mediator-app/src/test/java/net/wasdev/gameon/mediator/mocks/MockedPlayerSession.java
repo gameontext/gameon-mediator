@@ -12,11 +12,11 @@ public class MockedPlayerSession extends PlayerConnectionMediator {
 
     public MockedPlayerSession(String userId, String username, String jwt, MapClient mapClient,
             PlayerClient playerClient, ConnectionUtils connectionUtils) {
-        super(userId, username, jwt, mapClient, playerClient, connectionUtils);
+        super(userId, username, jwt, mapClient, playerClient, connectionUtils, true);
     }
     
     public MockedPlayerSession() {
-        super(null, null, null, null, null, null);
+        super(null, null, null, null, null, null, true);
     }
 
     @Override
