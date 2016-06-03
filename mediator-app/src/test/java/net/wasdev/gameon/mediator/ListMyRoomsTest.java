@@ -101,7 +101,7 @@ public class ListMyRoomsTest {
                 "You have registered the following rooms... \n"
                 + " - '" + singleReturnedRoom.getInfo().getFullName() + "' with id "
                 + singleReturnedRoom.getInfo().getName() + " (long id: " + singleReturnedRoom.getId() +")\n"
-                + "\nYou can go directly to your own rooms using /teleport <roomid>");
+                + "\nYou can go directly to a room using /teleport <roomid>");
     }
 
     @Test
@@ -149,7 +149,7 @@ public class ListMyRoomsTest {
                 + room1.getInfo().getName() + " (long id: " + room1.getId() +")\n"
                 + " - '" + room2.getInfo().getFullName() + "' with id "
                 + room2.getInfo().getName() + " (long id: " + room2.getId() +")\n"
-                + "\nYou can go directly to your own rooms using /teleport <roomid>");
+                + "\nYou can go directly to a room using /teleport <roomid>");
 
     }
 

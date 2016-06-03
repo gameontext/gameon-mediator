@@ -291,7 +291,7 @@ public class FirstRoom implements RoomMediator {
                     roomSummary.append(" - '" + room.getInfo().getFullName() + "' with id " + room.getInfo().getName() + " (long id: " + room.getId() +")\n");
                 }
             }
-            roomSummary.append("\nYou can go directly to your own rooms using /teleport <roomid>");
+            roomSummary.append("\nYou can go directly to a room using /teleport <roomid>");
         } else {
             roomSummary.append("You have no rooms registered!");
         }
