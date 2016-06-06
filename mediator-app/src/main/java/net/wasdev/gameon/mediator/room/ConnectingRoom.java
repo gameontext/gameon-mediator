@@ -15,7 +15,6 @@
  *******************************************************************************/
 package net.wasdev.gameon.mediator.room;
 
-import net.wasdev.gameon.mediator.ClientMediator;
 import net.wasdev.gameon.mediator.MapClient;
 import net.wasdev.gameon.mediator.MediatorNexus;
 import net.wasdev.gameon.mediator.RoutedMessage;
@@ -30,7 +29,7 @@ import net.wasdev.gameon.mediator.models.Site;
 public class ConnectingRoom extends AbstractRoomMediator {
 
     final RemoteRoomProxy proxy;
-    
+
     public ConnectingRoom(RemoteRoomProxy proxy, MediatorNexus.View nexus, MapClient mapClient, Site site) {
         super(nexus, mapClient, site);
         this.proxy = proxy;
@@ -51,28 +50,28 @@ public class ConnectingRoom extends AbstractRoomMediator {
     public String getDescription() {
         return "Connecting to "+roomInfo.getFullName()+". Please hold.";
     }
-    
+
     @Override
     public Type getType() {
         return Type.CONNECTING;
     }
-        
+
     @Override
-    public void hello(ClientMediator playerSession, boolean recovery) {
-        // there might be a few instances of the player around.. 
+    public void hello(MediatorNexus.UserView user, boolean recovery) {
+        // there might be a few instances of the player around..
         // they should all have moved together, so we use the broadcast flag to send
         // to all of them.
-        sendToClients(RoutedMessage.createSimpleEventMessage(FlowTarget.player, playerSession.getUserId(), 
+        sendToClients(RoutedMessage.createSimpleEventMessage(FlowTarget.player, user.getUserId(),
                 getDescription()));
-        
+
         // Attempt to connect to the real deal.
         proxy.connectRemote(true, "");
      }
 
     @Override
-    public void join(ClientMediator playerSession, String lastMessage) {
-        super.join(playerSession, lastMessage);
-        
+    public void join(MediatorNexus.UserView user, String lastMessage) {
+        super.join(user, lastMessage);
+
         // Attempt to connect to the real deal.
         proxy.connectRemote(false, lastMessage);
     }

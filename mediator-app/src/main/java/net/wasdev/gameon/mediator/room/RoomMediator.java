@@ -17,7 +17,6 @@ package net.wasdev.gameon.mediator.room;
 
 import javax.json.JsonValue;
 
-import net.wasdev.gameon.mediator.ClientMediator;
 import net.wasdev.gameon.mediator.MediatorNexus;
 import net.wasdev.gameon.mediator.RoutedMessage;
 import net.wasdev.gameon.mediator.models.Exit;
@@ -54,13 +53,13 @@ public interface RoomMediator {
 
     Exit getEmergencyReturnExit();
 
-    void hello(ClientMediator playerSession, boolean recovery);
+    void hello(MediatorNexus.UserView user, boolean recovery);
 
-    void goodbye(ClientMediator playerSession);
+    void goodbye(MediatorNexus.UserView user);
 
-    void join(ClientMediator playerSession, String lastMessage);
+    void join(MediatorNexus.UserView user, String lastMessage);
     
-    void part(ClientMediator playerSession);
+    void part(MediatorNexus.UserView user);
 
     void sendToRoom(RoutedMessage message);
     

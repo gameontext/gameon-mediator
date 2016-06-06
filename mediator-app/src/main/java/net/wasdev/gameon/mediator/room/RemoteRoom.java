@@ -19,7 +19,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import net.wasdev.gameon.mediator.ClientMediator;
 import net.wasdev.gameon.mediator.Drain;
 import net.wasdev.gameon.mediator.Log;
 import net.wasdev.gameon.mediator.MapClient;
@@ -29,7 +28,7 @@ import net.wasdev.gameon.mediator.models.ConnectionDetails;
 import net.wasdev.gameon.mediator.models.Site;
 
 public class RemoteRoom extends AbstractRoomMediator {
-    
+
     interface Connection {
         void connect() throws Exception;
         void disconnect();
@@ -45,7 +44,7 @@ public class RemoteRoom extends AbstractRoomMediator {
         super(nexusView, mapClient, site);
         this.proxy = proxy;
         this.scheduledExecutor = scheduledExecutor;
-        
+
         // Try to connect to the remote room, throw exception on failure.
         Log.log(Level.FINE, this, "Creating connection to room {0}", site.getId());
 
@@ -55,7 +54,7 @@ public class RemoteRoom extends AbstractRoomMediator {
         } else {
             throw new UnsupportedOperationException(details.getType() + " is not a supported transport type");
         }
-        
+
         connection.connect();
     }
 
@@ -80,46 +79,42 @@ public class RemoteRoom extends AbstractRoomMediator {
     }
 
     @Override
-    public void hello(ClientMediator playerSession, boolean recovery) {
+    public void hello(MediatorNexus.UserView user, boolean recovery) {
         // Say hello to the new room!
         Log.log(Level.FINER, this, "REMOTE HELLO {0}", getId());
 
-        connection.sendToRoom(RoutedMessage.createHello(connection.version(), roomId, 
-                playerSession.getUserId(), playerSession.getUserName()));
+        connection.sendToRoom(RoutedMessage.createHello(connection.version(), roomId, user));
     }
 
     @Override
-    public void goodbye(ClientMediator playerSession) {
+    public void goodbye(MediatorNexus.UserView user) {
         // Say hello to the new room!
         Log.log(Level.FINER, this, "REMOTE GOODBYE {0}", getId());
 
-        connection.sendToRoom(RoutedMessage.createGoodbye(roomId, 
-                playerSession.getUserId(), playerSession.getUserName()));
+        connection.sendToRoom(RoutedMessage.createGoodbye(roomId, user));
     }
 
     @Override
-    public void join(ClientMediator playerSession, String lastMessage) {
+    public void join(MediatorNexus.UserView user, String lastMessage) {
         if ( connection.version() > 1) {
             // Say hello to the new room!
             Log.log(Level.FINER, this, "REMOTE JOIN {0}", getId());
 
-            connection.sendToRoom(RoutedMessage.createJoin(roomId, 
-                    playerSession.getUserId(), playerSession.getUserName()));            
+            connection.sendToRoom(RoutedMessage.createJoin(roomId,user));
         } else {
-            hello(playerSession, false);
+            hello(user, false);
         }
     }
 
     @Override
-    public void part(ClientMediator playerSession) {
+    public void part(MediatorNexus.UserView user) {
         if ( connection.version() > 1) {
             // Say hello to the new room!
             Log.log(Level.FINER, this, "REMOTE PART {0}", getId());
 
-            connection.sendToRoom(RoutedMessage.createPart(roomId, 
-                    playerSession.getUserId(), playerSession.getUserName()));            
+            connection.sendToRoom(RoutedMessage.createPart(roomId, user));
         } else {
-            goodbye(playerSession);
+            goodbye(user);
         }
     }
 
@@ -130,7 +125,7 @@ public class RemoteRoom extends AbstractRoomMediator {
     }
 
     @Override
-    public void disconnect() {        
+    public void disconnect() {
         scheduledExecutor.schedule(() -> {
             connection.disconnect();
         }, 3, TimeUnit.SECONDS);

@@ -5,7 +5,6 @@ import java.util.logging.Level;
 
 import javax.json.JsonValue;
 
-import net.wasdev.gameon.mediator.ClientMediator;
 import net.wasdev.gameon.mediator.Log;
 import net.wasdev.gameon.mediator.MediatorBuilder;
 import net.wasdev.gameon.mediator.MediatorNexus;
@@ -168,23 +167,23 @@ public class RemoteRoomProxy implements RoomMediator {
     }
 
     @Override
-    public void hello(ClientMediator playerSession, boolean recovery) {
-        delegate.hello(playerSession, false);
+    public void hello(MediatorNexus.UserView user, boolean recovery) {
+        delegate.hello(user, false);
     }
 
     @Override
-    public void goodbye(ClientMediator playerSession) {
-        delegate.goodbye(playerSession);
+    public void goodbye(MediatorNexus.UserView user) {
+        delegate.goodbye(user);
     }
 
     @Override
-    public void join(ClientMediator playerSession, String lastMessage) {
-        delegate.join(playerSession, lastMessage);
+    public void join(MediatorNexus.UserView user, String lastMessage) {
+        delegate.join(user, lastMessage);
     }
 
     @Override
-    public void part(ClientMediator playerSession) {
-        delegate.part(playerSession);
+    public void part(MediatorNexus.UserView user) {
+        delegate.part(user);
     }
 
     @Override

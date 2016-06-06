@@ -26,6 +26,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.websocket.Session;
 
+import net.wasdev.gameon.mediator.MediatorNexus.UserView;
 import net.wasdev.gameon.mediator.RoutedMessage.FlowTarget;
 import net.wasdev.gameon.mediator.models.Exit;
 import net.wasdev.gameon.mediator.models.Exits;
@@ -299,11 +300,11 @@ public class MediatorBuilder {
     }
 
     public void updateUsers(RoomMediator newMediator, boolean roomHello, String lastMessage, boolean recovery) {
-        for( ClientMediator m : newMediator.getNexusView().getClients() ) {
+        for( UserView v : newMediator.getNexusView().getUsers() ) {
             if ( recovery || roomHello ) {
-                newMediator.hello(m, recovery);
+                newMediator.hello(v, recovery);
              } else {
-                 newMediator.join(m, lastMessage);
+                 newMediator.join(v, lastMessage);
             }
         }
     }

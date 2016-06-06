@@ -148,29 +148,29 @@ public class RoutedMessage {
         return new RoutedMessage(flowTarget, playerId, String.format(Constants.EVENT_GENERIC, playerId, eventText));
     }
 
-    public static RoutedMessage createHello(long version, String roomId, String userId, String userName) {
+    public static RoutedMessage createHello(long version, String roomId, MediatorNexus.UserView user) {
         return new RoutedMessage(FlowTarget.roomHello, roomId,
-                String.format(MSG_HELLO, version, userId, userName));
+                String.format(MSG_HELLO, version, user.getUserId(), user.getUserName()));
     }
 
-    public static RoutedMessage createRecoveryHello(long version, String roomId, String userId, String userName) {
+    public static RoutedMessage createRecoveryHello(long version, String roomId, MediatorNexus.UserView user) {
         return new RoutedMessage(FlowTarget.roomHello, roomId,
-                String.format(MSG_RECOVERY_HELLO, version, userId, userName));
+                String.format(MSG_RECOVERY_HELLO, version, user.getUserId(), user.getUserName()));
     }
 
-    public static RoutedMessage createGoodbye(String roomId, String userId, String userName) {
+    public static RoutedMessage createGoodbye(String roomId, MediatorNexus.UserView user) {
         return new RoutedMessage(FlowTarget.roomGoodbye, roomId,
-                String.format(MSG_PROTOCOL, userId, userName));
+                String.format(MSG_PROTOCOL, user.getUserId(), user.getUserName()));
     }
 
-    public static RoutedMessage createJoin(String roomId, String userId, String userName) {
+    public static RoutedMessage createJoin(String roomId, MediatorNexus.UserView user) {
         return new RoutedMessage(FlowTarget.roomJoin, roomId,
-                String.format(MSG_PROTOCOL, userId, userName));
+                String.format(MSG_PROTOCOL, user.getUserId(), user.getUserName()));
     }
 
-    public static RoutedMessage createPart(String roomId, String userId, String userName) {
+    public static RoutedMessage createPart(String roomId, MediatorNexus.UserView user) {
         return new RoutedMessage(FlowTarget.roomPart, roomId,
-                String.format(MSG_PROTOCOL, userId, userName));
+                String.format(MSG_PROTOCOL, user.getUserId(), user.getUserName()));
     }
 
     /**

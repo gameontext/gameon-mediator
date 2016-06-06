@@ -24,7 +24,6 @@ import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
-import net.wasdev.gameon.mediator.ClientMediator;
 import net.wasdev.gameon.mediator.Constants;
 import net.wasdev.gameon.mediator.Log;
 import net.wasdev.gameon.mediator.MapClient;
@@ -39,7 +38,7 @@ import net.wasdev.gameon.mediator.models.Site;
 public abstract class AbstractRoomMediator implements RoomMediator {
 
     static final String NO_COMMANDS = "There is nothing here that can do that.";
-    
+
     static final List<String> GOODBYES = Collections.unmodifiableList(Arrays.asList(
             "Faithless is he that says farewell when the road darkens.", // Tolkein
             "Not all those who wander are lost.", // Tolkein
@@ -53,10 +52,10 @@ public abstract class AbstractRoomMediator implements RoomMediator {
     final String roomId;
     final MediatorNexus.View nexusView;
     final MapClient mapClient;
-    
+
     protected Exits exits;
     protected RoomInfo roomInfo;
-    
+
     public AbstractRoomMediator(MediatorNexus.View nexusView, MapClient mapClient, Site site) {
         this.roomId = site.getId();
         this.nexusView = nexusView;
@@ -69,24 +68,24 @@ public abstract class AbstractRoomMediator implements RoomMediator {
     public String getId() {
         return roomId;
     }
-    
+
     @Override
     public MediatorNexus.View getNexusView() {
         return nexusView;
     }
-    
+
     @Override
     public abstract String getName();
 
     @Override
     public abstract String getFullName();
-    
+
     @Override
     public abstract String getDescription();
-    
+
     @Override
     public abstract Type getType();
-    
+
     @Override
     public JsonObject listExits() {
         return exits.toSimpleJsonList();
@@ -114,7 +113,7 @@ public abstract class AbstractRoomMediator implements RoomMediator {
         }
         if ( info == null || info.getConnectionDetails() == null )
             return false;
-        
+
         return roomInfo.getConnectionDetails().equals(info.getConnectionDetails());
     }
 
@@ -135,34 +134,34 @@ public abstract class AbstractRoomMediator implements RoomMediator {
     }
 
     @Override
-    public void hello(ClientMediator playerSession, boolean recovery) {        
+    public void hello(MediatorNexus.UserView user, boolean recovery) {
         JsonObjectBuilder builder = Json.createObjectBuilder();
         buildLocationResponse(builder);
-        
-        sendToClients(RoutedMessage.createMessage(FlowTarget.player, playerSession.getUserId(), builder.build()));
+
+        sendToClients(RoutedMessage.createMessage(FlowTarget.player, user.getUserId(), builder.build()));
      }
 
     @Override
-    public void goodbye(ClientMediator playerSession) {
-        sendToClients(RoutedMessage.createMessage(FlowTarget.player, "*", 
-                String.format(Constants.EVENT_GOODBYE, playerSession.getUserName(), playerSession.getUserId(), goodbyeMessage())));
+    public void goodbye(MediatorNexus.UserView user) {
+        sendToClients(RoutedMessage.createMessage(FlowTarget.player, "*",
+                String.format(Constants.EVENT_GOODBYE, user.getUserName(), user.getUserId(), goodbyeMessage())));
     }
 
     @Override
-    public void join(ClientMediator playerSession, String lastMessage) {
-        sendToClients(RoutedMessage.createMessage(FlowTarget.player, "*", 
-                String.format(Constants.EVENT_JOIN, playerSession.getUserName(), playerSession.getUserId())));
+    public void join(MediatorNexus.UserView user, String lastMessage) {
+        sendToClients(RoutedMessage.createMessage(FlowTarget.player, "*",
+                String.format(Constants.EVENT_JOIN, user.getUserName(), user.getUserId())));
     }
-    
+
     @Override
-    public void part(ClientMediator playerSession){
-        sendToClients(RoutedMessage.createMessage(FlowTarget.player, "*", 
-                String.format(Constants.EVENT_PART, playerSession.getUserName(), playerSession.getUserId(), goodbyeMessage())));
+    public void part(MediatorNexus.UserView user){
+        sendToClients(RoutedMessage.createMessage(FlowTarget.player, "*",
+                String.format(Constants.EVENT_PART, user.getUserName(), user.getUserId(), goodbyeMessage())));
     }
 
     @Override
     public void disconnect() {}
-    
+
     @Override
     public void sendToRoom(RoutedMessage message) {
         Log.log(Level.FINEST, this, "{0} received: {1}", getName(), message);
@@ -180,7 +179,7 @@ public abstract class AbstractRoomMediator implements RoomMediator {
         if (response.containsKey(RoomUtils.EXIT_ID)) {
             target = FlowTarget.playerLocation;
         }
-        
+
         // send response back to clients...
         sendToClients(RoutedMessage.createMessage(target, targetUserId, response));
     }
@@ -189,7 +188,7 @@ public abstract class AbstractRoomMediator implements RoomMediator {
     public void sendToClients(RoutedMessage message) {
         nexusView.sendToClients(message);
     }
-        
+
     protected String parseMessage(String userId, JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
         String content = sourceMessage.getString(RoomUtils.CONTENT).trim().toLowerCase();
         String userName = sourceMessage.getString(Constants.KEY_USERNAME);
@@ -211,17 +210,17 @@ public abstract class AbstractRoomMediator implements RoomMediator {
                     .add(RoomUtils.EXIT_ID, exitDirection)
                     .add(RoomUtils.CONTENT, "You head " + RoomUtils.longDirection(exitDirection));
             }
-            
+
         } else if (content.startsWith("/exits")) {
             responseBuilder.add(RoomUtils.TYPE, Constants.KEY_ROOM_EXITS)
                 .add(RoomUtils.CONTENT, exits.toSimpleJsonList());
-            
+
         } else if ( "/look".equals(content) ) {
             buildLocationResponse(responseBuilder);
-            
+
         } else if ( content.charAt(0) == '/' ) {
             targetId = parseCommand(userId, userName, sourceMessage, responseBuilder);
-            
+
         } else {
             // chat is broadcast
             targetId = "*";
@@ -229,11 +228,11 @@ public abstract class AbstractRoomMediator implements RoomMediator {
                 .add(RoomUtils.CONTENT, content)
                 .add(RoomUtils.TYPE, RoomUtils.CHAT);
         }
-        
+
         return targetId;
     }
-    
-    /** Process the text of a command: 
+
+    /** Process the text of a command:
      * @return user id of target user, or '*' for all
      */
     protected String parseCommand(String userId, String userName, JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
@@ -255,7 +254,7 @@ public abstract class AbstractRoomMediator implements RoomMediator {
         int index = RoomUtils.random.nextInt(GOODBYES.size());
         return GOODBYES.get(index);
     }
-    
+
     @Override
     public String toString() {
         return this.getClass().getSimpleName()
