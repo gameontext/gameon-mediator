@@ -38,6 +38,8 @@
   <jndiEntry jndiName="mapApiKey" value="${env.MAP_KEY}"/>
 
   <jndiEntry jndiName="systemId" value="${env.SYSTEM_ID}"/>
+  
+  <jndiEntry jndiName="kafkaUrl" value="${env.KAFKA_URL}"/>
 
   <logging consoleLogLevel="INFO" traceSpecification="*=info:net.wasdev.gameon.*=all"/>
 

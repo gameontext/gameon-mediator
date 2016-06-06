@@ -15,20 +15,28 @@
  *******************************************************************************/
 package net.wasdev.gameon.mediator;
 
+import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
+import javax.enterprise.inject.spi.CDI;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.websocket.Session;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import net.wasdev.gameon.mediator.ConnectionUtils.Drain;
+import net.wasdev.gameon.mediator.kafka.GameOnEvent;
+import net.wasdev.gameon.mediator.kafka.KafkaRxJavaObservable;
 import net.wasdev.gameon.mediator.models.Exit;
 import net.wasdev.gameon.mediator.models.Site;
 import net.wasdev.gameon.mediator.room.EmptyRoom;
 import net.wasdev.gameon.mediator.room.FirstRoom;
+import rx.Subscription;
 
 /**
  * The mediator: mediates the inbound connection from the player's device to the
@@ -53,7 +61,7 @@ public class PlayerConnectionMediator {
      * The player's username. Sent to the room with playerHello and
      * playerGoodbye (which are mediator-initiated messages).
      */
-    private final String username;
+    private String username;
 
     /** Player client (for updating player location */
     private final PlayerClient playerClient;
@@ -98,6 +106,10 @@ public class PlayerConnectionMediator {
      * session is actually destroyed. Session suspend.
      */
     private AtomicInteger suspendCount = new AtomicInteger(0);
+    
+    //should be using @Inject and init() should be @PostConstruct
+    KafkaRxJavaObservable kafka = null;   
+    private Subscription activeSubscription;
 
     /** Room protocol: name sent from room to client (identifying the room) */
     public static final String ROOM_NAME = "roomName";
@@ -135,16 +147,86 @@ public class PlayerConnectionMediator {
      * @param playerClient
      */
     public PlayerConnectionMediator(String userId, String username, String jwt, MapClient mapClient,
-            PlayerClient playerClient, ConnectionUtils connectionUtils) {
+            PlayerClient playerClient, ConnectionUtils connectionUtils, boolean skipInit) {
         this.userId = userId;
         this.username = username;
         this.jwt = jwt;
         this.mapClient = mapClient;
         this.connectionUtils = connectionUtils;
-        this.playerClient = playerClient;
-
+        this.playerClient = playerClient;  
         Log.log(Level.FINEST, this, "playerConnectionMediator built. currentRoom should be null at the mo.. is it? "
                 + (currentRoom == null));
+        if(!skipInit) {
+            init();
+        }
+    }
+    
+    public PlayerConnectionMediator(String userId, String username, String jwt, MapClient mapClient,
+            PlayerClient playerClient, ConnectionUtils connectionUtils) {
+        this(userId,username,jwt,mapClient,playerClient,connectionUtils,false);
+    }
+    
+    
+    private void init(){
+        Log.log(Level.INFO, this, "Configuring kafka subscription");
+        //this should be injected.. but this isn't a bean / injection didn't work.. 
+        //meh.. it's all getting redone atm in another branch.. 
+        kafka = CDI.current().select(KafkaRxJavaObservable.class).get();
+        
+        //obtain a subscription, filter it to playerEvents, then filter it to this userId
+        activeSubscription = kafka.consume()
+                .filter(goe -> "playerEvents".equals(goe.getTopic()))
+                .filter(goe -> userId.equals(goe.getKey()))
+                .subscribe(goe -> handlePlayerEvent(goe));
+    }
+    
+    //example event handling ... 
+    private void handlePlayerEvent(GameOnEvent goe){
+        
+        ObjectMapper om = new ObjectMapper();
+        JsonNode tree;
+        try {
+            //the value in the GameOnEvent is JSON, with a type field that dictates the content.
+            tree = om.readTree(goe.getValue());
+            String type = tree.get("type").asText();
+            //current known values for type.. may change if we start using more refined events.
+            switch(type){
+                case "UPDATE" : {
+                    //update(_*) and create, have the player json as a value under the key 'player'
+                    //this may change, to at least obscure/remove restricted info like apikey
+                    //but for now, this is ok while we figure out events, since messagehub is 
+                    //not webfacing.
+                    
+                    //get the player json, and parse it to a JsonNode
+                    JsonNode player = tree.get("player");
+                    //grab the name field from the json.. 
+                    String username = player.get("name").asText();
+                    //do stuff!!
+                    if(!this.username.equals(username)){
+                        //TODO: convert this to a call to 'updateUserName' and have that notify the UI
+                        //      that the name has altered.. 
+                        Log.log(Level.INFO, this, "Mediator informated that user {0}, changed name to {1} last known as {2}",userId,username,this.username);
+                        this.username = username;
+                    }
+                    break;
+                }
+                case "DELETE" : {
+                    //note JSON only has id field.. rest is already deleted.
+                    break;
+                }
+                case "UPDATE_LOCATION" : {
+                    break;
+                }
+                case "UPDATE_APIKEY" : {
+                    break;
+                }
+                case "CREATE" : {
+                    break;
+                }
+            }
+        } catch (IOException e) {
+            Log.log(Level.SEVERE, this, "Error parsing event", e);
+        }
     }
 
     /**
@@ -230,6 +312,11 @@ public class PlayerConnectionMediator {
      */
     public void destroy() {
         Log.log(Level.FINE, this, "session {0} destroyed", userId);
+        
+        
+        if(!activeSubscription.isUnsubscribed())
+            activeSubscription.unsubscribe();
+        
         // session expired.
         toClient.clear();
         disconnect();
@@ -240,7 +327,7 @@ public class PlayerConnectionMediator {
 
         currentRoom.unsubscribe(this);
         currentRoom.disconnect(); // make sure the websocket to the server is closed
-        currentRoom = null;
+        currentRoom = null;                
     }
 
     /**
