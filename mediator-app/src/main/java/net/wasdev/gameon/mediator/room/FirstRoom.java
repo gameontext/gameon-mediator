@@ -288,10 +288,10 @@ public class FirstRoom implements RoomMediator {
             roomSummary.append("You have registered the following rooms... \n");
             for (Site room : rooms) {
                 if (room.getInfo() != null) {
-                    roomSummary.append(" - '" + room.getInfo().getFullName() + "' with id " + room.getInfo().getName() + "\n");
+                    roomSummary.append(" - '" + room.getInfo().getFullName() + "' with id " + room.getInfo().getName() + " (long id: " + room.getId() +")\n");
                 }
             }
-            roomSummary.append("\nYou can go directly to your own rooms using /teleport <roomid>");
+            roomSummary.append("\nYou can go directly to a room using /teleport <roomid>");
         } else {
             roomSummary.append("You have no rooms registered!");
         }
@@ -362,9 +362,9 @@ public class FirstRoom implements RoomMediator {
             return null;
         }
         if (possibleCandidates.size() > 1) {
-            StringBuilder returnedMessage = new StringBuilder("There are multiple rooms with the same ID. To get to the correct room, use one of the following long IDs (you may need to ask the room owner which ID is for their room):\n");
+            StringBuilder returnedMessage = new StringBuilder("There are multiple rooms with the same ID. To get to the correct room, use one of the following long IDs:\n");
             for (Site site : possibleCandidates) {
-                returnedMessage.append(" - /teleport "+site.getId()+"\n");
+                returnedMessage.append(" - /teleport "+site.getId()+ " (owned by " + site.getOwner() + ")\n");
             }
             responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
                     RoomUtils.buildContentResponse(
