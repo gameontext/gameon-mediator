@@ -18,18 +18,18 @@ import net.wasdev.gameon.mediator.models.Site;
  * The RemoteRoomProxy is a pass-through. It gives the ClientMediator a consistent RoomMediator,
  * insulating it from remote room lifecycle changes (especially in the face of remote pushes for
  * room updates).
- *  
+ *
  *  Mediator creation and rebuilding is done in the MediatorBuilder, and room transitions are
  *  handled by the MediatorNexus, making this class fairly uninteresting. The bit that is important
  *  to follow is how the room delegates are built:
- *  
- *  {@link #RemoteRoomProxy(MediatorBuilder, String, Site)} calls 
+ *
+ *  {@link #RemoteRoomProxy(MediatorBuilder, String, Site)} calls
  *  {@link MediatorBuilder#buildClientMediator(String, javax.websocket.Session, String)} to obtain
  *  the first delegate, either a {@link ConnectingRoom} or an {@link EmptyRoom}.
- *  
- *  The {@link ConnectingRoom} and/or external events will trigger the connection to the 
+ *
+ *  The {@link ConnectingRoom} and/or external events will trigger the connection to the
  *  remote room using {@link #connectRemote(boolean, String)} or {@link #updateInformation(Site)}.
- *  Once the update is complete, the {@link MediatorBuilder} will call 
+ *  Once the update is complete, the {@link MediatorBuilder} will call
  *  {@link #updateComplete(RoomMediator)} to set the new delegate.
  *
  */
@@ -38,13 +38,13 @@ public class RemoteRoomProxy implements RoomMediator {
     final MediatorBuilder mediatorBuilder;
     final String userId;
     volatile RoomMediator delegate;
-    
+
     AtomicBoolean updating = new AtomicBoolean(false);
-    
+
     /**
      * Creates a new proxy. Calls {@link MediatorBuilder#createDelegate(RemoteRoomProxy, String, Site)}
      * to build the initial delegate.
-     * 
+     *
      * @param mediatorBuilder
      * @param userId
      * @param site
@@ -84,16 +84,16 @@ public class RemoteRoomProxy implements RoomMediator {
     public JsonValue listExits() {
         return delegate.listExits();
     }
-    
+
     @Override
     public Exits getExits() {
         return delegate.getExits();
     }
 
     /**
-     * Update the delegate based on new/refreshed site information. 
+     * Update the delegate based on new/refreshed site information.
      * EmptyRoom -> RemoteRoom or SickRoom is the most likely.
-     * 
+     *
      * @see net.wasdev.gameon.mediator.room.RoomMediator#updateInformation(net.wasdev.gameon.mediator.models.Site)
      */
     @Override
@@ -107,20 +107,20 @@ public class RemoteRoomProxy implements RoomMediator {
     }
 
     /**
-     * Update complete. If the delegate has changed, disconnect the 
+     * Update complete. If the delegate has changed, disconnect the
      * old delegate (ensure cleanup)
-     * 
+     *
      * @see net.wasdev.gameon.mediator.room.RoomMediator#updateInformation(net.wasdev.gameon.mediator.models.Site)
      */
     public void updateComplete(RoomMediator newDelegate) {
         RoomMediator oldDelegate = delegate;
-        
+
         try {
             if ( newDelegate != null ) {
                 delegate = newDelegate;
-                
+
                 // Not a site transition, but perhaps a change in connection
-                // information, or empty -> full, or sick -> healthy, or 
+                // information, or empty -> full, or sick -> healthy, or
                 // healthy -> sick. Make sure previous delegate is cleaned up.
                 if ( oldDelegate != delegate ) {
                     oldDelegate.disconnect();
@@ -131,12 +131,12 @@ public class RemoteRoomProxy implements RoomMediator {
             Log.log(Level.FINEST, this, "RemoteRoomProxy -- update complete: {0}", delegate);
         }
     }
-    
+
     /**
      * Callback when the remote connection is disrupted. Go back to the
      * mediatorBuilder to start again.
-     * @param roomHello 
-     * @param lastMessage 
+     * @param roomHello
+     * @param lastMessage
      */
     public void connectRemote(boolean roomHello, String lastMessage) {
         if ( updating.compareAndSet(false, true)) {
@@ -146,10 +146,10 @@ public class RemoteRoomProxy implements RoomMediator {
             Log.log(Level.FINEST, this, "RemoteRoomProxy -- connect in progress");
         }
     }
-    
+
     /**
      * Called after remote connection has dropped, or on a schedule (sick room)
-     * 
+     *
      */
     public void reconnect() {
         if ( updating.compareAndSet(false, true)) {
@@ -209,5 +209,10 @@ public class RemoteRoomProxy implements RoomMediator {
     @Override
     public MediatorNexus.View getNexusView() {
         return delegate.getNexusView();
+    }
+
+    @Override
+    public String toString() {
+        return "Proxy[" + delegate.toString() + "]";
     }
 }

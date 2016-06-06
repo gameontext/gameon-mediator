@@ -261,6 +261,7 @@ public abstract class AbstractRoomMediator implements RoomMediator {
                 + "[name="+getName()
                 + ", full="+getFullName()
                 + ", info="+roomInfo
+                + ", exits="+exits
                 + "]";
     }
 }

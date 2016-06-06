@@ -141,4 +141,18 @@ public class Exits {
         return content.build();
     }
 
+    @Override
+    public String toString()  {
+      StringBuilder sb = new StringBuilder();
+      sb.append("Exits=");
+      sb.append("[ n=").append(n);
+      sb.append(", w=").append(w);
+      sb.append(", s=").append(s);
+      sb.append(", e=").append(e);
+      sb.append(", u=").append(u);
+      sb.append(", d=").append(d);
+      sb.append("]");
+      return sb.toString();
+    }
+
 }

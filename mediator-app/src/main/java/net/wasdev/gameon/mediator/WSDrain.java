@@ -127,7 +127,6 @@ class WSDrain implements Runnable, Drain {
     public void start() {
         if ( targetSession == null )
             return;
-        
         thread.start();
     }
 

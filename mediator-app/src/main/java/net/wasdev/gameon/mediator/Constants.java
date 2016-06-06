@@ -62,6 +62,7 @@ public interface Constants {
 
     String EVENTMSG_INVALID_JWT = "Your JWT is invalid, try [logging in again](/#/login).";
     String EVENTMSG_FINDROOM_FAIL = "Oh dear. That door led nowhere.";
+    String EVENTMSG_NO_ROOMS = "Sad news. There isn't a room or site with the id you've requested. The room may have been deleted, or the map may be down. Routing you (back) to First Room.";
     String EVENTMSG_SPLINCH_RECOVERY = "Ow! You were splinched! After a brief jolt (getting unsplinched isn't comfortable), all instances of you should hopefully be in the same room.";
     String EVENTMSG_BAD_RIDE = "There is a sudden jerk, and you feel as though a hook somewhere behind your navel was yanking you ... somewhere.";
     String EVENTMSG_REJOIN_ADVENTURE = "... Your adventure is already in progress on another device, joining ... ";

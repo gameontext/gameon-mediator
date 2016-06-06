@@ -31,19 +31,19 @@ public class RoomUtils {
 
     /** Type of message for specifying details about a location */
     public static final String LOCATION = "location";
-    
+
     /** Type of message to indicate room events */
     public static final String EVENT = "event";
-    
+
     /** Type of message to indicate chat messages */
     public static final String CHAT = "chat";
-    
+
     /** JSON element specifying the type of message. */
     public static final String TYPE = "type";
 
     /** Location: room description */
     public static final String DESCRIPTION = "description";
-    
+
     /** JSON element specifying the content of message. */
     public static final String CONTENT = "content";
 
@@ -78,7 +78,7 @@ public class RoomUtils {
                 return null;
         }
     }
-    
+
     static String longDirection(String lowerLetter) {
         switch(lowerLetter) {
             case "n" : return "North";
@@ -115,7 +115,7 @@ public class RoomUtils {
     public static Exits createFallbackExit(Exit fallbackExit, String direction) {
         Exits newExits = new Exits();
 
-        switch(direction) {
+        switch(direction.toLowerCase()) {
             case "n":
                 newExits.setS(fallbackExit);
                 break;

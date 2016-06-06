@@ -35,11 +35,23 @@ public class Site {
 
     public Site() {}
 
+    /**
+     * Create a new site using the exit information
+     * from a previous site.
+     * @param exit
+     */
     public Site(Exit exit) {
         this.id = exit.id;
         this.info = new RoomInfo(exit);
+        this.exits = new Exits();
     }
     
+    /**
+     * Create a new site using the exit information
+     * from a previous site, and use the provided fallback
+     * exit.
+     * @param exit
+     */
     public Site(Exit sourceExit, Exits fallbackExits) {
         this.id = sourceExit.id;
         this.info = new RoomInfo(sourceExit);

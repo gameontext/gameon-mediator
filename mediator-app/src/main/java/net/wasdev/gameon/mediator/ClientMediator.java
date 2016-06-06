@@ -63,7 +63,7 @@ public class ClientMediator {
         this.userId = userId;
         this.toClient = drain;
         this.signedJwt = signedJwt;
-        
+
         toClient.start();
     }
     

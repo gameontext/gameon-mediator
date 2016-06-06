@@ -13,6 +13,8 @@ import net.wasdev.gameon.mediator.Log;
 import net.wasdev.gameon.mediator.MapClient;
 import net.wasdev.gameon.mediator.MediatorNexus;
 import net.wasdev.gameon.mediator.PlayerClient;
+import net.wasdev.gameon.mediator.models.Exits;
+import net.wasdev.gameon.mediator.models.RoomInfo;
 import net.wasdev.gameon.mediator.models.Site;
 
 public class FirstRoom extends AbstractRoomMediator {
@@ -31,7 +33,7 @@ public class FirstRoom extends AbstractRoomMediator {
     static final String FIRST_ROOM_INV = "Sadly, there is nothing here.";
 
     static final String FIRST_ROOM_POCKETS = "You do not appear to be carrying anything.";
-    static final String FIRST_ROOM_POCKETS_EXTENDED = "\n\nBut you might be eventually! Individual rooms "
+    static final String FIRST_ROOM_POCKETS_EXTENDED = "\n\n Individual rooms "
             + " may or may not support the notion of items. So whether or not you have things in your pockets"
             + " will change from room to room, as will how long they stay there.";
 
@@ -39,6 +41,18 @@ public class FirstRoom extends AbstractRoomMediator {
     static final String TELEPORT_NO_ROOMS = "There isn't a room with that id to teleport to, maybe you should check `/listmyrooms`";
     static final String TELEPORT_MANY_ROOMS = "There are multiple rooms named %s. To get to the correct room, use one of the following long IDs (you may need to ask the room owner which ID is for their room):\n";
 
+    public static Site getFallbackSite() {
+        Site site = new Site(Constants.FIRST_ROOM);
+
+        // Connection to the map must be down. :( Fake something
+        RoomInfo info = new RoomInfo();
+        info.setName(Constants.FIRST_ROOM);
+        info.setFullName(FIRST_ROOM_FULL);
+
+        site.setInfo(info);
+        site.setExits(new Exits());
+        return site;
+    }
 
     boolean newbie = false;
     boolean inventory = false;

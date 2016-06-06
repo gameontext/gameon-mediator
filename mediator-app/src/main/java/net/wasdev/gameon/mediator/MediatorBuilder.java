@@ -19,7 +19,6 @@ import java.util.logging.Level;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
-import javax.enterprise.concurrent.ManagedExecutorService;
 import javax.enterprise.concurrent.ManagedScheduledExecutorService;
 import javax.enterprise.concurrent.ManagedThreadFactory;
 import javax.enterprise.context.ApplicationScoped;
@@ -60,9 +59,6 @@ public class MediatorBuilder {
     /** CDI injection of Java EE7 Managed thread factory */
     @Resource
     protected ManagedThreadFactory threadFactory;
-
-    @Resource
-    ManagedExecutorService executor;
 
     @Resource
     ManagedScheduledExecutorService scheduledExecutor;
@@ -107,7 +103,7 @@ public class MediatorBuilder {
         Site site = mapClient.getSite(roomId);
         if ( site == null ) {
              clientMediator.sendToClient(RoutedMessage.createSimpleEventMessage(FlowTarget.player, clientMediator.getUserId(),
-                    Constants.EVENTMSG_SPLINCH_RECOVERY));
+                    Constants.EVENTMSG_NO_ROOMS));
 
             return getFirstRoomMediator(clientMediator);
         }
@@ -144,13 +140,9 @@ public class MediatorBuilder {
 
         Site site = mapClient.getSite(target.getId());
         if ( site == null )
-            site = new Site(target, RoomUtils.createFallbackExit(startingRoom.getEmergencyReturnExit(), "N"));
+            site = new Site(target, RoomUtils.createFallbackExit(startingRoom.getEmergencyReturnExit(), direction));
 
-        if ( site.getInfo() == null ) {
-            return new RemoteRoomProxy(this, clientMediator.getUserId(), site);
-        } else {
-            return new RemoteRoomProxy(this, clientMediator.getUserId(), site);
-        }
+        return new RemoteRoomProxy(this, clientMediator.getUserId(), site);
     }
 
     public RoomMediator getFirstRoomMediator(ClientMediator clientMediator) {
@@ -158,6 +150,9 @@ public class MediatorBuilder {
 
         boolean newbie = clientMediator.getRoomMediator() == null;
         Site site = mapClient.getSite(Constants.FIRST_ROOM);
+        if ( site == null ) {
+            site = FirstRoom.getFallbackSite();
+        }
 
         return new FirstRoom(nexus.getLocalView(Constants.FIRST_ROOM),
                 clientMediator.getUserJwt(),
