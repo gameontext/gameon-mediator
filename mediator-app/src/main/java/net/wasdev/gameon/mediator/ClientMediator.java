@@ -18,9 +18,6 @@ package net.wasdev.gameon.mediator;
 import java.util.ConcurrentModificationException;
 import java.util.logging.Level;
 
-import javax.json.Json;
-import javax.json.JsonObject;
-
 import net.wasdev.gameon.mediator.RoutedMessage.FlowTarget;
 import net.wasdev.gameon.mediator.room.FirstRoom;
 import net.wasdev.gameon.mediator.room.RoomMediator;
@@ -110,7 +107,7 @@ public class ClientMediator {
     }
     
     /**
-     * Called from onMessage when the ready message is recieved
+     * Called from onMessage when the ready message is received
      * @param message
      */
     public void ready(RoutedMessage message) {
@@ -186,25 +183,6 @@ public class ClientMediator {
         toClient.stop();
     }
     
-    /**
-     * Compose an acknowledgement to send back to the client that contains the
-     * mediator id and information about the current room (to set up/refresh the
-     * local cache).
-     *
-     * @return ack message with mediator id
-     */
-    public void sendClientAck() {
-        JsonObject ack = Json.createObjectBuilder()
-                .add(Constants.KEY_MEDIATOR_ID, Constants.MEDIATOR_UUID)
-                .add(Constants.KEY_ROOM_ID, roomMediator.getId())
-                .add(Constants.KEY_ROOM_NAME, roomMediator.getName())
-                .add(Constants.KEY_ROOM_FULLNAME, roomMediator.getFullName())
-                .add(Constants.KEY_ROOM_EXITS, roomMediator.listExits())
-                .add(Constants.KEY_COMMANDS, Constants.COMMON_COMMANDS).build();
-
-        toClient.send(RoutedMessage.createMessage(FlowTarget.ack, ack));
-    }
-
     /**
      * @param message
      */

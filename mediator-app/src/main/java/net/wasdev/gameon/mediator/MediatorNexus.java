@@ -18,7 +18,6 @@ package net.wasdev.gameon.mediator;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,6 +26,8 @@ import java.util.logging.Level;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import javax.json.Json;
+import javax.json.JsonObject;
 
 import net.wasdev.gameon.mediator.RoutedMessage.FlowTarget;
 import net.wasdev.gameon.mediator.room.RoomMediator;
@@ -59,10 +60,10 @@ public class MediatorNexus  {
     MediatorBuilder mediatorBuilder;
 
     // UserId to ClientMediators (client websocket clientMediators)
-    protected final HashMap<String, ClientMediatorPod> clientMap = new HashMap<>();
+    protected final ConcurrentHashMap<String, ClientMediatorPod> clientMap = new ConcurrentHashMap<>();
 
     // Room Id to list of MediatorPods
-    protected final HashMap<String, PlayersByRoom> roomClients = new HashMap<>();
+    protected final ConcurrentHashMap<String, PodsByRoom> roomClients = new ConcurrentHashMap<>();
 
     /**
      * Set the builder used by the nexus.
@@ -142,11 +143,11 @@ public class MediatorNexus  {
         return clientMap.computeIfAbsent(playerSession.getUserId(), k -> new ClientMediatorPod(playerSession.getUserId()));
     }
 
-    private PlayersByRoom getCreatePlayerList(String roomId) {
-        return roomClients.computeIfAbsent(roomId, k -> new PlayersByRoom(roomId));
+    private PodsByRoom getCreatePlayerList(String roomId) {
+        return roomClients.computeIfAbsent(roomId, k -> new PodsByRoom(roomId));
     }
 
-    private PlayersByRoom removeDeleteEmptyPlayerList(String roomId, ClientMediatorPod pod) {
+    private PodsByRoom removeDeleteEmptyPlayerList(String roomId, ClientMediatorPod pod) {
         if ( roomId != null ) {
             return roomClients.computeIfPresent(roomId, (k,v) -> v.remove(pod));
         }
@@ -202,6 +203,7 @@ public class MediatorNexus  {
         private synchronized void join(ClientMediator playerSession, String newRoomId, String lastMessage) {
             String targetId = newRoomId;
             boolean joinRoom = clientMediators.isEmpty(); // were we first?
+            boolean helloInstead = joinRoom && isEmptyBookmark(lastMessage);
 
             clientMediators.add(playerSession);
             primary = clientMediators.iterator().next(); // make sure we have a primary
@@ -211,12 +213,14 @@ public class MediatorNexus  {
                 targetId = Constants.FIRST_ROOM;
 
             if ( room == null ) {
-                // create new room mediator
+                // create new room mediator: we'te the first in
                 room = mediatorBuilder.findMediatorForRoom(playerSession, targetId);
                 playerSession.setRoomMediator(room, false);
+                sendClientAck(playerSession);
             } else if ( targetId.equals(room.getId())) {
-                // easy, no conflicts.
+                // easy, no conflicts, just join the existing session
                 playerSession.setRoomMediator(room, false);
+                sendClientAck(playerSession);
             } else {
                 // TODO & conflict: existing clientMediators are somewhere different than new
                 // session: which is the right value? the one that came in or the (possibly older)
@@ -225,22 +229,28 @@ public class MediatorNexus  {
                 // For now: just make sure everyone is in the same room, and don't worry about
                 // the new arrival.
                 clientMediators.forEach(s -> s.setRoomMediator(room, true));
+                sendClientAck(null); // send to all
             }
 
-            playerSession.sendClientAck();
-
             // Update the players-by-room index to contain this player
-            PlayersByRoom newPlayers = getCreatePlayerList(targetId);
+            PodsByRoom newPlayers = getCreatePlayerList(targetId);
             newPlayers.add(this);
 
-            // join the room if we were the first session.
-            if ( joinRoom ) {
+            // Specific to the joining session:
+            if ( helloInstead ) {
+                Log.log(Level.FINER, playerSession, "HELLO {0} {1}", userId, room.getId());
+                room.hello(this, false);
+            } else if ( joinRoom ) {
                 Log.log(Level.FINER, playerSession, "JOIN {0} {1}", userId, room.getId());
                 room.join(this, lastMessage);
             } else {
                 playerSession.sendToClient(RoutedMessage.createSimpleEventMessage(FlowTarget.player, userId,
                         Constants.EVENTMSG_REJOIN_ADVENTURE));
             }
+        }
+
+        private boolean isEmptyBookmark(String lastMessage) {
+            return ( lastMessage == null || lastMessage.isEmpty() || "0".equals(lastMessage) );
         }
 
         private synchronized void transition(ClientMediator playerSession, String fromRoomId, String targetRoomId) {
@@ -261,12 +271,14 @@ public class MediatorNexus  {
                         Constants.EVENTMSG_ALREADY_THERE));
             } else if ( currentId.equals(fromRoomId) ) {
                 RoomMediator newRoom = mediatorBuilder.findMediatorForRoom(playerSession, toRoomId);
-                performSwitch(playerSession, newRoom);
+                performSwitch(newRoom);
             } else  {
                 Log.log(Level.WARNING, playerSession, "{0} could not be moved. pod={1}, expected={2}, new={3}",
                         userId, currentId, fromRoomId, toRoomId);
 
-                playerSession.sendClientAck();
+                // For now: Make sure the caller is in the right place
+                playerSession.setRoomMediator(room, true);
+                sendClientAck(playerSession);
 
                 // if the clients aren't in the old location, and they aren't in the new location, bail
                 // caller will catch
@@ -279,8 +291,7 @@ public class MediatorNexus  {
 
         private synchronized void transitionViaExit(ClientMediator playerSession, String fromRoomId, String direction) {
             if ( room == null ) {
-                // create a mediator for where they are...
-                join(playerSession, playerSession.getUserId(), "");
+                join(playerSession, fromRoomId, "");
                 return;
             }
 
@@ -288,12 +299,14 @@ public class MediatorNexus  {
 
             if ( currentId.equals(fromRoomId) ) {
                 RoomMediator newRoom = mediatorBuilder.findMediatorForExit(playerSession, room, direction);
-                performSwitch(playerSession, newRoom);
+                performSwitch(newRoom);
             } else {
                 Log.log(Level.WARNING, playerSession, "{0} could not be moved in direction {3}. pod={1}, expected={2}",
                         userId, currentId, fromRoomId, direction);
 
-                playerSession.sendClientAck();
+                // For now: Make sure the caller is in the right place
+                playerSession.setRoomMediator(room, true);
+                sendClientAck(playerSession);
 
                 // the player isn't where we think they are..
                 throw new ConcurrentModificationException(userId + " could not be moved."
@@ -305,10 +318,9 @@ public class MediatorNexus  {
 
         /**
          * Perform the actual transition between rooms: not synchronized, as all callers are.
-         * @param playerSession Player session that initiated the transition
          * @param newRoom
          */
-        private void performSwitch(ClientMediator playerSession, RoomMediator newRoom) {
+        private void performSwitch(RoomMediator newRoom) {
             if ( newRoom != room ) {
                 RoomMediator oldRoom = room;
 
@@ -319,14 +331,13 @@ public class MediatorNexus  {
                 room = newRoom;
 
                 // Add this pod to the index with the new room id
-                PlayersByRoom newPlayers = getCreatePlayerList(newRoom.getId());
+                PodsByRoom newPlayers = getCreatePlayerList(newRoom.getId());
                 newPlayers.add(this);
 
                 // Assign the new room mediator to each of the client mediators for this player
-                clientMediators.forEach(s -> {
-                    s.setRoomMediator(newRoom, false);
-                    s.sendClientAck();
-                });
+                clientMediators.forEach(s -> s.setRoomMediator(newRoom, false));
+
+                sendClientAck(null); // ack to all
 
                 // say hello to the room
                 newRoom.hello(this, false);
@@ -356,6 +367,28 @@ public class MediatorNexus  {
 
             // do this last, after room part
             clientMediators.remove(playerSession);
+        }
+
+        /**
+         * Compose an acknowledgement to send back to the client that contains the
+         * mediator id and information about the current room (to set up/refresh the
+         * local cache).
+         *
+         * @return ack message with mediator id
+         */
+        public void sendClientAck(ClientMediator playerSession) {
+            JsonObject ack = Json.createObjectBuilder()
+                    .add(Constants.KEY_MEDIATOR_ID, Constants.MEDIATOR_UUID)
+                    .add(Constants.KEY_ROOM_ID, room.getId())
+                    .add(Constants.KEY_ROOM_NAME, room.getName())
+                    .add(Constants.KEY_ROOM_FULLNAME, room.getFullName())
+                    .add(Constants.KEY_ROOM_EXITS, room.listExits())
+                    .add(Constants.KEY_COMMANDS, Constants.COMMON_COMMANDS).build();
+
+            if ( playerSession == null )
+                send(RoutedMessage.createMessage(FlowTarget.ack, ack));
+            else
+                playerSession.sendToClient(RoutedMessage.createMessage(FlowTarget.ack, ack));
         }
 
         @Override
@@ -413,7 +446,7 @@ public class MediatorNexus  {
         @Override
         public void sendToClients(RoutedMessage message) {
             if ("*".equals(message.getDestination()) ) {
-                PlayersByRoom list = roomClients.get(roomId);
+                PodsByRoom list = roomClients.get(roomId);
                 if ( list != null ) {
                     for( ClientMediatorPod cm : list.sessionPods ) {
                         cm.send(message);
@@ -428,13 +461,13 @@ public class MediatorNexus  {
 
         @Override
         public boolean stillConnected() {
-            PlayersByRoom list = roomClients.get(roomId);
+            PodsByRoom list = roomClients.get(roomId);
             return list != null && ! list.sessionPods.isEmpty();
         }
 
         @Override
         public Iterable<? extends UserView> getUsers() {
-            PlayersByRoom list = roomClients.get(roomId);
+            PodsByRoom list = roomClients.get(roomId);
             if ( list == null ) {
                 return Collections.emptyList();
             } else {
@@ -476,11 +509,11 @@ public class MediatorNexus  {
     /**
      * This holds references to the ClientMediatorPods for each room.
      */
-    private class PlayersByRoom {
+    private class PodsByRoom {
         final String roomId;
         Set<ClientMediatorPod> sessionPods; // iteration by rooms to
 
-        private PlayersByRoom(String roomId) {
+        private PodsByRoom(String roomId) {
             this.roomId = roomId;
             this.sessionPods = ConcurrentHashMap.newKeySet();
         }
@@ -489,11 +522,11 @@ public class MediatorNexus  {
             sessionPods.add(player);
         }
 
-        private PlayersByRoom remove(ClientMediatorPod player) {
+        private PodsByRoom remove(ClientMediatorPod player) {
             sessionPods.remove(player);
 
             if ( sessionPods.isEmpty() ) {
-                Log.log(Level.FINEST, player, "PlayersByRoom Element removed {0}", roomId);
+                Log.log(Level.FINEST, player, "PodsByRoom Element removed {0}", roomId);
 
                 // return null to auto-remove the element from the containing map
                 return null;
@@ -528,7 +561,7 @@ public class MediatorNexus  {
                 return false;
             if (getClass() != obj.getClass())
                 return false;
-            PlayersByRoom other = (PlayersByRoom) obj;
+            PodsByRoom other = (PodsByRoom) obj;
             if (!getOuterType().equals(other.getOuterType()))
                 return false;
             if (roomId == null) {
