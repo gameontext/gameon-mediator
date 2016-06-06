@@ -1,0 +1,4 @@
+/servers/*/logs
+/servers/*/workarea
+/servers/.pid
+/servers/.classCache

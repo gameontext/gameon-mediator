@@ -25,11 +25,11 @@ public class ConnectionDetails {
     String type;
     String target;
     String token;
+    boolean shared;
 
     public String getType() {
         return type;
     }
-
     public void setType(String type) {
         this.type = type;
     }
@@ -37,7 +37,6 @@ public class ConnectionDetails {
     public String getTarget() {
         return target;
     }
-
     public void setTarget(String target) {
         this.target = target;
     }
@@ -47,5 +46,12 @@ public class ConnectionDetails {
     }
     public void setToken(String token) {
         this.token = token;
+    }
+    
+    public boolean isShared() {
+        return shared;
+    }
+    public void setShared(boolean shared) {
+        this.shared = shared;
     }
 }

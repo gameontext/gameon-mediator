@@ -25,7 +25,7 @@ import java.util.logging.Logger;
  */
 public class Log {
     private final static Logger log = Logger.getLogger("net.wasdev.gameon.mediator");
-    private static final String endpoint_log_format = "%-10s: %s";
+    private static final String endpoint_log_format = ": %-8x : %s";
 
     public static void log(Level level, Object source, String message, Object... args) {
         if (log.isLoggable(level)) {
@@ -41,8 +41,8 @@ public class Log {
         }
     }
 
-    private static String getHash(Object source) {
-        return source == null ? "null" : Integer.toString(System.identityHashCode(source));
+    private static int getHash(Object source) {
+        return source == null ? 0 : System.identityHashCode(source);
     }
 
     /**

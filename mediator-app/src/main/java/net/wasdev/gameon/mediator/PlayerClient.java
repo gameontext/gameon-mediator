@@ -16,6 +16,7 @@
 package net.wasdev.gameon.mediator;
 
 import java.io.StringReader;
+import java.security.NoSuchAlgorithmException;
 import java.util.logging.Level;
 
 import javax.annotation.PostConstruct;
@@ -91,12 +92,12 @@ public class PlayerClient {
      */
     @PostConstruct
     public void initClient() {
-        try{
-            if ( playerLocation == null ) {
-                Log.log(Level.SEVERE, this, "Player client can not be initialized, 'playerUrl' is not defined");
-                throw new IllegalStateException("Unable to initialize PlayerClient");
-            }
+        if ( playerLocation == null ) {
+            Log.log(Level.SEVERE, this, "Player client can not be initialized, 'playerUrl' is not defined");
+            throw new IllegalStateException("Unable to initialize PlayerClient");
+        }
 
+        try{
             Client client;
             ClientBuilder builder = ClientBuilder.newBuilder().sslContext(SSLContext.getDefault());
             if("development".equals(System.getenv("MAP_PLAYER_MODE"))){
@@ -105,8 +106,8 @@ public class PlayerClient {
             client = builder.build().register(JsonProvider.class);
 
             this.root = client.target(playerLocation);
-        }catch(Exception e){
-            throw new RuntimeException(e);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("Unable to initialize PlayerClient without SSL support", e);
         }
         Log.log(Level.FINER, this, "Player client initialized with {0}", playerLocation);
     }

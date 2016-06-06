@@ -15,48 +15,49 @@
  *******************************************************************************/
 package net.wasdev.gameon.mediator.room;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 import net.wasdev.gameon.mediator.MapClient;
 import net.wasdev.gameon.mediator.MediatorNexus;
+import net.wasdev.gameon.mediator.models.RoomInfo;
 import net.wasdev.gameon.mediator.models.Site;
 
-public class EmptyRoom extends AbstractRoomMediator {
-
-    public static final String EMPTY_ROOMNAME = "emptyRoom";
-    public static final String EMPTY_FULLNAME = "Empty Room";
-
-    static final List<String> EMTPY_ROOMS = Collections.unmodifiableList(Arrays.asList(
-            "Said your name, in an empty room",
-            "Is that... padding on the walls?",
-            "The center of the room is completely empty",
-            "Nothing even remotely interesting is happening in here",
-            "This room looks suspiciously like a bunch of other rooms; it's like they're all the same."));
+public class UnknownRoom extends AbstractRoomMediator {
     
-    public EmptyRoom(MediatorNexus.View nexus, MapClient mapClient, Site site) {
-        super(nexus, mapClient, site);
+    public static final String UNKNOWN_NAME = "unknown";
+    public static final String UNKNOWN_FULLNAME = "Unknown site";
+    public static final String UNKNOWN_DESCRIPTION = "Operator here: We're sorry, but we have no idea where you are. `/sos` is your best option";
+    
+    public UnknownRoom(MediatorNexus.View nexus, MapClient mapClient, String id) {
+        super(nexus, mapClient, new Site(id));
     }
 
     @Override
     public String getName() {
-        return EMPTY_ROOMNAME;
+        return UNKNOWN_NAME;
     }
 
     @Override
     public String getFullName() {
-        return EMPTY_FULLNAME;
+        return UNKNOWN_FULLNAME;
     }
 
     @Override
     public String getDescription() {
-        int index = RoomUtils.random.nextInt(EMTPY_ROOMS.size());
-        return EMTPY_ROOMS.get(index);
+        return UNKNOWN_DESCRIPTION;
     }
     
     @Override
     public Type getType() {
-        return Type.EMPTY;
+        return Type.UNKNOWN;
+    }
+    
+    @Override
+    public void updateInformation(Site site) {
+        super.exits = site.getExits();
+        roomInfo = site.getInfo();
+    }
+    
+    @Override
+    public boolean sameConnectionDetails(RoomInfo info) {
+        return info == null;
     }
 }

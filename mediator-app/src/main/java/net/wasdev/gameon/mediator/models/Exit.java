@@ -37,23 +37,29 @@ public class Exit {
             this.fullName = targetSite.getInfo().getFullName();
             this.connectionDetails = targetSite.getInfo().getConnectionDetails();
 
-            // Note the direction flip. Assume we're in a room,
-            // and there is a room to the North:
-            // To build the North _EXIT_ (of the South room), we're
-            // getting the South _DOOR_ (of the North room).
-            switch(direction) {
-                case "N" :
-                    this.door = targetSite.getInfo().getDoors().getS();
-                    break;
-                case "S" :
-                    this.door = targetSite.getInfo().getDoors().getN();
-                    break;
-                case "E" :
-                    this.door = targetSite.getInfo().getDoors().getW();
-                    break;
-                case "W" :
-                    this.door = targetSite.getInfo().getDoors().getE();
-                    break;
+            if ( targetSite.getInfo().getDoors() != null ) {
+                switch(direction.toLowerCase()) {
+                    case "n" :
+                        this.door = targetSite.getInfo().getDoors().getN();
+                        break;
+                    case "s" :
+                        this.door = targetSite.getInfo().getDoors().getS();
+                        break;
+                    case "e" :
+                        this.door = targetSite.getInfo().getDoors().getE();
+                        break;
+                    case "w" :
+                        this.door = targetSite.getInfo().getDoors().getW();
+                        break;
+                    case "u" :
+                        this.door = targetSite.getInfo().getDoors().getU();
+                        break;
+                    case "d" :
+                        this.door = targetSite.getInfo().getDoors().getD();
+                        break;
+                    default: 
+                        throw new IllegalArgumentException("Unknown direction for the exit: " + direction);
+                }
             }
 
             // Really generic. They gave us nothing interesting.
@@ -112,5 +118,17 @@ public class Exit {
 
     public void setConnectionDetails(ConnectionDetails connectionDetails) {
         this.connectionDetails = connectionDetails;
+    }
+
+    @Override
+    public String toString()  {
+        StringBuilder sb = new StringBuilder();
+        sb.append("class Exit {");
+        sb.append(" id: ").append(id);
+        sb.append(", name: ").append(name);
+        sb.append(", fullName: ").append(fullName);
+        sb.append(", door: ").append(door);
+        sb.append("}");
+        return sb.toString();
     }
 }

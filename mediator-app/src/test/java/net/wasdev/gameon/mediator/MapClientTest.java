@@ -19,8 +19,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 
 import javax.ws.rs.client.Invocation.Builder;
 import javax.ws.rs.client.WebTarget;
@@ -34,6 +36,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import mockit.Expectations;
+import mockit.Mock;
+import mockit.MockUp;
 import mockit.Mocked;
 import mockit.integration.junit4.JMockit;
 import net.wasdev.gameon.mediator.models.Site;
@@ -48,7 +52,21 @@ public class MapClientTest {
     MapClient mapClient = new MapClient();
     
     @Before
-    public void setUp() {
+    public void setup() {
+        
+        new MockUp<Log>()
+        {
+            @Mock
+            public void log(Level level, Object source, String msg, Object[] params) {
+                System.out.println("Log: " + MessageFormat.format(msg, params));
+            }
+            
+            @Mock
+            public void log(Level level, Object source, String msg, Throwable thrown) {
+                System.out.println("Log: " + msg + ": " + thrown.getMessage());
+                thrown.printStackTrace(System.out);
+            }
+        };
 
         new Expectations() {{
             target.request(new String[] {MediaType.APPLICATION_JSON}); returns(builder);

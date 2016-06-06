@@ -1,5 +1,6 @@
 apply plugin: 'war'
 apply plugin: 'eclipse-wtp'
+apply plugin: 'jacoco'
 
 sourceCompatibility = 1.8
 
@@ -20,9 +21,9 @@ dependencies {
 
     compile group:'io.jsonwebtoken', name:'jjwt', version:'0.5.1'
     runtime 'org.slf4j:slf4j-jdk14:1.7.13'
-    
+
     compile 'com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider:2.2.2'
-    
+
     jmockit 'org.jmockit:jmockit:1.22'
     testCompile 'junit:junit:4.12'
     testRuntime 'org.glassfish:javax.json:1.0.4'
@@ -30,6 +31,19 @@ dependencies {
 
 test {
    jvmArgs "-javaagent:${configurations.jmockit.singleFile.absolutePath}"
+}
+
+// Keep test and application binaries separate
+eclipse.classpath.file {
+	withXml { xml ->
+    	def node = xml.asNode()
+
+    	Node src = node.find {it.@path == "src/main/java"}
+  		src.@output ="bin/main"
+
+    	Node testSrc = node.find {it.@path == "src/test/java"}
+  		testSrc.@output ="bin/test"
+	}
 }
 
 // Set the Eclipse facets to use 3.1 of the Dynamic Web Module which requires Java 1.7 (at least)

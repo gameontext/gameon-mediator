@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *******************************************************************************/
-package net.wasdev.gameon.mediator.auth;
+package org.gameontext.signed;
 
 import java.security.Key;
 import java.security.cert.Certificate;
@@ -25,7 +25,6 @@ import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureException;
-import net.wasdev.gameon.mediator.Log;
 
 /**
  * Common class for handling JSON Web Tokens
@@ -34,18 +33,18 @@ import net.wasdev.gameon.mediator.Log;
  *
  */
 
-public class JWT {
+public class SignedJWT {
     private final AuthenticationState state;
     private FailureCode code = FailureCode.NONE;
 
     private String token = null;
     private Jws<Claims> jwt = null;
 
-    public JWT(Certificate cert, String... sources) {
+    public SignedJWT(Certificate cert, String... sources) {
         state = processSources(cert.getPublicKey(), sources);
     }
 
-    public JWT(Key key, String... sources) {
+    public SignedJWT(Key key, String... sources) {
         state = processSources(key, sources);
     }
 
@@ -58,8 +57,8 @@ public class JWT {
     public enum FailureCode {
         NONE("ok"),
         MISSING_JWT("JWT not found in header or query string"),
-        BAD_SIGNATURE("JWT did NOT validate ok, bad signature."),
-        EXPIRED("JWT did NOT validate ok, jwt had expired");
+        BAD_SIGNATURE("Bad signature."),
+        EXPIRED("Expired token");
 
         final String reason;
 
@@ -88,14 +87,18 @@ public class JWT {
                 code = FailureCode.NONE;
             } catch (MalformedJwtException | SignatureException e) {
                 code = FailureCode.BAD_SIGNATURE;
-                Log.log(Level.WARNING, this, code.getReason(), token);
+                SignedRequestFeature.writeLog(Level.WARNING, this, "JWT has a bad signature {0}. {1}", e.getMessage(), token);
             } catch (ExpiredJwtException e) {
                 code = FailureCode.EXPIRED;
-                Log.log(Level.WARNING, this, code.getReason());
+                SignedRequestFeature.writeLog(Level.WARNING, this, "JWT has expired {0}. {1}", e.getMessage(), token);
             }
         }
 
         return state;
+    }
+
+    public boolean isValid() {
+        return state == AuthenticationState.PASSED;
     }
 
     public AuthenticationState getState() {
@@ -113,6 +116,4 @@ public class JWT {
     public Claims getClaims() {
         return jwt.getBody();
     }
-
-
 }

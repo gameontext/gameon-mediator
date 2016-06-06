@@ -17,6 +17,7 @@ package net.wasdev.gameon.mediator;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
@@ -33,9 +34,8 @@ import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import net.wasdev.gameon.mediator.auth.GameOnHeaderAuth;
-import net.wasdev.gameon.mediator.auth.GameOnHeaderAuthFilter;
-import net.wasdev.gameon.mediator.models.Exits;
+import org.gameontext.signed.SignedClientRequestFilter;
+
 import net.wasdev.gameon.mediator.models.Site;
 
 /**
@@ -73,7 +73,7 @@ public class MapClient {
      */
     @Resource(lookup = "mapApiKey")
     String querySecret;
-    
+
     /**
      * The system id, that we use when making our map queries.
      * 
@@ -91,15 +91,12 @@ public class MapClient {
      */
     private WebTarget queryRoot;
 
-    /** Last check for the mediator-owned/created First Room exits */
-    long lastCheck;
-
-    /** Cached exits for first room */
-    Exits firstRoomExits = new Exits();
+    /** Cache of retrieved room exits */
+    private ConcurrentHashMap<String, SiteCache> roomCache = new ConcurrentHashMap<>();
 
     /**
      * The {@code @PostConstruct} annotation indicates that this method should
-     * be called immediately after the {@code ConciergeClient} is instantiated
+     * be called immediately after the {@code MapClient} is instantiated
      * with the default no-argument constructor.
      *
      * @see PostConstruct
@@ -118,14 +115,19 @@ public class MapClient {
         }
 
         Client queryClient = ClientBuilder.newClient().register(JsonProvider.class);
-        
+
         //add our shared secret so all our queries come from the system id
-        queryClient.register(new GameOnHeaderAuthFilter(SYSTEM_ID, querySecret));
+        queryClient.register(new SignedClientRequestFilter(SYSTEM_ID, querySecret));
 
         // create the jax-rs 2.0 client
         this.queryRoot = queryClient.target(mapLocation);
 
         Log.log(Level.FINER, this, "Map client initialized with url {0}, system-id {1}", mapLocation, SYSTEM_ID);
+    }
+
+    public List<Site> getSystemRooms() {
+        WebTarget target = this.queryRoot.queryParam("owner", SYSTEM_ID);
+        return getSites(target);
     }
 
     public List<Site> getRoomsByOwner(String ownerId) {
@@ -152,15 +154,13 @@ public class MapClient {
      * @see #getRoomList(WebTarget)
      */
     public Site getSite() {
-        WebTarget target = this.queryRoot.path(Constants.FIRST_ROOM);
-        return getSite(target);
+        return getSite(Constants.FIRST_ROOM);
     }
 
     /**
      * Construct an outbound {@code WebTarget} that builds on the root
      * {@code WebTarget#path(String)} to add the path segment required to
-     * request the Site a given room (<code>{roomId}</code>
-     * ).
+     * request the Site for a given room (<code>{roomId}</code>).
      *
      * @param roomId
      *            The specific room to find the site for
@@ -172,8 +172,23 @@ public class MapClient {
      * @see WebTarget#resolveTemplate(String, Object)
      */
     public Site getSite(String roomId) {
-        WebTarget target = this.queryRoot.path("{roomId}").resolveTemplate("roomId", roomId);
-        return getSite(target);
+        SiteCache sc = roomCache.get(roomId);
+        if ( sc == null ) {
+            sc = new SiteCache();
+        }
+
+        long now = System.nanoTime();
+        if ( sc.site == null || sc.refresh(now) ) {
+            WebTarget target = this.queryRoot.path(roomId);
+            Site ns = getSite(roomId, target);
+            if ( ns != null ) {
+                sc.update(ns);
+                roomCache.put(roomId, sc);
+                return ns;
+            }
+        }
+
+        return sc.site;
     }
 
     /**
@@ -198,11 +213,11 @@ public class MapClient {
 
         Client client = ClientBuilder.newClient().register(JsonProvider.class);
 
-        //use filter because this request has no body..
-        GameOnHeaderAuth apikey = new GameOnHeaderAuthFilter(userid, secret);
+        // use the player's shared secret for this operation, not ours
+        SignedClientRequestFilter apikey = new SignedClientRequestFilter(userid, secret);
         client.register(apikey);
 
-        WebTarget target = client.target(mapLocation).path("{roomId}").resolveTemplate("roomId", roomId);
+        WebTarget target = client.target(mapLocation).resolveTemplate("roomId", roomId).path("{roomId}");
 
         Log.log(Level.FINER, this, "making request to {0} for room", target.getUri().toString());
         Response r = null;
@@ -232,9 +247,6 @@ public class MapClient {
     }
 
     /**
-     * Invoke the provided {@code WebTarget}, and resolve/parse the result into
-     * a {@code Site} that the caller can use to create a new connection to the
-     * target room.
      *
      * @param target
      *            {@code WebTarget} that includes the required parameters to
@@ -264,7 +276,7 @@ public class MapClient {
             }
 
             // The return code indicates something went wrong, but it wasn't bad enough to cause an exception
-            return Collections.emptyList();
+            return Collections.emptyList();        
         } catch (ResponseProcessingException rpe) {
             Response response = rpe.getResponse();
             Log.log(Level.FINER, this, "Exception fetching room list uri: {0} resp code: {1} ",
@@ -276,6 +288,7 @@ public class MapClient {
         } catch (WebApplicationException ex) {
             Log.log(Level.FINEST, this, "Exception fetching room list (" + target.getUri().toString() + ")", ex);
         }
+
         // Sadly, badness happened while trying to get the endpoints
         return Collections.emptyList();
     }
@@ -293,7 +306,7 @@ public class MapClient {
      * @return A populated {@code Site}, or null if the request
      *         failed.
      */
-    protected Site getSite(WebTarget target) {
+    protected Site getSite(String roomId, WebTarget target) {
         Log.log(Level.FINER, this, "making request to {0} for room", target.getUri().toString());
         Response r = null;
         try {
@@ -302,7 +315,11 @@ public class MapClient {
                 Site site = r.readEntity(Site.class);
                 return site;
             }
-            // Sadly, no endpoints found!
+            if ( r.getStatus() == 404 ) {
+                // The room doesn't exist anymore.
+                roomCache.remove(roomId);
+            }
+
             return null;
         } catch (ResponseProcessingException rpe) {
             Response response = rpe.getResponse();
@@ -320,24 +337,25 @@ public class MapClient {
     }
 
     /**
-     * First Room lives in the mediator. We need to either regularly fetch, or have
-     * this list of exits updated. First room changes per player (to determine
-     * what messages to show), but exit checking does not need to be per player.
+     * TODO: Contents of this cache can be maintained via push
+     * when room events start arriving: that could change our timing,
+     * or how/when the entries expire such that we re-lookup.
      *
-     * @return Most current exits for the first room
      */
-    public Exits getFirstRoomExits() {
-        long now = System.nanoTime();
-        if ( lastCheck == 0 || now - lastCheck > TimeUnit.SECONDS.toNanos(30) ) {
-            try {
-                Site firstRoom = getSite();
-                firstRoomExits = firstRoom.getExits();
-                lastCheck = now;
-            } catch(Exception e) {
-                Log.log(Level.WARNING, this, "Unable to retrieve exits for first room, will continue with old values", e);
-            }
+    static class SiteCache {
+        /** Last check of the assigned exits for the room */
+        long lastCheck = 0;
+
+        /** Cached site */
+        Site site = null;
+
+        public boolean refresh(long now) {
+            return ( now - lastCheck > TimeUnit.SECONDS.toNanos(5) );
         }
 
-        return firstRoomExits;
+        public void update(Site ns) {
+            lastCheck = System.nanoTime();
+            site = ns;
+        }
     }
 }

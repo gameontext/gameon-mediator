@@ -39,6 +39,16 @@ public class Site {
         this.id = exit.id;
         this.info = new RoomInfo(exit);
     }
+    
+    public Site(Exit sourceExit, Exits fallbackExits) {
+        this.id = sourceExit.id;
+        this.info = new RoomInfo(sourceExit);
+        this.exits = fallbackExits;
+    }
+
+    public Site(String id) {
+        this.id = id;
+    }
 
     public RoomInfo getInfo() {
         return info;

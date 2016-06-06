@@ -111,7 +111,7 @@ public class Exits {
     }
 
     @JsonIgnore
-    public JsonObject toJson() {
+    public JsonObject toSimpleJsonList() {
 
         JsonObjectBuilder content = Json.createObjectBuilder();
         if ( n != null) {
