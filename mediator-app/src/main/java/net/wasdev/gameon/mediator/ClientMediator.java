@@ -124,10 +124,12 @@ public class ClientMediator {
 
     public void handleMessage(RoutedMessage message) {
         Log.log(Level.FINEST, this, "handleMessage -- {0}", message);
-        if ( message.isSOS() ) {
-            switchRooms(message);
-        } else if ( roomMediator != null ) {
-            roomMediator.sendToRoom(message);
+        if ( roomMediator != null ) {
+            if ( message.isSOS() ) {
+                switchRooms(message);
+            } else {
+                roomMediator.sendToRoom(message);
+            }
         }
     }
 

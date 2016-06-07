@@ -18,7 +18,6 @@ package net.wasdev.gameon.mediator;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -162,7 +161,6 @@ public class MediatorNexus  {
     public class ClientMediatorPod implements UserView {
         final String userId;
         final Set<ClientMediator> clientMediators;
-        volatile ClientMediator primary;
         volatile String userName;
         volatile RoomMediator room;
 
@@ -186,9 +184,7 @@ public class MediatorNexus  {
          * @param message
          */
         private void send(RoutedMessage message) {
-            ClientMediator target = primary;
-            if ( target != null )
-                target.sendToClient(message);
+            clientMediators.forEach(s -> s.sendToClient(message));
         }
 
         /**
@@ -207,8 +203,7 @@ public class MediatorNexus  {
                     userId, targetId, joinRoom, helloInstead, room);
 
             clientMediators.add(playerSession);
-            primary = clientMediators.iterator().next(); // make sure we have a primary
-            userName = primary.getUserName();
+            userName = playerSession.getUserName();
 
             if ( targetId == null || targetId.isEmpty() )
                 targetId = Constants.FIRST_ROOM;
@@ -217,11 +212,11 @@ public class MediatorNexus  {
                 // create new room mediator: we'te the first in
                 room = mediatorBuilder.findMediatorForRoom(playerSession, targetId);
                 playerSession.setRoomMediator(room, false);
-                sendClientAck(playerSession);
+                playerSession.sendToClient(clientAck());
             } else if ( targetId.equals(room.getId())) {
                 // easy, no conflicts, just join the existing session
                 playerSession.setRoomMediator(room, false);
-                sendClientAck(playerSession);
+                playerSession.sendToClient(clientAck());
             } else {
                 // TODO & conflict: existing clientMediators are somewhere different than new
                 // session: which is the right value? the one that came in or the (possibly older)
@@ -229,8 +224,11 @@ public class MediatorNexus  {
 
                 // For now: just make sure everyone is in the same room, and don't worry about
                 // the new arrival.
-                clientMediators.forEach(s -> s.setRoomMediator(room, true));
-                sendClientAck(null); // send to all
+                RoutedMessage ack = clientAck(); // send to all
+                clientMediators.forEach(s -> {
+                    s.setRoomMediator(room, true);
+                    s.sendToClient(ack);
+                });
             }
 
             // Update the players-by-room index to contain this player
@@ -285,7 +283,7 @@ public class MediatorNexus  {
 
                 // For now: Make sure the caller is in the right place
                 playerSession.setRoomMediator(room, true);
-                sendClientAck(playerSession);
+                playerSession.sendToClient(clientAck());
 
                 // if the clients aren't in the old location, and they aren't in the new location, bail
                 // caller will catch
@@ -319,7 +317,7 @@ public class MediatorNexus  {
 
                 // For now: Make sure the caller is in the right place
                 playerSession.setRoomMediator(room, true);
-                sendClientAck(playerSession);
+                playerSession.sendToClient(clientAck());
 
                 // the player isn't where we think they are..
                 throw new ConcurrentModificationException(userId + " could not be moved."
@@ -340,21 +338,24 @@ public class MediatorNexus  {
             if ( newRoom != room ) {
                 RoomMediator oldRoom = room;
 
+                // Add this pod to the index with the new room id
+                PodsByRoom newPlayers = getCreatePlayerList(newRoom.getId());
+                newPlayers.add(this);
+
                 // remove this pod from the old room index
                 oldRoom.goodbye(this);
                 oldRoom.disconnect();
                 removeDeleteEmptyPlayerList(oldRoom.getId(), this);
 
+                // assign the new room
                 room = newRoom;
 
-                // Add this pod to the index with the new room id
-                PodsByRoom newPlayers = getCreatePlayerList(newRoom.getId());
-                newPlayers.add(this);
-
                 // Assign the new room mediator to each of the client mediators for this player
-                clientMediators.forEach(s -> s.setRoomMediator(newRoom, false));
-
-                sendClientAck(null); // ack to all
+                RoutedMessage ack = clientAck(); 
+                clientMediators.forEach(s -> {
+                    s.setRoomMediator(newRoom, false);
+                    s.sendToClient(ack);
+                });
 
                 // say hello to the room
                 newRoom.hello(this, false);
@@ -375,10 +376,6 @@ public class MediatorNexus  {
                 removeDeleteEmptyPlayerList(room.getId(), this);
 
                 clientMap.remove(userId); // Auto-cleanup! We're empty!
-                primary = null;
-            } else {
-                Iterator<ClientMediator> i = clientMediators.iterator();
-                primary = i.hasNext() ? i.next() : null; // make sure we have a primary
             }
 
             // do this last, after room part
@@ -392,7 +389,7 @@ public class MediatorNexus  {
          *
          * @return ack message with mediator id
          */
-        public void sendClientAck(ClientMediator playerSession) {
+        public RoutedMessage clientAck() {
             JsonObject ack = Json.createObjectBuilder()
                     .add(Constants.KEY_MEDIATOR_ID, Constants.MEDIATOR_UUID)
                     .add(Constants.KEY_ROOM_ID, room.getId())
@@ -400,11 +397,8 @@ public class MediatorNexus  {
                     .add(Constants.KEY_ROOM_FULLNAME, room.getFullName())
                     .add(Constants.KEY_ROOM_EXITS, room.listExits())
                     .add(Constants.KEY_COMMANDS, Constants.COMMON_COMMANDS).build();
-
-            if ( playerSession == null ) // send to all
-                send(RoutedMessage.createMessage(FlowTarget.ack, ack));
-            else
-                playerSession.sendToClient(RoutedMessage.createMessage(FlowTarget.ack, ack));
+            
+            return RoutedMessage.createMessage(FlowTarget.ack, ack);
         }
 
         @Override

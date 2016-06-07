@@ -211,8 +211,6 @@ public class RoutedMessage {
      */
     private JsonObject jsonData = null;
 
-    private boolean broadcast = false;
-
     /**
      * Parse the source message to pull off the routing data. Routing data has
      * two or three parts:
@@ -274,7 +272,6 @@ public class RoutedMessage {
         this.flowTarget = flowTarget;
         this.destination = destination;
         this.messageData = message;
-        this.broadcast = "*".equals(destination);
     }
 
     /**
@@ -291,14 +288,6 @@ public class RoutedMessage {
         this.flowTarget = flowTarget;
         this.destination = destination;
         this.jsonData = jsonData;
-    }
-
-    public boolean isBroadcast() {
-        return broadcast;
-    }
-
-    public void setBroadcast(boolean broadcast) {
-        this.broadcast = broadcast;
     }
 
     /**

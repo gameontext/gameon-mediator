@@ -89,22 +89,16 @@ class WSDrain implements Runnable, Drain {
                 RoutedMessage message = pendingMessages.take();
                 
                 if ( wsToRoom ) {
-                    Log.log(Level.FINEST, this, "C    M -> R : {0}", message);
+                    Log.log(Level.FINEST, this, "C    M -> R : {0} {1}", message, targetSession.getId());
                 } else {
-                    Log.log(Level.FINEST, this, "C <- M    R : {0}", message);
+                    Log.log(Level.FINEST, this, "C <- M    R : {0} {1}", message, targetSession.getId());
                 }
                 
-
                 try {
-                    if ( message.isBroadcast() ) {
-                        // difficult to put the cat back into the bag with a broadcast
-                        WSUtils.broadcast(targetSession, message);
-                    } else {
-                        if (!WSUtils.sendMessage(targetSession, message)) {
-                            // If the send failed, tuck the message back in the
-                            // head of the queue.
-                            pendingMessages.offerFirst(message);
-                        }
+                    if (!WSUtils.sendMessage(targetSession, message)) {
+                        // If the send failed, tuck the message back in the
+                        // head of the queue.
+                        pendingMessages.offerFirst(message);
                     }
                 } catch (IllegalStateException e) {
                     // write not allowed because another in progress. Try again.
