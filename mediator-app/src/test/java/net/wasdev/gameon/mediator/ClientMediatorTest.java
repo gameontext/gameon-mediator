@@ -54,25 +54,25 @@ public class ClientMediatorTest {
     static final String signedJwt = "testJwt";
     static final String userId = "dummy.DevUser";
     static final String userName = "DevUser";
-    
+
     static final String roomId = "roomId";
     static final String roomName = "roomName";
     static final String roomFullName = "roomFullName";
-    
+
     @Rule
     public TestName testName = new TestName();
-    
+
     @Before
     public void before() {
         System.out.println("-- " + testName.getMethodName() + " --------------------------------------");
-        
+
         new MockUp<Log>()
         {
             @Mock
             public void log(Level level, Object source, String msg, Object[] params) {
                 System.out.println("Log: " + MessageFormat.format(msg, params));
             }
-            
+
             @Mock
             public void log(Level level, Object source, String msg, Throwable thrown) {
                 System.out.println("Log: " + msg + ": " + thrown.getMessage());
@@ -83,7 +83,7 @@ public class ClientMediatorTest {
 
     @Test
     public void testReadyNoSavedRoom(@Mocked RoomMediator room) {
-        
+
         ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt);
 
         String msgTxt = "ready,{}";
@@ -94,17 +94,61 @@ public class ClientMediatorTest {
             nexus.join(mediator, null, "");
         }};
 
-        mediator.ready(message); 
+        mediator.ready(message);
 
         new Verifications() {{
             nexus.join(mediator, null, ""); times = 1;
             drain.send((RoutedMessage) any); times = 0;
         }};
     }
-    
+
+    @Test
+    public void testReadyUserName(@Mocked RoomMediator room) {
+
+        ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt);
+
+        String msgTxt = "ready,{\"username\":\"TinyJamFilledMuffin\"}";
+        RoutedMessage message = new RoutedMessage(msgTxt);
+        System.out.println(message);
+
+        new Expectations() {{
+            nexus.join(mediator, null, "");
+        }};
+
+        mediator.ready(message);
+
+        new Verifications() {{
+            nexus.join(mediator, null, ""); times = 1;
+            drain.send((RoutedMessage) any); times = 0;
+        }};
+    }
+
+
+    @Test
+    public void testReadyZeroBookmark(@Mocked RoomMediator room) {
+
+        ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt);
+
+        String msgTxt = "ready,{\"bookmark\":0}";
+        RoutedMessage message = new RoutedMessage(msgTxt);
+        System.out.println(message);
+
+        new Expectations() {{
+            nexus.join(mediator, null, "0");
+        }};
+
+        mediator.ready(message);
+
+        new Verifications() {{
+            nexus.join(mediator, null, "0"); times = 1;
+            drain.send((RoutedMessage) any); times = 0;
+        }};
+    }
+
+
     @Test
     public void testReadySavedRoom(@Mocked RoomMediator room) {
-        
+
         ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt);
 
         String msgTxt = "ready,{\"roomId\": \"roomId\",\"bookmark\": \"id\"}";
@@ -122,12 +166,12 @@ public class ClientMediatorTest {
             drain.send((RoutedMessage) any); times = 0;
         }};
     }
-    
+
     @Test
     public void testSwitchRooms(@Mocked RoomMediator room1,
                                 @Mocked RoomMediator room2) throws Exception {
-        
-      Field field_roomMediator = ClientMediator.class.getDeclaredField("roomMediator"); 
+
+      Field field_roomMediator = ClientMediator.class.getDeclaredField("roomMediator");
       field_roomMediator.setAccessible(true);
 
       ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt);
@@ -146,7 +190,7 @@ public class ClientMediatorTest {
         }};
 
         mediator.sendToClient(origMessage); // playerLocation is sent to client from room
-        
+
         new Verifications() {{
             nexus.transitionViaExit(mediator, "N"); times = 1;
             List<RoutedMessage> responses = new ArrayList<>();
@@ -163,8 +207,8 @@ public class ClientMediatorTest {
     @Test
     public void testSwitchSOS(@Mocked RoomMediator room1,
                                    @Mocked RoomMediator firstRoom) throws Exception {
-        
-        Field field_roomMediator = ClientMediator.class.getDeclaredField("roomMediator"); 
+
+        Field field_roomMediator = ClientMediator.class.getDeclaredField("roomMediator");
         field_roomMediator.setAccessible(true);
 
         ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt);
@@ -179,7 +223,7 @@ public class ClientMediatorTest {
         }};
 
         mediator.handleMessage(origMessage); // playerLocation is sent to client from room
-        
+
         new Verifications() {{
             List<RoutedMessage> responses = new ArrayList<>();
 
@@ -187,20 +231,20 @@ public class ClientMediatorTest {
 
             drain.send(withCapture(responses)); // joinpart, ack
             System.out.println(responses);
-            
+
             Assert.assertEquals("Expected 1 response: "+ responses, 1, responses.size());
 
             RoutedMessage message = responses.get(0); // playerLocation is sent to client
             assertSameBody(Constants.EXIT_ELECTRIC_THUMB, message.getParsedBody());
         }};
     }
-    
-    
+
+
     @Test
     public void testSwitchNoExit(@Mocked RoomMediator room1,
                                   @Mocked RoomMediator firstRoom) throws Exception {
-        
-        Field field_roomMediator = ClientMediator.class.getDeclaredField("roomMediator"); 
+
+        Field field_roomMediator = ClientMediator.class.getDeclaredField("roomMediator");
         field_roomMediator.setAccessible(true);
 
         ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt);
@@ -217,7 +261,7 @@ public class ClientMediatorTest {
         }};
 
         mediator.sendToClient(origMessage); // playerLocation is sent to client from room
-        
+
         new Verifications() {{
             List<RoutedMessage> responses = new ArrayList<>();
 
@@ -225,7 +269,7 @@ public class ClientMediatorTest {
 
             drain.send(withCapture(responses)); // joinpart, ack
             System.out.println(responses);
-            
+
             Assert.assertEquals("Expected 1 response: "+ responses, 1, responses.size());
 
             RoutedMessage message = responses.get(0); // playerLocation is sent to client
@@ -236,8 +280,8 @@ public class ClientMediatorTest {
     @Test
     public void testSwitchTeleport(@Mocked RoomMediator room1,
                                     @Mocked RoomMediator firstRoom) throws Exception {
-        
-        Field field_roomMediator = ClientMediator.class.getDeclaredField("roomMediator"); 
+
+        Field field_roomMediator = ClientMediator.class.getDeclaredField("roomMediator");
         field_roomMediator.setAccessible(true);
 
         ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt);
@@ -248,7 +292,7 @@ public class ClientMediatorTest {
                 + "\"teleport\": true,"
                 + "\"exitId\": \"roomId\","
                 + "\"content\": \"You exit through door xyz... \"}";
-        
+
         RoutedMessage origMessage = new RoutedMessage(msgTxt);
         System.out.println(origMessage);
 
@@ -259,7 +303,7 @@ public class ClientMediatorTest {
         }};
 
         mediator.sendToClient(origMessage); // playerLocation is sent to client from room
-        
+
         new Verifications() {{
             List<RoutedMessage> responses = new ArrayList<>();
 
@@ -267,7 +311,7 @@ public class ClientMediatorTest {
 
             drain.send(withCapture(responses)); // joinpart, ack
             System.out.println(responses);
-            
+
             Assert.assertEquals("Expected 1 response: "+ responses, 1, responses.size());
 
             RoutedMessage message = responses.get(0); // playerLocation is sent to client
@@ -275,11 +319,11 @@ public class ClientMediatorTest {
         }};
     }
 
-    
+
     void assertSameBody(String expectedMessage, JsonObject body) {
         JsonReader jsonReader = Json.createReader(new StringReader(expectedMessage));
         JsonObject jsonData = jsonReader.readObject();
-        
+
         Assert.assertEquals(jsonData, body);
     }
 

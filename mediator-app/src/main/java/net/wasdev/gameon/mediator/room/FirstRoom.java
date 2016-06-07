@@ -104,9 +104,6 @@ public class FirstRoom extends AbstractRoomMediator {
             responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
                     RoomUtils.buildContentResponse("You don't see anything of interest."));
 
-        } else if (contentToLower.startsWith("/help")) {
-            responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT, buildHelpResponse());
-
         } else if (contentToLower.startsWith("/listmyrooms")) {
             processListMyRoomsCommand(userId, responseBuilder);
 

@@ -65,14 +65,14 @@ public class ConnectingRoom extends AbstractRoomMediator {
                 getDescription()));
 
         // Attempt to connect to the real deal.
-        proxy.connectRemote(true, "");
+        proxy.connectRemote(true);
      }
 
     @Override
-    public void join(MediatorNexus.UserView user, String lastMessage) {
-        super.join(user, lastMessage);
+    public void join(MediatorNexus.UserView user) {
+        super.join(user);
 
         // Attempt to connect to the real deal.
-        proxy.connectRemote(false, lastMessage);
+        proxy.connectRemote(false);
     }
 }

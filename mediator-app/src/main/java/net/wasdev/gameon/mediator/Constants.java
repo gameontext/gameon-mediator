@@ -55,7 +55,7 @@ public interface Constants {
     String PART = "{\"type\": \"joinpart\",\"content\": \"exit %s\"}";
     
     String EVENT_GOODBYE =  "{\"type\": \"event\",\"content\": {\"*\": \"%s has departed.\", \"%s\": \"%s\"}}";;
-    String EVENT_JOIN =  "{\"type\": \"event\",\"content\": {\"*\": \"%s seems to be breathing again.\", \"%s\": \"Welcome Back!\"}}";;
+    String EVENT_JOIN =  "{\"type\": \"event\",\"content\": {\"*\": \"%s seems to be breathing again.\", \"%s\": \"Welcome Back to %s!\"}}";;
     String EVENT_PART =  "{\"type\": \"event\",\"content\": {\"*\": \"%s has turned gray due to lack of activity.\", \"%s\": \"%s\"}}";;
 
     String EVENT_GENERIC = "{\"type\": \"event\",\"content\": {\"%s\": \"%s\"}}";

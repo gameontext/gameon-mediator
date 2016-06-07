@@ -6,6 +6,7 @@ import java.text.MessageFormat;
 import java.util.logging.Level;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -18,6 +19,7 @@ import net.wasdev.gameon.mediator.MapClient;
 import net.wasdev.gameon.mediator.MediatorNexus;
 import net.wasdev.gameon.mediator.PlayerClient;
 
+@Ignore
 public class RemoteRoomTest {
 
     @Mocked MediatorNexus.View nexus;

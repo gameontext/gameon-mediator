@@ -28,7 +28,7 @@ import net.wasdev.gameon.mediator.models.Site;
  *  the first delegate, either a {@link ConnectingRoom} or an {@link EmptyRoom}.
  *
  *  The {@link ConnectingRoom} and/or external events will trigger the connection to the
- *  remote room using {@link #connectRemote(boolean, String)} or {@link #updateInformation(Site)}.
+ *  remote room using {@link #connectRemote(boolean)} or {@link #updateInformation(Site)}.
  *  Once the update is complete, the {@link MediatorBuilder} will call
  *  {@link #updateComplete(RoomMediator)} to set the new delegate.
  *
@@ -136,12 +136,11 @@ public class RemoteRoomProxy implements RoomMediator {
      * Callback when the remote connection is disrupted. Go back to the
      * mediatorBuilder to start again.
      * @param roomHello
-     * @param lastMessage
      */
-    public void connectRemote(boolean roomHello, String lastMessage) {
+    public void connectRemote(boolean roomHello) {
         if ( updating.compareAndSet(false, true)) {
             Log.log(Level.FINEST, this, "RemoteRoomProxy -- connect");
-            mediatorBuilder.updateDelegate(this, delegate, userId, roomHello, lastMessage);
+            mediatorBuilder.updateDelegate(this, delegate, userId, roomHello);
         } else {
             Log.log(Level.FINEST, this, "RemoteRoomProxy -- connect in progress");
         }
@@ -177,8 +176,8 @@ public class RemoteRoomProxy implements RoomMediator {
     }
 
     @Override
-    public void join(MediatorNexus.UserView user, String lastMessage) {
-        delegate.join(user, lastMessage);
+    public void join(MediatorNexus.UserView user) {
+        delegate.join(user);
     }
 
     @Override

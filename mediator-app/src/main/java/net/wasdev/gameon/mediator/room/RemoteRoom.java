@@ -16,7 +16,6 @@
 package net.wasdev.gameon.mediator.room;
 
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import net.wasdev.gameon.mediator.Drain;
@@ -95,13 +94,14 @@ public class RemoteRoom extends AbstractRoomMediator {
     }
 
     @Override
-    public void join(MediatorNexus.UserView user, String lastMessage) {
+    public void join(MediatorNexus.UserView user) {
         if ( connection.version() > 1) {
             // Say hello to the new room!
             Log.log(Level.FINER, this, "REMOTE JOIN {0}", getId());
 
-            connection.sendToRoom(RoutedMessage.createJoin(roomId,user));
+            connection.sendToRoom(RoutedMessage.createJoin(connection.version(), roomId, user));
         } else {
+            // strip remove bookmark from v1 sessions, as they were ints instead of strings
             hello(user, false);
         }
     }
@@ -120,15 +120,13 @@ public class RemoteRoom extends AbstractRoomMediator {
 
     @Override
     public void sendToRoom(RoutedMessage message) {
-        Log.log(Level.FINE, this, "SEND... " + message);
         connection.sendToRoom(message);
     }
 
     @Override
-    public void disconnect() {
-        scheduledExecutor.schedule(() -> {
-            connection.disconnect();
-        }, 3, TimeUnit.SECONDS);
+    public synchronized void disconnect() {
+        Log.log(Level.FINE, this, "DISCONNECT... ");
+        connection.disconnect();
     }
 
     @Override

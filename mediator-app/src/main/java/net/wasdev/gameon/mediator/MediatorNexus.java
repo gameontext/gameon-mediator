@@ -186,8 +186,6 @@ public class MediatorNexus  {
          * @param message
          */
         private void send(RoutedMessage message) {
-            // ALWAYS go to all player connected clientMediators using BROADCAST! WHEEEE
-            message.setBroadcast(true);
             ClientMediator target = primary;
             if ( target != null )
                 target.sendToClient(message);
@@ -204,6 +202,9 @@ public class MediatorNexus  {
             String targetId = newRoomId;
             boolean joinRoom = clientMediators.isEmpty(); // were we first?
             boolean helloInstead = joinRoom && isEmptyBookmark(lastMessage);
+
+            Log.log(Level.FINER, this, "pre-join {0} {1} ({2}, {3}): {4}",
+                    userId, targetId, joinRoom, helloInstead, room);
 
             clientMediators.add(playerSession);
             primary = clientMediators.iterator().next(); // make sure we have a primary
@@ -242,11 +243,14 @@ public class MediatorNexus  {
                 room.hello(this, false);
             } else if ( joinRoom ) {
                 Log.log(Level.FINER, playerSession, "JOIN {0} {1}", userId, room.getId());
-                room.join(this, lastMessage);
+                room.join(this);
             } else {
                 playerSession.sendToClient(RoutedMessage.createSimpleEventMessage(FlowTarget.player, userId,
                         Constants.EVENTMSG_REJOIN_ADVENTURE));
             }
+
+            Log.log(Level.FINER, this, "post-join {0} {1} ({2}, {3}): {4}",
+                    userId, room.getId(), joinRoom, helloInstead, clientMediators);
         }
 
         private boolean isEmptyBookmark(String lastMessage) {
@@ -261,6 +265,9 @@ public class MediatorNexus  {
 
             String toRoomId = targetRoomId;
             String currentId = room.getId();
+
+            Log.log(Level.FINER, this, "pre-transition {0} {1} -> {2} ({3}): {4}",
+                    userId, fromRoomId, toRoomId, currentId, clientMediators);
 
             if ( toRoomId == null || toRoomId.isEmpty() )
                 toRoomId = Constants.FIRST_ROOM;
@@ -287,7 +294,10 @@ public class MediatorNexus  {
                         + ", expected=" + fromRoomId
                         + ", new=" + toRoomId);
             }
-        }
+
+            Log.log(Level.FINER, this, "post-transition {0} {1}: {2}",
+                    userId, room.getId(), clientMediators);
+       }
 
         private synchronized void transitionViaExit(ClientMediator playerSession, String fromRoomId, String direction) {
             if ( room == null ) {
@@ -296,6 +306,9 @@ public class MediatorNexus  {
             }
 
             String currentId = room.getId();
+
+            Log.log(Level.FINER, this, "pre-transition via exit {0} {1} -> {2} ({3}): {4}",
+                    userId, fromRoomId, direction, currentId, clientMediators);
 
             if ( currentId.equals(fromRoomId) ) {
                 RoomMediator newRoom = mediatorBuilder.findMediatorForExit(playerSession, room, direction);
@@ -314,6 +327,9 @@ public class MediatorNexus  {
                         + ", expected=" + fromRoomId
                         + ", direction=" + direction);
             }
+
+            Log.log(Level.FINER, this, "post-transition via exit {0} {1}: {2}",
+                    userId, room.getId(), clientMediators);
         }
 
         /**
@@ -326,6 +342,7 @@ public class MediatorNexus  {
 
                 // remove this pod from the old room index
                 oldRoom.goodbye(this);
+                oldRoom.disconnect();
                 removeDeleteEmptyPlayerList(oldRoom.getId(), this);
 
                 room = newRoom;
@@ -341,8 +358,6 @@ public class MediatorNexus  {
 
                 // say hello to the room
                 newRoom.hello(this, false);
-            } else {
-                newRoom.disconnect(); // clean up
             }
         }
 
@@ -351,6 +366,7 @@ public class MediatorNexus  {
             if ( clientMediators.contains(playerSession) && clientMediators.size() == 1 ) {
                 // part the room.
                 room.part(this);
+                room.disconnect();
 
                 // clean up
                 Log.log(Level.FINEST, playerSession, "ClientMediatorPod Element removed {0}", playerSession.getUserId());
@@ -385,7 +401,7 @@ public class MediatorNexus  {
                     .add(Constants.KEY_ROOM_EXITS, room.listExits())
                     .add(Constants.KEY_COMMANDS, Constants.COMMON_COMMANDS).build();
 
-            if ( playerSession == null )
+            if ( playerSession == null ) // send to all
                 send(RoutedMessage.createMessage(FlowTarget.ack, ack));
             else
                 playerSession.sendToClient(RoutedMessage.createMessage(FlowTarget.ack, ack));
@@ -436,24 +452,29 @@ public class MediatorNexus  {
      * Local rooms need a general broadcast across all
      * users in the room (empty, sick, firstroom, .. )
      */
-    public class LocalRoomView implements View {
+    public class MultiUserView implements View {
         final String roomId;
 
-        private LocalRoomView(String roomId) {
+        private MultiUserView(String roomId) {
             this.roomId = roomId;
         }
 
         @Override
         public void sendToClients(RoutedMessage message) {
+            
             if ("*".equals(message.getDestination()) ) {
                 PodsByRoom list = roomClients.get(roomId);
-                if ( list != null ) {
-                    for( ClientMediatorPod cm : list.sessionPods ) {
-                        cm.send(message);
-                    }
+                Log.log(Level.FINEST, this, "Multi-user view {0}: Send {1} to {2}", 
+                        stillConnected(), message, list);
+
+                for( ClientMediatorPod cm : list.sessionPods ) {
+                    cm.send(message);
                 }
             } else {
                 ClientMediatorPod p = clientMap.get(message.getDestination());
+                Log.log(Level.FINEST, this, "Multi-user view {0}: Send {1} to {2}", 
+                        stillConnected(), message, p);
+
                 if ( p != null )
                     p.send(message);
             }
@@ -462,17 +483,20 @@ public class MediatorNexus  {
         @Override
         public boolean stillConnected() {
             PodsByRoom list = roomClients.get(roomId);
-            return list != null && ! list.sessionPods.isEmpty();
+            if ( list == null )
+                return false;
+            
+            return list.sessionPods.isEmpty();
         }
 
         @Override
         public Iterable<? extends UserView> getUsers() {
             PodsByRoom list = roomClients.get(roomId);
-            if ( list == null ) {
+            Log.log(Level.FINEST, this, "Multi-user view: getUsers {0}", list);
+            if ( list == null )
                 return Collections.emptyList();
-            } else {
-                return list.sessionPods;
-            }
+            
+            return list.sessionPods;
         }
     }
 
@@ -481,15 +505,18 @@ public class MediatorNexus  {
      * Remote rooms have their own broadcast. The Remote room
      * should only send to the client mediator pod that is their connections.
      */
-    public class RemoteRoomView implements View {
+    public class SingleUserView implements View {
         final ClientMediatorPod connectedClients;
 
-        private RemoteRoomView(ClientMediatorPod connectedClients) {
+        private SingleUserView(ClientMediatorPod connectedClients) {
             this.connectedClients = connectedClients;
         }
 
         @Override
         public void sendToClients(RoutedMessage message) {
+            Log.log(Level.FINEST, this, "Single-user view {0}: Send {1} to {2}", 
+                    stillConnected(), message, connectedClients);
+            
             if ( stillConnected() ) {
                 connectedClients.send(message);
             }
@@ -502,7 +529,8 @@ public class MediatorNexus  {
 
         @Override
         public Iterable<? extends UserView> getUsers() {
-            return Arrays.asList(connectedClients);
+            Log.log(Level.FINEST, this, "Single-user view: getUsers {0}", connectedClients);
+           return Arrays.asList(connectedClients);
         }
     }
 
@@ -511,7 +539,7 @@ public class MediatorNexus  {
      */
     private class PodsByRoom {
         final String roomId;
-        Set<ClientMediatorPod> sessionPods; // iteration by rooms to
+        final Set<ClientMediatorPod> sessionPods; // iteration by rooms to
 
         private PodsByRoom(String roomId) {
             this.roomId = roomId;
@@ -519,10 +547,12 @@ public class MediatorNexus  {
         }
 
         private void add(ClientMediatorPod player) {
+            Log.log(Level.FINEST, this, "PodsByRoom {0}: add {1}", roomId, player);
             sessionPods.add(player);
         }
 
         private PodsByRoom remove(ClientMediatorPod player) {
+            Log.log(Level.FINEST, this, "PodsByRoom {0}: remove {1}", roomId, player);
             sessionPods.remove(player);
 
             if ( sessionPods.isEmpty() ) {
@@ -578,11 +608,11 @@ public class MediatorNexus  {
     }
 
 
-    public View getLocalView(String roomId) {
-        return new LocalRoomView(roomId);
+    public View getMultiUserView(String roomId) {
+        return new MultiUserView(roomId);
     }
 
-    public View getRemoteView(String roomId, String userId) {
-        return new RemoteRoomView(clientMap.get(userId));
+    public View getSingleUserView(String roomId, String userId) {
+        return new SingleUserView(clientMap.get(userId));
     }
 }

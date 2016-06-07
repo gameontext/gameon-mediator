@@ -108,11 +108,7 @@ public class MediatorBuilder {
             return getFirstRoomMediator(clientMediator);
         }
 
-        if ( site.getInfo() == null ) {
-            return new RemoteRoomProxy(this, clientMediator.getUserId(), site);
-        } else {
-            return new RemoteRoomProxy(this, clientMediator.getUserId(), site);
-        }
+        return new RemoteRoomProxy(this, clientMediator.getUserId(), site);
     }
 
     /**
@@ -154,7 +150,7 @@ public class MediatorBuilder {
             site = FirstRoom.getFallbackSite();
         }
 
-        return new FirstRoom(nexus.getLocalView(Constants.FIRST_ROOM),
+        return new FirstRoom(nexus.getMultiUserView(Constants.FIRST_ROOM),
                 clientMediator.getUserJwt(),
                 playerClient,
                 mapClient,
@@ -176,9 +172,9 @@ public class MediatorBuilder {
     public RoomMediator createDelegate(RemoteRoomProxy proxy, String userId, Site site) {
         Log.log(Level.FINEST, this, "Create connecting delegate: {0} {1} {2}", userId, site);
         if ( site.getInfo() == null ) {
-            return new EmptyRoom(nexus.getLocalView(site.getId()), mapClient, site);
+            return new EmptyRoom(nexus.getMultiUserView(site.getId()), mapClient, site);
         }
-        return new ConnectingRoom(proxy, nexus.getLocalView(site.getId()), mapClient, site);
+        return new ConnectingRoom(proxy, nexus.getMultiUserView(site.getId()), mapClient, site);
     }
 
     /**
@@ -200,20 +196,20 @@ public class MediatorBuilder {
 
         if ( newDelegate != currentDelegate ) {
             // update what users see of the new (delegated) location (empty, sick, remote)
-            updateUsers(newDelegate, false, "", site == null); // forward user list to remote room
+            updateUsers(newDelegate, false, site == null); // forward user list to remote room
         }
     }
 
     /**
      * Update the proxied delegate with roomHello/roomJoin. Called by {@link RemoteRoomProxy#connectRemote(boolean)}
-     * on behalf of {@link ConnectingRoom#hello(ClientMediator, boolean)} and {@link ConnectingRoom#join(ClientMediator, String)}
+     * on behalf of {@link ConnectingRoom#hello(ClientMediator, boolean)} and {@link ConnectingRoom#join(ClientMediator)}
      *
      * @param proxy
      * @param currentDelegate
      * @param userId
      * @param roomHello
      */
-    public void updateDelegate(RemoteRoomProxy proxy, RoomMediator currentDelegate, String userId, boolean roomHello, String lastMessage) {
+    public void updateDelegate(RemoteRoomProxy proxy, RoomMediator currentDelegate, String userId, boolean roomHello) {
         Log.log(Level.FINEST, this, "updateDelegate BEFORE: {0} {1} {2}", userId, currentDelegate, null);
         RoomMediator newDelegate = internalUpdateDelegate(proxy, currentDelegate, userId, null);
 
@@ -223,7 +219,7 @@ public class MediatorBuilder {
 
         if ( newDelegate != currentDelegate ) {
             // update what users see of the new (delegated) location (empty, sick, remote)
-            updateUsers(newDelegate, roomHello, lastMessage, false); // forward user list to remote room
+            updateUsers(newDelegate, roomHello, false); // forward user list to remote room
         }
     }
 
@@ -238,7 +234,7 @@ public class MediatorBuilder {
                 if ( currentDelegate.getType() == Type.UNKNOWN )
                     return currentDelegate;
 
-                return new UnknownRoom(nexus.getLocalView(roomId), mapClient, roomId);
+                return new UnknownRoom(nexus.getMultiUserView(roomId), mapClient, roomId);
             }
         }
 
@@ -273,7 +269,7 @@ public class MediatorBuilder {
         drain.setThread(threadFactory.newThread(drain));
 
         try {
-            return new RemoteRoom(nexus.getRemoteView(roomId, userId), proxy, mapClient, scheduledExecutor, site, drain);
+            return new RemoteRoom(nexus.getSingleUserView(roomId, userId), proxy, mapClient, scheduledExecutor, site, drain);
         } catch(Exception e) {
             Log.log(Level.FINEST, this, "connectRemoteDelegate: Exception connectiong to remote room", e);
         }
@@ -288,18 +284,18 @@ public class MediatorBuilder {
         }
 
         if ( type == Type.EMPTY ) {
-            return new EmptyRoom(nexus.getLocalView(site.getId()), mapClient, site);
+            return new EmptyRoom(nexus.getMultiUserView(site.getId()), mapClient, site);
         } else {
-            return new SickRoom(nexus.getLocalView(site.getId()), proxy, mapClient, scheduledExecutor, site);
+            return new SickRoom(nexus.getMultiUserView(site.getId()), proxy, mapClient, scheduledExecutor, site);
         }
     }
 
-    public void updateUsers(RoomMediator newMediator, boolean roomHello, String lastMessage, boolean recovery) {
+    public void updateUsers(RoomMediator newMediator, boolean roomHello, boolean recovery) {
         for( UserView v : newMediator.getNexusView().getUsers() ) {
             if ( recovery || roomHello ) {
                 newMediator.hello(v, recovery);
              } else {
-                 newMediator.join(v, lastMessage);
+                 newMediator.join(v);
             }
         }
     }

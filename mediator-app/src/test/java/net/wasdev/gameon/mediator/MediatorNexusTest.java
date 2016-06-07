@@ -57,15 +57,15 @@ public class MediatorNexusTest {
     static final String roomFullName = "roomFullName";
     static final JsonObject roomExits = Json.createObjectBuilder().build();
 
-    @Mocked MediatorBuilder builder;    
-    
+    @Mocked MediatorBuilder builder;
+
     @Rule
     public TestName testName = new TestName();
 
     @Before
     public void before() {
         System.out.println("-- " + testName.getMethodName() + " --------------------------------------");
-        
+
         new MockUp<Log>()
         {
             @Mock
@@ -192,7 +192,7 @@ public class MediatorNexusTest {
             client2.setRoomMediator(room1, false); times = 1;
 
             List<UserView> joins = new ArrayList<>();
-            room1.join(withCapture(joins), "previous"); times = 2; // only TWO joins. One for each client id
+            room1.join(withCapture(joins)); times = 2; // only TWO joins. One for each client id
             Assert.assertEquals("Joins: " + joins, "client1", joins.get(0).getUserId());
             Assert.assertEquals("Joins: " + joins, "client2", joins.get(1).getUserId());
 
@@ -204,8 +204,8 @@ public class MediatorNexusTest {
     }
 
     @Test
-    public void testJoinEmptyString(@Mocked ClientMediator client1,
-                                              @Mocked RoomMediator room1) {
+    public void testJoinEmptyRoomString(@Mocked ClientMediator client1,
+                                        @Mocked RoomMediator room1) {
 
         new Expectations() {{
             client1.getUserId(); result = "client1";
@@ -227,7 +227,7 @@ public class MediatorNexusTest {
             builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); times = 1;
 
             UserView join;
-            room1.join(join = withCapture(), "previous"); times = 1;
+            room1.join(join = withCapture()); times = 1;
             Assert.assertEquals("join user = " + join , "client1", join.getUserId());
             client1.setRoomMediator(room1, false); times = 2; // both calls to join
 
@@ -236,7 +236,113 @@ public class MediatorNexusTest {
             room1.part((UserView) any); times = 0;  // should not see part!
         }};
     }
-    
+
+
+    @Test
+    public void testJoinNullBookmark(@Mocked ClientMediator client1,
+                                   @Mocked RoomMediator room1) {
+
+        new Expectations() {{
+            client1.getUserId(); result = "client1";
+            room1.getId(); result = Constants.FIRST_ROOM;
+            room1.getName(); result = Constants.FIRST_ROOM;
+            room1.getFullName(); result = FirstRoom.FIRST_ROOM_FULL;
+            room1.listExits(); result = roomExits;
+            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); result = room1;
+        }};
+
+        MediatorNexus nexus = new MediatorNexus();
+        nexus.setBuilder(builder);
+
+        // This is effectively a roomHello via join.
+        nexus.join(client1, null, null);
+
+        new Verifications() {{
+            // mediators created only once per client
+            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); times = 1;
+
+            UserView hello;
+            room1.hello(hello = withCapture(), false); times = 1;
+            Assert.assertEquals("join user = " + hello , "client1", hello.getUserId());
+
+            client1.setRoomMediator(room1, false); times = 1;
+
+            room1.join((UserView) any); times = 0;  // should not see join!
+            room1.goodbye((UserView) any); times = 0;  // should not see goodbye!
+            room1.part((UserView) any); times = 0;  // should not see part!
+        }};
+    }
+
+    @Test
+    public void testJoinEmptyBookmark(@Mocked ClientMediator client1,
+                                   @Mocked RoomMediator room1) {
+
+        new Expectations() {{
+            client1.getUserId(); result = "client1";
+            room1.getId(); result = Constants.FIRST_ROOM;
+            room1.getName(); result = Constants.FIRST_ROOM;
+            room1.getFullName(); result = FirstRoom.FIRST_ROOM_FULL;
+            room1.listExits(); result = roomExits;
+            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); result = room1;
+        }};
+
+        MediatorNexus nexus = new MediatorNexus();
+        nexus.setBuilder(builder);
+
+        // This is effectively a roomHello via join.
+        nexus.join(client1, null, "");
+
+        new Verifications() {{
+            // mediators created only once per client
+            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); times = 1;
+
+            UserView hello;
+            room1.hello(hello = withCapture(), false); times = 1;
+            Assert.assertEquals("join user = " + hello , "client1", hello.getUserId());
+
+            client1.setRoomMediator(room1, false); times = 1;
+
+            room1.join((UserView) any); times = 0;  // should not see join!
+            room1.goodbye((UserView) any); times = 0;  // should not see goodbye!
+            room1.part((UserView) any); times = 0;  // should not see part!
+        }};
+    }
+
+    @Test
+    public void testJoinZeroBookmark(@Mocked ClientMediator client1,
+                                   @Mocked RoomMediator room1) {
+
+        new Expectations() {{
+            client1.getUserId(); result = "client1";
+            room1.getId(); result = Constants.FIRST_ROOM;
+            room1.getName(); result = Constants.FIRST_ROOM;
+            room1.getFullName(); result = FirstRoom.FIRST_ROOM_FULL;
+            room1.listExits(); result = roomExits;
+            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); result = room1;
+        }};
+
+        MediatorNexus nexus = new MediatorNexus();
+        nexus.setBuilder(builder);
+
+        // This is effectively a roomHello via join.
+        nexus.join(client1, null, "0");
+
+        new Verifications() {{
+            // mediators created only once per client
+            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); times = 1;
+
+            UserView hello;
+            room1.hello(hello = withCapture(), false); times = 1;
+            Assert.assertEquals("join user = " + hello , "client1", hello.getUserId());
+
+            client1.setRoomMediator(room1, false); times = 1;
+
+            room1.join((UserView) any); times = 0;  // should not see join!
+            room1.goodbye((UserView) any); times = 0;  // should not see goodbye!
+            room1.part((UserView) any); times = 0;  // should not see part!
+        }};
+    }
+
     @Test
     public void testJoinConflict(@Mocked ClientMediator client1,
                                  @Mocked RoomMediator room1) {
@@ -247,22 +353,22 @@ public class MediatorNexusTest {
             room1.getName(); result = roomName;
             room1.getFullName(); result = roomFullName;
             room1.listExits(); result = roomExits;
-            
+
             builder.findMediatorForRoom(client1, roomId); result = room1;
         }};
 
         MediatorNexus nexus = new MediatorNexus();
         nexus.setBuilder(builder);
-        
+
         // initial join
         nexus.join(client1, roomId, "previous");
-        
+
         // subsequent join: player trying to resume to different room
         nexus.join(client1, "otherRoom", "previous");
 
         new Verifications() {{
             UserView join;
-            room1.join(join = withCapture(), "previous"); times = 1;
+            room1.join(join = withCapture()); times = 1;
             Assert.assertEquals("join user = " + join , "client1", join.getUserId());
             client1.setRoomMediator(room1, false); times = 1; // initial call
             client1.setRoomMediator(room1, true); times = 1; // splinch repair
@@ -302,12 +408,12 @@ public class MediatorNexusTest {
 
             client1.setRoomMediator(room1, false); times = 1;
 
-            room1.join((UserView) any, anyString); times = 0;  // should not see join!
+            room1.join((UserView) any); times = 0;  // should not see join!
             room1.goodbye((UserView) any); times = 0;  // should not see goodbye!
             room1.part((UserView) any); times = 0;  // should not see part!
         }};
     }
-    
+
     @Test
     public void testTransitionEmpty(@Mocked ClientMediator client1,
                                   @Mocked RoomMediator room1) {
@@ -337,7 +443,7 @@ public class MediatorNexusTest {
 
             client1.setRoomMediator(room1, false); times = 1;
 
-            room1.join((UserView) any, anyString); times = 0;  // should not see join!
+            room1.join((UserView) any); times = 0;  // should not see join!
             room1.goodbye((UserView) any); times = 0;  // should not see goodbye!
             room1.part((UserView) any); times = 0;  // should not see part!
         }};
@@ -371,7 +477,7 @@ public class MediatorNexusTest {
             builder.findMediatorForRoom(client1, roomId); times = 1;
 
             UserView join;
-            room1.join(join = withCapture(), "previous"); times = 1;
+            room1.join(join = withCapture()); times = 1;
             Assert.assertEquals("join user = " + join , "client1", join.getUserId());
 
             client1.setRoomMediator(room1, false); times = 1;
@@ -408,7 +514,7 @@ public class MediatorNexusTest {
             builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); times = 1;
 
             UserView join;
-            room1.join(join = withCapture(), "previous"); times = 1;
+            room1.join(join = withCapture()); times = 1;
             Assert.assertEquals("join user = " + join , "client1", join.getUserId());
 
             client1.setRoomMediator(room1, false); times = 1;
@@ -454,7 +560,7 @@ public class MediatorNexusTest {
 
         new Verifications() {{
             UserView join;
-            room1.join(join = withCapture(), "previous"); times = 1;
+            room1.join(join = withCapture()); times = 1;
             Assert.assertEquals("join user = " + join , "client1", join.getUserId());
 
             builder.findMediatorForRoom(client1, roomId); times = 1;
@@ -475,13 +581,13 @@ public class MediatorNexusTest {
             room1.hello((UserView) any, anyBoolean); times = 0;  // should not see hello!
             room1.part((UserView) any); times = 0;  // should not see part!
 
-            room2.join((UserView) any, anyString); times = 0;  // should not see join!
+            room2.join((UserView) any); times = 0;  // should not see join!
             room2.goodbye((UserView) any); times = 0;  // should not see goodbye!
             room2.part((UserView) any); times = 0;  // should not see part!
         }};
     }
-    
-    
+
+
     @Test
     public void testTransitionToRoomConflict(@Mocked ClientMediator client1,
                                              @Mocked RoomMediator room1) {
@@ -498,15 +604,15 @@ public class MediatorNexusTest {
 
         MediatorNexus nexus = new MediatorNexus();
         nexus.setBuilder(builder);
-        
+
         // initial join
         nexus.join(client1, roomId, "previous");
-        
-        // we have to cheat here, because there is little to no chance 
+
+        // we have to cheat here, because there is little to no chance
         // of getting this threading window right.
         ClientMediatorPod pod = nexus.clientMap.get("client1");
         Assert.assertNotNull(pod);
-        
+
         // CHEATING: call nested inner directly
         try {
             Deencapsulation.invoke(pod, "transition", client1, "otherRoom", Constants.FIRST_ROOM);
@@ -517,7 +623,7 @@ public class MediatorNexusTest {
 
         new Verifications() {{
             UserView join;
-            room1.join(join = withCapture(), "previous"); times = 1;
+            room1.join(join = withCapture()); times = 1;
             Assert.assertEquals("join user = " + join , "client1", join.getUserId());
             client1.setRoomMediator(room1, false); times = 1; // initial call
             client1.setRoomMediator(room1, true); times = 1; // splinch repair
@@ -543,7 +649,7 @@ public class MediatorNexusTest {
             room1.getName(); result = Constants.FIRST_ROOM;
             room1.getFullName(); result = FirstRoom.FIRST_ROOM_FULL;
             room1.listExits(); result = roomExits;
-            
+
             room2.getId(); result = roomId;
             room2.getName(); result = roomName;
             room2.getFullName(); result = roomFullName;
@@ -568,7 +674,7 @@ public class MediatorNexusTest {
             builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); times = 1;
 
             UserView join;
-            room1.join(join = withCapture(), "previous"); times = 1;
+            room1.join(join = withCapture()); times = 1;
             Assert.assertEquals("join user = " + join , "client1", join.getUserId());
 
             client1.setRoomMediator(room1, false); times = 1;
@@ -594,7 +700,7 @@ public class MediatorNexusTest {
             room1.hello((UserView) any, anyBoolean); times = 0;  // should not see hello!
             room1.part((UserView) any); times = 0;  // should not see part!
 
-            room2.join((UserView) any, anyString); times = 0;  // should not see join!
+            room2.join((UserView) any); times = 0;  // should not see join!
             room2.goodbye((UserView) any); times = 0;  // should not see goodbye!
             room2.part((UserView) any); times = 0;  // should not see part!
         }};
@@ -630,12 +736,12 @@ public class MediatorNexusTest {
 
             client1.setRoomMediator(room1, false); times = 1;
 
-            room1.join((UserView) any, anyString); times = 0;  // should not see join!
+            room1.join((UserView) any); times = 0;  // should not see join!
             room1.goodbye((UserView) any); times = 0;  // should not see goodbye!
             room1.part((UserView) any); times = 0;  // should not see part!
         }};
     }
-    
+
     @Test
     public void testTransitionViaExitNullRoom(@Mocked ClientMediator client1,
                                               @Mocked RoomMediator room1) {
@@ -666,13 +772,13 @@ public class MediatorNexusTest {
 
             client1.setRoomMediator(room1, false); times = 1;
 
-            room1.join((UserView) any, anyString); times = 0;  // should not see join!
+            room1.join((UserView) any); times = 0;  // should not see join!
             room1.goodbye((UserView) any); times = 0;  // should not see goodbye!
             room1.part((UserView) any); times = 0;  // should not see part!
         }};
     }
-    
-    
+
+
     @Test
     public void testTransitionViaExitConflict(@Mocked ClientMediator client1,
                                              @Mocked RoomMediator room1) {
@@ -689,15 +795,15 @@ public class MediatorNexusTest {
 
         MediatorNexus nexus = new MediatorNexus();
         nexus.setBuilder(builder);
-        
+
         // initial join
         nexus.join(client1, roomId, "previous");
-        
-        // we have to cheat here, because there is little to no chance 
+
+        // we have to cheat here, because there is little to no chance
         // of getting this threading window right.
         ClientMediatorPod pod = nexus.clientMap.get("client1");
         Assert.assertNotNull(pod);
-        
+
         // CHEATING: call nested inner directly
         try {
             Deencapsulation.invoke(pod, "transitionViaExit", client1, "otherRoom", "N");
@@ -708,7 +814,7 @@ public class MediatorNexusTest {
 
         new Verifications() {{
             UserView join;
-            room1.join(join = withCapture(), "previous"); times = 1;
+            room1.join(join = withCapture()); times = 1;
             Assert.assertEquals("join user = " + join , "client1", join.getUserId());
             client1.setRoomMediator(room1, false); times = 1; // initial call
             client1.setRoomMediator(room1, true); times = 1; // splinch repair

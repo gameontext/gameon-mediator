@@ -22,11 +22,13 @@ import mockit.Mocked;
 import mockit.Tested;
 import mockit.Verifications;
 import mockit.integration.junit4.JMockit;
+import net.wasdev.gameon.mediator.MediatorNexus.ClientMediatorPod;
 import net.wasdev.gameon.mediator.models.Exit;
 import net.wasdev.gameon.mediator.models.Exits;
 import net.wasdev.gameon.mediator.models.RoomInfo;
 import net.wasdev.gameon.mediator.models.Site;
 import net.wasdev.gameon.mediator.room.FirstRoom;
+import net.wasdev.gameon.mediator.room.RemoteRoomProxy;
 import net.wasdev.gameon.mediator.room.RoomMediator;
 import net.wasdev.gameon.mediator.room.RoomMediator.Type;
 
@@ -266,6 +268,59 @@ public class MediatorBuilderTest {
         }};
         RoomMediator room = builder.findMediatorForExit(client, startingRoom, "N");
         Assert.assertEquals(Type.CONNECTING, room.getType());
+    }
+
+    @Test
+    public void testCreateDelegateEmpty(@Mocked Site site1) {
+        new Expectations() {{
+            site1.getInfo(); result = null;
+        }};
+
+        RemoteRoomProxy proxy = new RemoteRoomProxy(builder, userId, site1);
+        Assert.assertEquals(Type.EMPTY, proxy.getType()); // proxy type should reflect the guts!
+    }
+
+    @Test
+    public void testCreateConnectingDelegateHelloBadConnectionType(@Mocked Site site1,
+                                   @Mocked RoomInfo info,
+                                   @Mocked ClientMediatorPod pod1) {
+        new Expectations() {{
+            site1.getInfo(); result = info;
+            info.getConnectionDetails().getType(); result = "unknown";
+        }};
+
+        RemoteRoomProxy proxy = new RemoteRoomProxy(builder, userId, site1);
+        Assert.assertEquals(Type.CONNECTING, proxy.getType()); // proxy type should reflect the guts!
+
+        // Attempt connection with bad type
+        proxy.hello(pod1, false);
+        Assert.assertEquals(Type.SICK, proxy.getType()); // proxy type should reflect the guts!
+    }
+
+    @Test
+    public void testCreateConnectingDelegateHello(@Mocked Site site1,
+                                   @Mocked RoomInfo info) {
+        new Expectations() {{
+            site1.getInfo(); result = info;
+        }};
+
+        RemoteRoomProxy proxy = new RemoteRoomProxy(builder, userId, site1);
+        Assert.assertEquals(Type.CONNECTING, proxy.getType()); // proxy type should reflect the guts!
+
+        // Attept connection
+    }
+
+    @Test
+    public void testCreateConnectingDelegateJoin(@Mocked Site site1,
+                                   @Mocked RoomInfo info) {
+        new Expectations() {{
+            site1.getInfo(); result = info;
+        }};
+
+        RemoteRoomProxy proxy = new RemoteRoomProxy(builder, userId, site1);
+        Assert.assertEquals(Type.CONNECTING, proxy.getType()); // proxy type should reflect the guts!
+
+        // Attept connection
     }
 
 }

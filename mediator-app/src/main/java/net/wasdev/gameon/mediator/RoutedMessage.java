@@ -69,7 +69,7 @@ public class RoutedMessage {
     public static final String ACK = "ack";
     public static final String READY = "ready";
 
-    public static final String MSG_HELLO = "{\"version\": %d,\"userId\": \"%s\",\"username\": \"%s\"}";
+    public static final String MSG_HELLO_JOIN = "{\"version\": %d,\"userId\": \"%s\",\"username\": \"%s\"}";
     public static final String MSG_RECOVERY_HELLO = "{\"version\": %d,\"userId\": \"%s\",\"username\": \"%s\",\"recovery\": true}";
     public static final String MSG_PROTOCOL = "{\"userId\": \"%s\",\"username\": \"%s\"}";
 
@@ -150,7 +150,7 @@ public class RoutedMessage {
 
     public static RoutedMessage createHello(long version, String roomId, MediatorNexus.UserView user) {
         return new RoutedMessage(FlowTarget.roomHello, roomId,
-                String.format(MSG_HELLO, version, user.getUserId(), user.getUserName()));
+                String.format(MSG_HELLO_JOIN, version, user.getUserId(), user.getUserName()));
     }
 
     public static RoutedMessage createRecoveryHello(long version, String roomId, MediatorNexus.UserView user) {
@@ -163,9 +163,14 @@ public class RoutedMessage {
                 String.format(MSG_PROTOCOL, user.getUserId(), user.getUserName()));
     }
 
-    public static RoutedMessage createJoin(String roomId, MediatorNexus.UserView user) {
+    /**
+     * Only use the bookmark with v2 join messages: it is noted as a String.
+     * @param version 
+     * @return
+     */
+    public static RoutedMessage createJoin(long version, String roomId, MediatorNexus.UserView user) {
         return new RoutedMessage(FlowTarget.roomJoin, roomId,
-                String.format(MSG_PROTOCOL, user.getUserId(), user.getUserName()));
+                String.format(MSG_HELLO_JOIN, version, user.getUserId(), user.getUserName()));
     }
 
     public static RoutedMessage createPart(String roomId, MediatorNexus.UserView user) {
@@ -345,10 +350,10 @@ public class RoutedMessage {
      * @return true if this message should be sent to the specified user
      */
     public boolean isForUser(String userId) {
-        if (flowTarget.forPlayer()) {
+        if (flowTarget.forPlayer() ) {
             return "*".equals(destination) || destination.equals(userId);
         }
-        return false;
+        return flowTarget == FlowTarget.ack;
     }
 
     /**

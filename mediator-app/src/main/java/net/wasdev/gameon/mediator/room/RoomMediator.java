@@ -57,7 +57,7 @@ public interface RoomMediator {
 
     void goodbye(MediatorNexus.UserView user);
 
-    void join(MediatorNexus.UserView user, String lastMessage);
+    void join(MediatorNexus.UserView user);
     
     void part(MediatorNexus.UserView user);
 

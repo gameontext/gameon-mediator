@@ -51,7 +51,7 @@ public class ClientMediator {
      * playerGoodbye (which are mediator-initiated messages).
      */
     private String userName;
-    
+
     /** The mediator for the connected room */
     private volatile RoomMediator roomMediator = null;
 
@@ -63,7 +63,7 @@ public class ClientMediator {
 
         toClient.start();
     }
-    
+
     public String getUserId() {
         return userId;
     }
@@ -71,41 +71,41 @@ public class ClientMediator {
     public String getUserName() {
         return userName;
     }
-    
+
     public String getUserJwt() {
         return signedJwt;
     }
-    
+
     public RoomMediator getRoomMediator() {
         return roomMediator;
     }
-    
+
     /**
      * Called by the Nexus to change the mediator for the session.
      * Join/part indications should be sent to _each client session_
-     * @param splinched 
+     * @param splinched
      * @param newMediator
      */
     public void setRoomMediator(RoomMediator targetRoom, boolean splinched) {
         Log.log(Level.FINEST, this, "setRoomMediator -- {0} {1}", splinched, targetRoom);
-        
-        if ( roomMediator == null || ! roomMediator.getId().equals(targetRoom.getId()) ) { 
+
+        if ( roomMediator == null || ! roomMediator.getId().equals(targetRoom.getId()) ) {
             // if actually changing rooms, send messages to client to show room transition
-            if ( roomMediator != null ) { 
-                sendToClient(RoutedMessage.createMessage(FlowTarget.player, userId, String.format(Constants.PART, roomMediator.getFullName())));                
+            if ( roomMediator != null ) {
+                sendToClient(RoutedMessage.createMessage(FlowTarget.player, userId, String.format(Constants.PART, roomMediator.getFullName())));
             }
-            
+
             if ( splinched ) {
                 sendToClient(RoutedMessage.createSimpleEventMessage(FlowTarget.player, userId, Constants.EVENTMSG_SPLINCH_RECOVERY));
             }
-            
+
             sendToClient(RoutedMessage.createMessage(FlowTarget.player, userId, String.format(Constants.JOIN, targetRoom.getFullName())));
         }
-        
+
         // always pick up the new mediator instance, refresh client cached information
         roomMediator = targetRoom;
     }
-    
+
     /**
      * Called from onMessage when the ready message is received
      * @param message
@@ -117,7 +117,7 @@ public class ClientMediator {
 
         String roomId = message.getString(Constants.KEY_ROOM_ID);
         String lastmessage = message.getString(Constants.KEY_BOOKMARK, "");
-        
+
         // Join a room: this will come back via setRoomMediator
         nexus.join(this, roomId, lastmessage);
     }
@@ -130,7 +130,7 @@ public class ClientMediator {
             roomMediator.sendToRoom(message);
         }
     }
-    
+
     private void switchRooms(RoutedMessage message) {
         Log.log(Level.FINER, this, "SWITCH ROOMS", message, roomMediator);
 
@@ -142,20 +142,20 @@ public class ClientMediator {
                 // we don't look for an exitId in the case of an SOS.
                 sendToClient(
                         RoutedMessage.createMessage(FlowTarget.player, userId, Constants.EXIT_ELECTRIC_THUMB));
-    
+
                 // coordinate across instances of player, call #setRoomMediator
                 nexus.transition(this, Constants.FIRST_ROOM);
             } else {
                 // If we are properly exiting a room, we have the direction we should
                 // go (or the room id for teleport) in the payload of the playerLocation message
                 exitId = message.getString("exitId");
-    
+
                 // If the room is firstRoomInfo.. we might be teleporting..
                 // (moving to a room directly without looking up an exit)
                 if (roomMediator.getType() == Type.FIRST_ROOM) {
                     teleport = message.getBoolean(FirstRoom.TELEPORT, false);
                 }
-    
+
                 if (teleport) {
                     // when we are teleporting, the exitId is the destination room id.
                     // coordinate across instances of player, call #setRoomMediator
@@ -172,17 +172,17 @@ public class ClientMediator {
             }
         } catch(ConcurrentModificationException cem) {
             // hmm ... we tried to move, but something/someone else moved us first
-            toClient.send(RoutedMessage.createSimpleEventMessage(FlowTarget.player, userId, 
+            toClient.send(RoutedMessage.createSimpleEventMessage(FlowTarget.player, userId,
                     Constants.EVENTMSG_MOVING));
         }
     }
-    
+
     public void destroy() {
         Log.log(Level.FINER, this, "DESTROY");
         nexus.part(this);
         toClient.stop();
     }
-    
+
     /**
      * @param message
      */
@@ -199,5 +199,10 @@ public class ClientMediator {
         } else {
             Log.log(Level.FINEST, this, "sendToClient -- Dropping message {0}", message);
         }
+    }
+
+    @Override
+    public String toString() {
+        return "ClientMediator[userId="+userId+", userName="+userName+", instance="+System.identityHashCode(this)+"]";
     }
 }

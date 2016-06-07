@@ -6,6 +6,7 @@ import java.text.MessageFormat;
 import java.util.logging.Level;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -14,6 +15,7 @@ import mockit.Mock;
 import mockit.MockUp;
 import net.wasdev.gameon.mediator.Log;
 
+@Ignore
 public class RoomMediatorProxyTest {
 
     @Rule

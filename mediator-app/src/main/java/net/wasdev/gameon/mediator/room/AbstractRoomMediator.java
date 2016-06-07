@@ -148,9 +148,9 @@ public abstract class AbstractRoomMediator implements RoomMediator {
     }
 
     @Override
-    public void join(MediatorNexus.UserView user, String lastMessage) {
+    public void join(MediatorNexus.UserView user) {
         sendToClients(RoutedMessage.createMessage(FlowTarget.player, "*",
-                String.format(Constants.EVENT_JOIN, user.getUserName(), user.getUserId())));
+                String.format(Constants.EVENT_JOIN, user.getUserName(), user.getUserId(), getFullName())));
     }
 
     @Override

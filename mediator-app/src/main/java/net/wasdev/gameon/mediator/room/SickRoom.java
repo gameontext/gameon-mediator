@@ -93,7 +93,7 @@ public class SickRoom extends AbstractRoomMediator {
         pendingAttempt = scheduledExecutor.schedule(() -> {
             // attempt to reconnect
             proxy.updateInformation(null);
-        }, 1 * attempts++, TimeUnit.SECONDS);
+        }, attempts++, TimeUnit.SECONDS);
     }
     
     public String complaint() {
