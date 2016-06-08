@@ -53,10 +53,9 @@ public interface Constants {
     String CONNECTING = "{\"type\": \"joinpart\",\"content\": \"connecting to %s\"}";     
     String JOIN = "{\"type\": \"joinpart\",\"content\": \"enter %s\"}";
     String PART = "{\"type\": \"joinpart\",\"content\": \"exit %s\"}";
-    
-    String EVENT_GOODBYE =  "{\"type\": \"event\",\"content\": {\"*\": \"%s has departed.\", \"%s\": \"%s\"}}";;
-    String EVENT_JOIN =  "{\"type\": \"event\",\"content\": {\"*\": \"%s seems to be breathing again.\", \"%s\": \"Welcome Back to %s!\"}}";;
-    String EVENT_PART =  "{\"type\": \"event\",\"content\": {\"*\": \"%s has turned gray due to lack of activity.\", \"%s\": \"%s\"}}";;
+  
+    String EVENT_HELLO = "{\"type\": \"event\",\"content\": {\"*\": \"%s is here\",\"%s\": \"Hello\"},\"bookmark\": \"go-%d\"}";
+    String EVENT_GOODBYE =  "{\"type\": \"event\",\"content\": {\"*\": \"%s has gone\",\"%s\": \"%s\"},\"bookmark\": \"g-%d\"}";
 
     String EVENT_GENERIC = "{\"type\": \"event\",\"content\": {\"%s\": \"%s\"}}";
 

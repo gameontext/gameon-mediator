@@ -88,6 +88,8 @@ public class MediatorNexus  {
     public void join(ClientMediator playerSession, String newRoomId, String lastMessage) {
         ClientMediatorPod pod = getCreatePod(playerSession);
 
+        Log.log(Level.FINER, playerSession.getSource(), "{0}: request join to {1} with lastmessage {2}", Log.getHexHash(pod), newRoomId, lastMessage);
+
         // See if there is already a mediator for this cluster of user clientMediators
         // and/or negotiate which room should be used.
         pod.join(playerSession, newRoomId, lastMessage);
@@ -107,6 +109,9 @@ public class MediatorNexus  {
         RoomMediator room = playerSession.getRoomMediator();
 
         String fromRoom = room == null ? null : room.getId(); // snapshot
+        Log.log(Level.FINER, playerSession.getSource(), "{0}: request transition from expected={1}, new={2}",
+                Log.getHexHash(pod), fromRoom, toRoomId);
+        
         pod.transition(playerSession, fromRoom, toRoomId);
     }
 
@@ -124,6 +129,9 @@ public class MediatorNexus  {
         RoomMediator room = playerSession.getRoomMediator();
 
         String fromRoom = room == null ? null : room.getId(); // snapshot
+        Log.log(Level.FINER, playerSession.getSource(), "{0}: request transition from expected={1}, direction={2}",
+                Log.getHexHash(pod), fromRoom, direction);
+        
         pod.transitionViaExit(playerSession, fromRoom, direction);
     }
 
@@ -134,6 +142,8 @@ public class MediatorNexus  {
     public void part(ClientMediator playerSession) {
         ClientMediatorPod pod = clientMap.get(playerSession.getUserId());
         if ( pod != null ) {
+            Log.log(Level.FINER, playerSession.getSource(), "{0}: request part", Log.getHexHash(pod));
+            
             pod.part(playerSession);
         }
     }
@@ -184,7 +194,17 @@ public class MediatorNexus  {
          * @param message
          */
         private void send(RoutedMessage message) {
-            clientMediators.forEach(s -> s.sendToClient(message));
+            if (message.isForUser(userId)) {
+                clientMediators.forEach(s -> s.sendToClient(message));
+
+                // If we are additionally changing locations, ...
+                if (message.getFlowTarget() == FlowTarget.playerLocation ) {
+                    ClientMediator m = clientMediators.iterator().next();
+                    m.switchRooms(message);
+                }
+            } else if ( !clientMediators.isEmpty() ){
+                Log.log(Level.FINEST, this, "sendToClient -- Dropping message as not for user {0}, destination={0}{1}", userId, message.getFlowTarget(), message.getDestination());
+            }
         }
 
         /**
@@ -199,11 +219,11 @@ public class MediatorNexus  {
             boolean joinRoom = clientMediators.isEmpty(); // were we first?
             boolean helloInstead = joinRoom && isEmptyBookmark(lastMessage);
 
-            Log.log(Level.FINER, this, "pre-join {0} {1} ({2}, {3}): {4}",
-                    userId, targetId, joinRoom, helloInstead, room);
-
             clientMediators.add(playerSession);
             userName = playerSession.getUserName();
+
+            Log.log(Level.FINER, playerSession.getSource(), "{0}: pre-join -- session added for {1}, target={2} ({3}, {4}): {5}",
+                    Log.getHexHash(this), userId, targetId, joinRoom, helloInstead, clientMediators);
 
             if ( targetId == null || targetId.isEmpty() )
                 targetId = Constants.FIRST_ROOM;
@@ -229,6 +249,10 @@ public class MediatorNexus  {
                     s.setRoomMediator(room, true);
                     s.sendToClient(ack);
                 });
+                
+                Log.log(Level.FINER, playerSession.getSource(), "{0}: post-join -- splinch recovery for {1}, room={2} ({3}, {4}): {5}",
+                        Log.getHexHash(this), userId, room.getId(), joinRoom, helloInstead, clientMediators);
+                return;
             }
 
             // Update the players-by-room index to contain this player
@@ -237,18 +261,15 @@ public class MediatorNexus  {
 
             // Specific to the joining session:
             if ( helloInstead ) {
-                Log.log(Level.FINER, playerSession, "HELLO {0} {1}", userId, room.getId());
+                Log.log(Level.FINER, playerSession.getSource(), "HELLO {0} {1}", userId, room.getId());
                 room.hello(this, false);
             } else if ( joinRoom ) {
-                Log.log(Level.FINER, playerSession, "JOIN {0} {1}", userId, room.getId());
+                Log.log(Level.FINER, playerSession.getSource(), "JOIN {0} {1}", userId, room.getId());
                 room.join(this);
-            } else {
-                playerSession.sendToClient(RoutedMessage.createSimpleEventMessage(FlowTarget.player, userId,
-                        Constants.EVENTMSG_REJOIN_ADVENTURE));
             }
 
-            Log.log(Level.FINER, this, "post-join {0} {1} ({2}, {3}): {4}",
-                    userId, room.getId(), joinRoom, helloInstead, clientMediators);
+            Log.log(Level.FINER, playerSession.getSource(), "{0}: post-join -- session added for {1}, room={2} ({3}, {4}): {5}",
+                    Log.getHexHash(this), userId, room.getId(), joinRoom, helloInstead, clientMediators);
         }
 
         private boolean isEmptyBookmark(String lastMessage) {
@@ -264,8 +285,8 @@ public class MediatorNexus  {
             String toRoomId = targetRoomId;
             String currentId = room.getId();
 
-            Log.log(Level.FINER, this, "pre-transition {0} {1} -> {2} ({3}): {4}",
-                    userId, fromRoomId, toRoomId, currentId, clientMediators);
+            Log.log(Level.FINER, playerSession.getSource(), "{0}: pre-transition for {1} from pod={2}, expected={3}, new={4}. Connected: {5}",
+                    Log.getHexHash(this), userId, currentId, fromRoomId, toRoomId, clientMediators);
 
             if ( toRoomId == null || toRoomId.isEmpty() )
                 toRoomId = Constants.FIRST_ROOM;
@@ -278,8 +299,8 @@ public class MediatorNexus  {
                 RoomMediator newRoom = mediatorBuilder.findMediatorForRoom(playerSession, toRoomId);
                 performSwitch(newRoom);
             } else  {
-                Log.log(Level.WARNING, playerSession, "{0} could not be moved. pod={1}, expected={2}, new={3}",
-                        userId, currentId, fromRoomId, toRoomId);
+                Log.log(Level.WARNING, playerSession.getSource(), "{0}: {1} could not be moved from pod={2}, expected={3}, new={4}. Connected: {5}",
+                        Log.getHexHash(this), userId, currentId, fromRoomId, toRoomId, clientMediators);
 
                 // For now: Make sure the caller is in the right place
                 playerSession.setRoomMediator(room, true);
@@ -293,8 +314,8 @@ public class MediatorNexus  {
                         + ", new=" + toRoomId);
             }
 
-            Log.log(Level.FINER, this, "post-transition {0} {1}: {2}",
-                    userId, room.getId(), clientMediators);
+            Log.log(Level.FINER, playerSession.getSource(), "{0}: post-transition for {1} now in {2}({3}). Connected: {4}",
+                    Log.getHexHash(this), userId, room.getName(), room.getId(), clientMediators);
        }
 
         private synchronized void transitionViaExit(ClientMediator playerSession, String fromRoomId, String direction) {
@@ -305,15 +326,15 @@ public class MediatorNexus  {
 
             String currentId = room.getId();
 
-            Log.log(Level.FINER, this, "pre-transition via exit {0} {1} -> {2} ({3}): {4}",
-                    userId, fromRoomId, direction, currentId, clientMediators);
+            Log.log(Level.FINER, playerSession.getSource(), "{0}: pre-transition-via-exit for {1} from pod={2}, expected={3}, direction={4}. Connected: {5}",
+                    Log.getHexHash(this), userId, currentId, fromRoomId, direction, clientMediators);
 
             if ( currentId.equals(fromRoomId) ) {
                 RoomMediator newRoom = mediatorBuilder.findMediatorForExit(playerSession, room, direction);
                 performSwitch(newRoom);
             } else {
-                Log.log(Level.WARNING, playerSession, "{0} could not be moved in direction {3}. pod={1}, expected={2}",
-                        userId, currentId, fromRoomId, direction);
+                Log.log(Level.WARNING, playerSession.getSource(), "{0}: post-transition-via-exit for {1} -- could not be moved from pod={2}, expected={3}, direction={4}. Connected: {5}",
+                        Log.getHexHash(this), userId, currentId, fromRoomId, direction, clientMediators);
 
                 // For now: Make sure the caller is in the right place
                 playerSession.setRoomMediator(room, true);
@@ -326,8 +347,8 @@ public class MediatorNexus  {
                         + ", direction=" + direction);
             }
 
-            Log.log(Level.FINER, this, "post-transition via exit {0} {1}: {2}",
-                    userId, room.getId(), clientMediators);
+            Log.log(Level.FINER, playerSession.getSource(), "{0}: post-transition-via-exit for {1} now in {2}({3}). Connected: {4}",
+                    Log.getHexHash(this), userId, room.getName(), room.getId(), clientMediators);
         }
 
         /**
@@ -362,15 +383,16 @@ public class MediatorNexus  {
             }
         }
 
-        private synchronized void part(ClientMediator playerSession) {
-            // This playerSession needs to stay in the clientMediators list until we've parted the room
+        /**
+         * Called when the client session is disconnected.
+         * @param playerSession
+         */
+        private synchronized void part(ClientMediator playerSession) {            
+            
             if ( clientMediators.contains(playerSession) && clientMediators.size() == 1 ) {
-                // part the room.
+                // we're the last session standing: part the room.
                 room.part(this);
                 room.disconnect();
-
-                // clean up
-                Log.log(Level.FINEST, playerSession, "ClientMediatorPod Element removed {0}", playerSession.getUserId());
 
                 // self-cleaning. This element is about to vanish, so remove it from the room-indexed list, too
                 removeDeleteEmptyPlayerList(room.getId(), this);
@@ -380,6 +402,9 @@ public class MediatorNexus  {
 
             // do this last, after room part
             clientMediators.remove(playerSession);
+
+            Log.log(Level.FINEST, playerSession.getSource(), "{0}: session removed for {1}, connected: {2}",
+                    Log.getHexHash(this), userId, clientMediators);
         }
 
         /**
@@ -433,7 +458,7 @@ public class MediatorNexus  {
         public String toString() {
             return this.getClass().getSimpleName()
                     + "[sessionsEmpty="+clientMediators.isEmpty()
-                    + ", room=" + room
+                    + ", room=" + (room == null ? "null" : room.getName() + "(" + room.getId() + ")")
                     + "]";
         }
 

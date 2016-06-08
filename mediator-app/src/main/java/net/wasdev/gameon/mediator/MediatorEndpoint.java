@@ -55,6 +55,7 @@ public class MediatorEndpoint {
 
     CountDownLatch mediatorCheck = new CountDownLatch(0);
     volatile ClientMediator clientMediator;
+    boolean goodToGo = false;
 
     /**
      * Called when a new connection has been established to this endpoint.
@@ -118,9 +119,13 @@ public class MediatorEndpoint {
 
         try {
             if (message.getFlowTarget() == FlowTarget.ready) {
-                mediatorCheck.await(); // wait to process the ready message
+                // wait to process the ready message until we've validated the JWT (see onOpen)
+                mediatorCheck.await(); 
+                
                 clientMediator.ready(message);
-            } else if (clientMediator != null) {
+                goodToGo = true; // eventually all threads will see that we're happy
+            } else if (goodToGo || mediatorCheck.getCount() == 0) {
+                // we will eventually see the goodToGo check, which will bypass having to look @ the latch
                 clientMediator.handleMessage(message);
             } else {
                 Log.log(Level.FINEST, session, "no session, dropping message from client {0}: {1}", userId, message);

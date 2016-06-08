@@ -94,7 +94,7 @@ public class MediatorBuilder {
      * @return a new room mediator. Never null.
      */
     public RoomMediator findMediatorForRoom(ClientMediator clientMediator, String roomId) {
-        Log.log(Level.FINEST, this, "findMediatorForRoom: {0} {1}", clientMediator, roomId);
+        Log.log(Level.FINEST, clientMediator.getSource(), "findMediatorForRoom: builder={0}, roomId={1}", Log.getHexHash(this), roomId);
 
         if ( roomId == null || roomId.isEmpty() || Constants.FIRST_ROOM.equals(roomId) ) {
             return getFirstRoomMediator(clientMediator);
@@ -120,7 +120,7 @@ public class MediatorBuilder {
      * @return a new room mediator. Never null.
      */
     public RoomMediator findMediatorForExit(ClientMediator clientMediator, RoomMediator startingRoom, String direction) {
-        Log.log(Level.FINEST, this, "findMediatorForExit: {0} {1} {2}", clientMediator, startingRoom, direction);
+        Log.log(Level.FINEST, clientMediator.getSource(), "findMediatorForExit: builder={0}, startingRoom={1}, direction={2}", Log.getHexHash(this), startingRoom, direction);
 
         Exits exits = startingRoom.getExits();
         Exit target = exits.getExit(direction);
@@ -142,7 +142,7 @@ public class MediatorBuilder {
     }
 
     public RoomMediator getFirstRoomMediator(ClientMediator clientMediator) {
-        Log.log(Level.FINEST, this, "getFirstRoomMediator: {0}", clientMediator);
+        Log.log(Level.FINEST, clientMediator.getSource(), "getFirstRoomMediator: builder={0}, ", Log.getHexHash(this));
 
         boolean newbie = clientMediator.getRoomMediator() == null;
         Site site = mapClient.getSite(Constants.FIRST_ROOM);
@@ -170,7 +170,7 @@ public class MediatorBuilder {
      * @return
      */
     public RoomMediator createDelegate(RemoteRoomProxy proxy, String userId, Site site) {
-        Log.log(Level.FINEST, this, "Create connecting delegate: {0} {1} {2}", userId, site);
+        Log.log(Level.FINEST, this, "Create connecting delegate: proxy={0}, userId={1}, site={2}", Log.getHexHash(proxy), userId, site);
         if ( site.getInfo() == null ) {
             return new EmptyRoom(nexus.getMultiUserView(site.getId()), mapClient, site);
         }
@@ -187,12 +187,16 @@ public class MediatorBuilder {
      * @param site null when reconnecting after a connection failure, otherwise updated site information
      */
     public void updateDelegate(RemoteRoomProxy proxy, RoomMediator currentDelegate, String userId, Site site) {
-        Log.log(Level.FINEST, this, "updateDelegate BEFORE: {0} {1} {2}", userId, currentDelegate, site);
+        Log.log(Level.FINEST, this, "updateDelegate proxy={0}, userId={1}, delegate={2}/{3}, site={4}", 
+                Log.getHexHash(proxy), userId, Log.getHexHash(currentDelegate), currentDelegate.getType(), site);
+        
         RoomMediator newDelegate = internalUpdateDelegate(proxy, currentDelegate, userId, site);
 
         // always complete the update operation on the proxy
         proxy.updateComplete(newDelegate);
-        Log.log(Level.FINEST, this, "updateDelegate AFTER: {0} {1}", userId, newDelegate);
+
+        Log.log(Level.FINEST, this, "updateDelegate AFTER: proxy={0}, userId={1}, delegate={2}/{3}", 
+                Log.getHexHash(proxy), userId, Log.getHexHash(currentDelegate), currentDelegate.getType());
 
         if ( newDelegate != currentDelegate ) {
             // update what users see of the new (delegated) location (empty, sick, remote)
@@ -210,12 +214,16 @@ public class MediatorBuilder {
      * @param roomHello
      */
     public void updateDelegate(RemoteRoomProxy proxy, RoomMediator currentDelegate, String userId, boolean roomHello) {
-        Log.log(Level.FINEST, this, "updateDelegate BEFORE: {0} {1} {2}", userId, currentDelegate, null);
+        Log.log(Level.FINEST, this, "updateDelegate BEFORE: proxy={0}, userId={1}, delegate={2}/{3}, site={4}", 
+                Log.getHexHash(proxy), userId, Log.getHexHash(currentDelegate), currentDelegate.getType(), null);
+        
         RoomMediator newDelegate = internalUpdateDelegate(proxy, currentDelegate, userId, null);
 
         // always complete the update operation on the proxy
         proxy.updateComplete(newDelegate);
-        Log.log(Level.FINEST, this, "updateDelegate AFTER: {0} {1}", userId, newDelegate);
+
+        Log.log(Level.FINEST, this, "updateDelegate AFTER: proxy={0}, userId={1}, delegate={2}/{3}", 
+                Log.getHexHash(proxy), userId, Log.getHexHash(newDelegate), newDelegate.getType());
 
         if ( newDelegate != currentDelegate ) {
             // update what users see of the new (delegated) location (empty, sick, remote)
@@ -262,7 +270,8 @@ public class MediatorBuilder {
     }
 
     private RoomMediator tryRemoteDelegate(RemoteRoomProxy proxy, RoomMediator currentDelegate, String userId, Site site) {
-        Log.log(Level.FINEST, this, "tryRemoteDelegate: {0} {1}", currentDelegate, site);
+        Log.log(Level.FINEST, this, "tryRemoteDelegate: proxy={0}, userId={1}, delegate={2}/{3}, site={4}", 
+                Log.getHexHash(proxy), userId, Log.getHexHash(currentDelegate), currentDelegate.getType(), site);
 
         String roomId = site.getId();
         WSDrain drain = new WSDrain(roomId);
@@ -271,13 +280,17 @@ public class MediatorBuilder {
         try {
             return new RemoteRoom(nexus.getSingleUserView(roomId, userId), proxy, mapClient, scheduledExecutor, site, drain);
         } catch(Exception e) {
-            Log.log(Level.FINEST, this, "connectRemoteDelegate: Exception connectiong to remote room", e);
+            Log.log(Level.FINEST, this, "tryRemoteDelegate FAILED: proxy={0}, userId={1}, exception={2}", 
+                    Log.getHexHash(proxy), userId, e);
         }
 
         return createUpdateLocalDelegate(Type.SICK, proxy, currentDelegate, site);
     }
 
     private RoomMediator createUpdateLocalDelegate(Type type, RemoteRoomProxy proxy, RoomMediator currentDelegate, Site site) {
+        Log.log(Level.FINEST, this, "createUpdateLocalDelegate: proxy={0}, newType={1}, delegate={2}/{3}, site={4}", 
+                Log.getHexHash(proxy), type, Log.getHexHash(currentDelegate), currentDelegate.getType(), site);
+
         if ( currentDelegate.getType() == type ) {
             currentDelegate.updateInformation(site);
             return currentDelegate;

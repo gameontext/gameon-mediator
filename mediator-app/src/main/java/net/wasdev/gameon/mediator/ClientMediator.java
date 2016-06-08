@@ -87,19 +87,19 @@ public class ClientMediator {
      * @param newMediator
      */
     public void setRoomMediator(RoomMediator targetRoom, boolean splinched) {
-        Log.log(Level.FINEST, this, "setRoomMediator -- {0} {1}", splinched, targetRoom);
+        Log.log(Level.FINEST, toClient, "setRoomMediator -- {0} {1}", splinched, targetRoom);
 
         if ( roomMediator == null || ! roomMediator.getId().equals(targetRoom.getId()) ) {
-            // if actually changing rooms, send messages to client to show room transition
-            if ( roomMediator != null ) {
-                sendToClient(RoutedMessage.createMessage(FlowTarget.player, userId, String.format(Constants.PART, roomMediator.getFullName())));
-            }
-
             if ( splinched ) {
                 sendToClient(RoutedMessage.createSimpleEventMessage(FlowTarget.player, userId, Constants.EVENTMSG_SPLINCH_RECOVERY));
-            }
+            } else {
+                // if actually changing rooms, send messages to client to show room transition
+                if ( roomMediator != null ) {
+                    sendToClient(RoutedMessage.createMessage(FlowTarget.player, userId, String.format(Constants.PART, roomMediator.getFullName())));
+                }
 
-            sendToClient(RoutedMessage.createMessage(FlowTarget.player, userId, String.format(Constants.JOIN, targetRoom.getFullName())));
+                sendToClient(RoutedMessage.createMessage(FlowTarget.player, userId, String.format(Constants.JOIN, targetRoom.getFullName())));
+            }
         }
 
         // always pick up the new mediator instance, refresh client cached information
@@ -111,8 +111,6 @@ public class ClientMediator {
      * @param message
      */
     public void ready(RoutedMessage message) {
-        Log.log(Level.FINER, this, "READY -- {0}", message);
-
         userName = message.getString(Constants.KEY_USERNAME, "anonymous");
 
         String roomId = message.getString(Constants.KEY_ROOM_ID);
@@ -123,7 +121,7 @@ public class ClientMediator {
     }
 
     public void handleMessage(RoutedMessage message) {
-        Log.log(Level.FINEST, this, "handleMessage -- {0}", message);
+        Log.log(Level.FINEST, toClient, "handleMessage -- {0}", message);
         if ( roomMediator != null ) {
             if ( message.isSOS() ) {
                 switchRooms(message);
@@ -133,8 +131,8 @@ public class ClientMediator {
         }
     }
 
-    private void switchRooms(RoutedMessage message) {
-        Log.log(Level.FINER, this, "SWITCH ROOMS", message, roomMediator);
+    public void switchRooms(RoutedMessage message) {
+        Log.log(Level.FINER, toClient, "SWITCH ROOMS", message, roomMediator);
 
         boolean teleport = false;
         String exitId = null;
@@ -142,8 +140,7 @@ public class ClientMediator {
         try {
             if ( message.isSOS() ) {
                 // we don't look for an exitId in the case of an SOS.
-                sendToClient(
-                        RoutedMessage.createMessage(FlowTarget.player, userId, Constants.EXIT_ELECTRIC_THUMB));
+                sendToClient(RoutedMessage.createMessage(FlowTarget.player, userId, Constants.EXIT_ELECTRIC_THUMB));
 
                 // coordinate across instances of player, call #setRoomMediator
                 nexus.transition(this, Constants.FIRST_ROOM);
@@ -180,7 +177,7 @@ public class ClientMediator {
     }
 
     public void destroy() {
-        Log.log(Level.FINER, this, "DESTROY");
+        Log.log(Level.FINER, toClient, "DESTROY");
         nexus.part(this);
         toClient.stop();
     }
@@ -193,18 +190,17 @@ public class ClientMediator {
         // or messages for this user (ignore all others)
         if (message.isForUser(userId)) {
             toClient.send(message);
-
-            // If we are additionally changing locations, ...
-            if (message.getFlowTarget() == FlowTarget.playerLocation ) {
-                switchRooms(message);
-            }
         } else {
-            Log.log(Level.FINEST, this, "sendToClient -- Dropping message {0}", message);
+            Log.log(Level.FINEST, toClient, "sendToClient -- Dropping message {0}", message);
         }
+    }
+    
+    public Object getSource() {
+        return toClient;
     }
 
     @Override
     public String toString() {
-        return "ClientMediator[userId="+userId+", userName="+userName+", instance="+System.identityHashCode(this)+"]";
+        return "ClientMediator[userId="+userId+", userName="+userName+", instance="+Log.getHexHash(toClient)+"]";
     }
 }

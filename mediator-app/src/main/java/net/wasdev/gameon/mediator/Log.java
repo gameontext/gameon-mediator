@@ -40,8 +40,12 @@ public class Log {
             log.log(useLevel(level), msg, thrown);
         }
     }
+    
+    public static String getHexHash(Object source) {
+        return Integer.toHexString(getHash(source));
+    }
 
-    private static int getHash(Object source) {
+    public static int getHash(Object source) {
         return source == null ? 0 : System.identityHashCode(source);
     }
 

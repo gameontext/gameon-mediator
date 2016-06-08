@@ -189,18 +189,11 @@ public class ClientMediatorTest {
             nexus.transitionViaExit(mediator, "N");
         }};
 
-        mediator.sendToClient(origMessage); // playerLocation is sent to client from room
+        mediator.switchRooms(origMessage); // called on _a_ mediator by nexus
 
         new Verifications() {{
             nexus.transitionViaExit(mediator, "N"); times = 1;
-            List<RoutedMessage> responses = new ArrayList<>();
-
-            drain.send(withCapture(responses)); // joinpart, ack
-
-            Assert.assertEquals("Expected 1 responses: "+ responses, 1, responses.size());
-
-            RoutedMessage message = responses.get(0); // playerLocation is sent to client
-            Assert.assertEquals(origMessage, message);
+            drain.send((RoutedMessage) any); times = 0;
         }};
     }
 
@@ -222,7 +215,7 @@ public class ClientMediatorTest {
             nexus.transition(mediator, Constants.FIRST_ROOM);
         }};
 
-        mediator.handleMessage(origMessage); // playerLocation is sent to client from room
+        mediator.switchRooms(origMessage); // called on _a_ mediator by nexus
 
         new Verifications() {{
             List<RoutedMessage> responses = new ArrayList<>();
@@ -260,20 +253,11 @@ public class ClientMediatorTest {
             nexus.transition(mediator, Constants.FIRST_ROOM);
         }};
 
-        mediator.sendToClient(origMessage); // playerLocation is sent to client from room
+        mediator.switchRooms(origMessage); // called on _a_ mediator by nexus
 
         new Verifications() {{
-            List<RoutedMessage> responses = new ArrayList<>();
-
             nexus.transition(mediator, Constants.FIRST_ROOM); times = 1;
-
-            drain.send(withCapture(responses)); // joinpart, ack
-            System.out.println(responses);
-
-            Assert.assertEquals("Expected 1 response: "+ responses, 1, responses.size());
-
-            RoutedMessage message = responses.get(0); // playerLocation is sent to client
-            Assert.assertEquals(origMessage, message);
+            drain.send((RoutedMessage) any); times = 0;
         }};
     }
 
@@ -302,20 +286,11 @@ public class ClientMediatorTest {
             nexus.transition(mediator, roomId);
         }};
 
-        mediator.sendToClient(origMessage); // playerLocation is sent to client from room
+        mediator.switchRooms(origMessage); // called on _a_ mediator by nexus
 
         new Verifications() {{
-            List<RoutedMessage> responses = new ArrayList<>();
-
             nexus.transition(mediator, roomId); times = 1;
-
-            drain.send(withCapture(responses)); // joinpart, ack
-            System.out.println(responses);
-
-            Assert.assertEquals("Expected 1 response: "+ responses, 1, responses.size());
-
-            RoutedMessage message = responses.get(0); // playerLocation is sent to client
-            Assert.assertEquals(origMessage, message);
+            drain.send((RoutedMessage) any); times = 0;
         }};
     }
 

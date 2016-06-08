@@ -120,6 +120,7 @@ public class FirstRoom extends AbstractRoomMediator {
             responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
                     RoomUtils.buildContentResponse("This room is a basic model. It doesn't understand that command."));
         }
+        
         return userId;
     }
 

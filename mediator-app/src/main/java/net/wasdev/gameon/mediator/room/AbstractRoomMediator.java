@@ -18,6 +18,7 @@ package net.wasdev.gameon.mediator.room;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 import javax.json.Json;
@@ -55,6 +56,7 @@ public abstract class AbstractRoomMediator implements RoomMediator {
 
     protected Exits exits;
     protected RoomInfo roomInfo;
+    protected AtomicInteger bookmark = new AtomicInteger(0);
 
     public AbstractRoomMediator(MediatorNexus.View nexusView, MapClient mapClient, Site site) {
         this.roomId = site.getId();
@@ -137,26 +139,30 @@ public abstract class AbstractRoomMediator implements RoomMediator {
     public void hello(MediatorNexus.UserView user, boolean recovery) {
         JsonObjectBuilder builder = Json.createObjectBuilder();
         buildLocationResponse(builder);
+        builder.add(Constants.KEY_BOOKMARK, "go-" + bookmark.incrementAndGet());
 
+        // type=location message
         sendToClients(RoutedMessage.createMessage(FlowTarget.player, user.getUserId(), builder.build()));
+        
+        // Say hello to.. 
+        sendToClients(RoutedMessage.createMessage(FlowTarget.player, "*",
+                String.format(Constants.EVENT_HELLO, user.getUserName(), user.getUserId(), bookmark.incrementAndGet())));
      }
 
     @Override
     public void goodbye(MediatorNexus.UserView user) {
         sendToClients(RoutedMessage.createMessage(FlowTarget.player, "*",
-                String.format(Constants.EVENT_GOODBYE, user.getUserName(), user.getUserId(), goodbyeMessage())));
+                String.format(Constants.EVENT_GOODBYE, user.getUserName(), user.getUserId(), goodbyeMessage(), bookmark.incrementAndGet())));
     }
 
     @Override
     public void join(MediatorNexus.UserView user) {
-        sendToClients(RoutedMessage.createMessage(FlowTarget.player, "*",
-                String.format(Constants.EVENT_JOIN, user.getUserName(), user.getUserId(), getFullName())));
+        // joins happen _quite_ frequently. No action.
     }
 
     @Override
     public void part(MediatorNexus.UserView user){
-        sendToClients(RoutedMessage.createMessage(FlowTarget.player, "*",
-                String.format(Constants.EVENT_PART, user.getUserName(), user.getUserId(), goodbyeMessage())));
+        // parts happen _quite_ frequently. No action.
     }
 
     @Override
@@ -164,7 +170,7 @@ public abstract class AbstractRoomMediator implements RoomMediator {
 
     @Override
     public void sendToRoom(RoutedMessage message) {
-        Log.log(Level.FINEST, this, "{0} received: {1}", getName(), message);
+        Log.log(Level.FINEST, this, "{0}/{1} received: {2}", getName(), getType(), message);
 
         JsonObject sourceMessage = message.getParsedBody();
         String userId = sourceMessage.getString(RoomUtils.USER_ID);
@@ -211,10 +217,6 @@ public abstract class AbstractRoomMediator implements RoomMediator {
                     .add(RoomUtils.CONTENT, "You head " + RoomUtils.longDirection(exitDirection));
             }
 
-        } else if (content.startsWith("/exits")) {
-            responseBuilder.add(RoomUtils.TYPE, Constants.KEY_ROOM_EXITS)
-                .add(RoomUtils.CONTENT, exits.toSimpleJsonList());
-
         } else if ( "/look".equals(content) ) {
             buildLocationResponse(responseBuilder);
 
@@ -226,8 +228,11 @@ public abstract class AbstractRoomMediator implements RoomMediator {
             targetId = "*";
             responseBuilder.add(Constants.KEY_USERNAME, userName)
                 .add(RoomUtils.CONTENT, content)
+                .add(Constants.KEY_BOOKMARK, "go-" + bookmark.incrementAndGet())
                 .add(RoomUtils.TYPE, RoomUtils.CHAT);
         }
+        
+        responseBuilder.add(Constants.KEY_BOOKMARK, "go-" + bookmark.incrementAndGet());
 
         return targetId;
     }
@@ -237,7 +242,7 @@ public abstract class AbstractRoomMediator implements RoomMediator {
      */
     protected String parseCommand(String userId, String userName, JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
         responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT)
-                       .add(RoomUtils.CONTENT, NO_COMMANDS);
+            .add(RoomUtils.CONTENT, NO_COMMANDS);
         return userId;
     }
 
@@ -258,10 +263,19 @@ public abstract class AbstractRoomMediator implements RoomMediator {
     @Override
     public String toString() {
         return this.getClass().getSimpleName()
+                + "[id=" + roomId
+                + ", name="+getName()
+                + ", full="+getFullName()
+                + "]";
+    }
+    
+    public String toFullString() {
+        return this.getClass().getSimpleName()
                 + "[name="+getName()
                 + ", full="+getFullName()
                 + ", info="+roomInfo
                 + ", exits="+exits
                 + "]";
     }
+    
 }
