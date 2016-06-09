@@ -7,7 +7,9 @@ import javax.json.JsonValue;
 
 import net.wasdev.gameon.mediator.Log;
 import net.wasdev.gameon.mediator.MediatorBuilder;
+import net.wasdev.gameon.mediator.MediatorBuilder.UpdateType;
 import net.wasdev.gameon.mediator.MediatorNexus;
+import net.wasdev.gameon.mediator.MediatorNexus.UserView;
 import net.wasdev.gameon.mediator.RoutedMessage;
 import net.wasdev.gameon.mediator.models.Exit;
 import net.wasdev.gameon.mediator.models.Exits;
@@ -36,25 +38,25 @@ import net.wasdev.gameon.mediator.models.Site;
 public class RemoteRoomProxy implements RoomMediator {
 
     final MediatorBuilder mediatorBuilder;
-    final String userId;
+    final UserView user;
     final String roomId;
     volatile RoomMediator delegate;
 
     AtomicBoolean updating = new AtomicBoolean(false);
 
     /**
-     * Creates a new proxy. Calls {@link MediatorBuilder#createDelegate(RemoteRoomProxy, String, Site)}
+     * Creates a new proxy. Calls {@link MediatorBuilder#createDelegate(RemoteRoomProxy, UserView, Site)}
      * to build the initial delegate.
      *
      * @param mediatorBuilder
-     * @param userId
+     * @param user
      * @param site
      */
-    public RemoteRoomProxy(MediatorBuilder mediatorBuilder, String userId, String roomId) {
+    public RemoteRoomProxy(MediatorBuilder mediatorBuilder, UserView user, String roomId) {
         this.mediatorBuilder = mediatorBuilder;
-        this.userId = userId;
+        this.user = user;
         this.roomId = roomId;
-        this.delegate = mediatorBuilder.createDelegate(this, userId, roomId);
+        this.delegate = mediatorBuilder.createDelegate(this, user, roomId);
     }
 
     @Override
@@ -102,7 +104,7 @@ public class RemoteRoomProxy implements RoomMediator {
     public void updateInformation(Site site) {
         if ( updating.compareAndSet(false, true)) {
             Log.log(Level.FINEST, this, "RemoteRoomProxy -- update begin {0}", site);
-            mediatorBuilder.updateDelegate(this, delegate, userId, site);
+            mediatorBuilder.updateDelegate(UpdateType.HELLO, this, delegate, site, user);
         } else {
             Log.log(Level.FINEST, this, "RemoteRoomProxy -- update in progress {0}", site);
         }
@@ -141,8 +143,13 @@ public class RemoteRoomProxy implements RoomMediator {
      */
     public void connectRemote(boolean roomHello) {
         if ( updating.compareAndSet(false, true)) {
-            Log.log(Level.FINEST, this, "RemoteRoomProxy -- connect");
-            mediatorBuilder.updateDelegate(this, delegate, userId, null);
+            // Queue the initial connect to a different thread: the connecting room
+            // is holding down the fort.
+            mediatorBuilder.execute(() -> {
+                Log.log(Level.FINEST, this, "RemoteRoomProxy -- connect for {0}", user);
+                UpdateType type = roomHello ? UpdateType.HELLO : UpdateType.JOIN;
+                mediatorBuilder.updateDelegate(type, this, delegate, null, user);
+            });
         } else {
             Log.log(Level.FINEST, this, "RemoteRoomProxy -- connect in progress");
         }
@@ -154,8 +161,8 @@ public class RemoteRoomProxy implements RoomMediator {
      */
     public void reconnect() {
         if ( updating.compareAndSet(false, true)) {
-            Log.log(Level.FINEST, this, "RemoteRoomProxy -- reconnect {0}", delegate.getFullName());
-            mediatorBuilder.updateDelegate(this, delegate, userId, null); // refresh site
+            Log.log(Level.FINEST, this, "RemoteRoomProxy -- reconnect to {0} for {1}", delegate.getName(), user);
+            mediatorBuilder.updateDelegate(UpdateType.RECONNECT, this, delegate, null, user); // refresh site
         } else {
             Log.log(Level.FINEST, this, "RemoteRoomProxy -- connect in progress");
         }

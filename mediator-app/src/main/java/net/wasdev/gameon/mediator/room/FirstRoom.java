@@ -126,10 +126,7 @@ public class FirstRoom extends AbstractRoomMediator {
 
     @Override
     protected void buildLocationResponse(JsonObjectBuilder responseBuilder) {
-        responseBuilder.add(RoomUtils.TYPE, RoomUtils.LOCATION);
-        responseBuilder.add(Constants.KEY_ROOM_NAME, Constants.FIRST_ROOM);
-        responseBuilder.add(Constants.KEY_ROOM_FULLNAME, FIRST_ROOM_FULL);
-        responseBuilder.add(Constants.KEY_ROOM_EXITS, exits.toSimpleJsonList());
+        super.buildLocationResponse(responseBuilder);
         responseBuilder.add(Constants.KEY_COMMANDS, buildHelpResponse());
 
         if (newbie) {

@@ -23,6 +23,12 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
+import javax.json.Json;
+import javax.json.JsonArrayBuilder;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
+
+import net.wasdev.gameon.mediator.Constants;
 import net.wasdev.gameon.mediator.Log;
 import net.wasdev.gameon.mediator.MapClient;
 import net.wasdev.gameon.mediator.MediatorNexus;
@@ -46,12 +52,15 @@ public class SickRoom extends AbstractRoomMediator {
     
     final RemoteRoomProxy proxy;
     final ScheduledExecutorService scheduledExecutor;
-    ScheduledFuture<?> pendingAttempt;
-    int attempts = 0;
 
     /** Associated user id (if not a multiplexed/shared connection) */
     final String targetUser;
 
+    ScheduledFuture<?> pendingAttempt;
+    int attempts = 0;
+    
+    volatile boolean characterMessages = true;
+    volatile long retryInterval = 2;
     
     public SickRoom(RemoteRoomProxy proxy, MapClient mapClient, ScheduledExecutorService scheduledExecutor, Site site, String userId, MediatorNexus.View nexus) {
         super(nexus, mapClient, site);
@@ -59,9 +68,9 @@ public class SickRoom extends AbstractRoomMediator {
         this.targetUser = userId == null ? "*" : userId;
         this.scheduledExecutor = scheduledExecutor;
 
-        Log.log(Level.FINEST, this, "Created Sick Room for " + targetUser + " in " + site.getId());
+        Log.log(Level.FINEST, this, "Created Sick Room for {0} in {1}", targetUser, site.getId());
        
-        this.updateInformation(site);
+        this.updateInformation(site); 
     }
 
     @Override
@@ -88,6 +97,8 @@ public class SickRoom extends AbstractRoomMediator {
     /**
      * Called whenever site information has been updated but the delegate stays
      * the same. Only one update in progress at a time, see {@link RemoteRoomProxy#updateInformation(Site)}
+     * This method is effectively single threaded: contained w/in the remote
+     * proxy update
      * 
      * @see net.wasdev.gameon.mediator.room.AbstractRoomMediator#updateInformation(net.wasdev.gameon.mediator.models.Site)
      */
@@ -96,21 +107,31 @@ public class SickRoom extends AbstractRoomMediator {
         // update exits and room information
         super.updateInformation(site);
         
-        Log.log(Level.FINEST, this, "Updated Sick Room for " + targetUser + " in " + site.getId());
+        ++attempts;
+        
+        // small numbers, but doing this with TimeUnit in seconds.. 
+        retryInterval = (retryInterval * 2) + RoomUtils.random.nextInt(3);
 
         // cough.
-        sendToClients(RoutedMessage.createSimpleEventMessage(FlowTarget.player, targetUser, complaint() + "(" + attempts + ")"));
+        sendToClients(RoutedMessage.createSimpleEventMessage(FlowTarget.player, targetUser, complaint()));
+
+        Log.log(Level.FINEST, this, "Update {0} of Sick Room for {1} in {2}",
+                attempts, targetUser, roomId);
 
         // schedule a retry after an increasing interval
         pendingAttempt = scheduledExecutor.schedule(() -> {
             // attempt to reconnect
             proxy.updateInformation(null);
-        }, attempts++, TimeUnit.SECONDS);
+        }, retryInterval, TimeUnit.SECONDS);
     }
     
     public String complaint() {
-        int index = RoomUtils.random.nextInt(SICK_COMPLAINTS.size());
-        return SICK_COMPLAINTS.get(index);
+        if ( characterMessages ) {
+            int index = RoomUtils.random.nextInt(SICK_COMPLAINTS.size());
+            return SICK_COMPLAINTS.get(index) + " (" + attempts + ")";
+        } else {
+            return "Failed attempt "  + attempts + ". Reconnecting in " + retryInterval + " seconds.";
+        }
     }
 
     @Override
@@ -118,6 +139,61 @@ public class SickRoom extends AbstractRoomMediator {
         if ( pendingAttempt != null ) {
             pendingAttempt.cancel(true);
         }
+        Log.log(Level.FINEST, this, "Sick Room for {0}/{1} disconnected: {2}",
+                targetUser, roomId, pendingAttempt);
     }
     
+    @Override
+    protected void buildLocationResponse(JsonObjectBuilder responseBuilder) {
+        super.buildLocationResponse(responseBuilder);
+        
+        JsonArrayBuilder objs = Json.createArrayBuilder();
+        objs.add("Monitor");
+        objs.add("Chart");
+        responseBuilder.add(Constants.KEY_ROOM_INVENTORY, objs.build());
+    }
+    
+    @Override
+    protected String parseCommand(String userId, String userName, JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
+        
+        String targetUser = userId;
+        String content = sourceMessage.getString(RoomUtils.CONTENT);
+        String contentToLower = content.trim().toLowerCase();
+
+        if (contentToLower.startsWith("/examine") ) {
+            JsonObject contentResponse;
+
+            if ( contentToLower.contains(" monitor") ) {
+                if ( characterMessages ) {
+                    contentResponse = RoomUtils.buildContentResponse(userId, 
+                            "You squint at the teensy screen and try to make sense of the text scrolling by.");
+                } else {
+                    contentResponse = RoomUtils.buildContentResponse(userId, 
+                            "The screen flickers sickeningly. You look away.");
+                }
+                
+                // now switch modes
+                characterMessages = !characterMessages;
+            } else if ( contentToLower.contains(" chart") ) {
+                if ( characterMessages ) {
+                    contentResponse = RoomUtils.buildContentResponse(userId, 
+                            "You skim the page. You don't have to be a doctor to tell this room isn't doing so well.");
+                } else {
+                    contentResponse = RoomUtils.buildContentResponse(userId, 
+                            "Patient: **" + getFullName() + "**\n\n"
+                            + "* Connection attempts: " + attempts + "\n"
+                            + "* Retry interval: " + retryInterval + " seconds");
+                }
+            } else {
+                contentResponse = RoomUtils.buildContentResponse(userId, "It doesn't look interesting.");
+            }
+            
+            responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT)
+                 .add(RoomUtils.CONTENT, contentResponse);
+        } else {
+            targetUser = super.parseCommand(userId, userName, sourceMessage, responseBuilder);
+        }
+        
+        return targetUser;
+    }
 }

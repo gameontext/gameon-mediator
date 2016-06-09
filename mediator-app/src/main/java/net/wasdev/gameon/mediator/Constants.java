@@ -47,6 +47,7 @@ public interface Constants {
     String KEY_BOOKMARK = "bookmark";
     String KEY_USERNAME = "username";
     String KEY_MEDIATOR_ID = "mediatorId";
+    String KEY_ROOM_INVENTORY = "roomInventory";
 
     String VALID_JWT = "{\"type\": \"joinpart\",\"content\": \"connected: validating JWT\"}";
     String FINDROOM = "{\"type\": \"joinpart\",\"content\": \"%s: knock, knock\"}";
@@ -54,7 +55,7 @@ public interface Constants {
     String JOIN = "{\"type\": \"joinpart\",\"content\": \"enter %s\"}";
     String PART = "{\"type\": \"joinpart\",\"content\": \"exit %s\"}";
   
-    String EVENT_HELLO = "{\"type\": \"event\",\"content\": {\"*\": \"%s is here\",\"%s\": \"Hello\"},\"bookmark\": \"go-%d\"}";
+    String EVENT_HELLO = "{\"type\": \"event\",\"content\": {\"*\": \"%s is here\",\"%s\": \"%s\"},\"bookmark\": \"go-%d\"}";
     String EVENT_GOODBYE =  "{\"type\": \"event\",\"content\": {\"*\": \"%s has gone\",\"%s\": \"%s\"},\"bookmark\": \"g-%d\"}";
 
     String EVENT_GENERIC = "{\"type\": \"event\",\"content\": {\"%s\": \"%s\"}}";

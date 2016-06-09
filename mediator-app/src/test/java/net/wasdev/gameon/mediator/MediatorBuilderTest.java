@@ -23,6 +23,7 @@ import mockit.Tested;
 import mockit.Verifications;
 import mockit.integration.junit4.JMockit;
 import net.wasdev.gameon.mediator.MediatorNexus.ClientMediatorPod;
+import net.wasdev.gameon.mediator.MediatorNexus.UserView;
 import net.wasdev.gameon.mediator.models.Exit;
 import net.wasdev.gameon.mediator.models.Exits;
 import net.wasdev.gameon.mediator.models.RoomInfo;
@@ -51,6 +52,18 @@ public class MediatorBuilderTest {
     static final String signedJwt = "testJwt";
     static final String userId = "dummy.DevUser";
     static final String userName = "DevUser";
+    static final UserView userView = new UserView() {
+        @Override
+        public String getUserId() {
+            return userId;
+        }
+
+        @Override
+        public String getUserName() {
+            // TODO Auto-generated method stub
+            return userName;
+        }
+    };
 
     static final String roomId = "roomId";
     static final String roomName = "roomName";
@@ -104,7 +117,7 @@ public class MediatorBuilderTest {
     }
 
     @Test
-    public void testGetFirstRoomMediator(@Mocked ClientMediator client,
+    public void testGetFirstRoomMediator(@Mocked ClientMediatorPod client,
             @Mocked Site firstRoomSite) {
 
         new Expectations() {{
@@ -117,7 +130,7 @@ public class MediatorBuilderTest {
     }
 
     @Test
-    public void testGetFirstRoomMediatorNullSite(@Mocked ClientMediator client) {
+    public void testGetFirstRoomMediatorNullSite(@Mocked ClientMediatorPod client) {
         new Expectations() {{
             mapClient.getSite(Constants.FIRST_ROOM); result = null;
         }};
@@ -128,28 +141,28 @@ public class MediatorBuilderTest {
     }
 
     @Test
-    public void testFindMediatorForRoomNull(@Mocked ClientMediator client) {
+    public void testFindMediatorForRoomNull(@Mocked ClientMediatorPod client) {
         RoomMediator room = builder.findMediatorForRoom(client, null);
         Assert.assertEquals(Type.FIRST_ROOM, room.getType());
         Assert.assertEquals(Constants.FIRST_ROOM, room.getName());
     }
 
     @Test
-    public void testFindMediatorForRoomEmpty(@Mocked ClientMediator client) {
+    public void testFindMediatorForRoomEmpty(@Mocked ClientMediatorPod client) {
         RoomMediator room = builder.findMediatorForRoom(client, "");
         Assert.assertEquals(Type.FIRST_ROOM, room.getType());
         Assert.assertEquals(Constants.FIRST_ROOM, room.getName());
     }
 
     @Test
-    public void testFindMediatorForRoomFirstRoom(@Mocked ClientMediator client) {
+    public void testFindMediatorForRoomFirstRoom(@Mocked ClientMediatorPod client) {
         RoomMediator room = builder.findMediatorForRoom(client, Constants.FIRST_ROOM);
         Assert.assertEquals(Type.FIRST_ROOM, room.getType());
         Assert.assertEquals(Constants.FIRST_ROOM, room.getName());
     }
 
     @Test
-    public void testFindMediatorForRoomNoSite(@Mocked ClientMediator client) {
+    public void testFindMediatorForRoomNoSite(@Mocked ClientMediatorPod client) {
         new Expectations() {{
             mapClient.getSite(roomId); result = null;
         }};
@@ -159,7 +172,7 @@ public class MediatorBuilderTest {
     }
 
     @Test
-    public void testFindMediatorForRoomEmptySite(@Mocked ClientMediator client,
+    public void testFindMediatorForRoomEmptySite(@Mocked ClientMediatorPod client,
             @Mocked Site site) {
         new Expectations() {{
             mapClient.getSite(roomId); result = site;
@@ -170,7 +183,7 @@ public class MediatorBuilderTest {
     }
 
     @Test
-    public void testFindMediatorForRoomSite(@Mocked ClientMediator client,
+    public void testFindMediatorForRoomSite(@Mocked ClientMediatorPod client,
             @Mocked Site site,
             @Mocked RoomInfo info) {
         new Expectations() {{
@@ -184,7 +197,7 @@ public class MediatorBuilderTest {
     }
 
     @Test
-    public void testFindMediatorForExitNoTarget(@Mocked ClientMediator client,
+    public void testFindMediatorForExitNoTarget(@Mocked ClientMediatorPod client,
             @Mocked RoomMediator startingRoom,
             @Mocked Exits exits) {
         new Expectations() {{
@@ -197,7 +210,7 @@ public class MediatorBuilderTest {
     }
 
     @Test
-    public void testFindMediatorForExitFirstRoom(@Mocked ClientMediator client,
+    public void testFindMediatorForExitFirstRoom(@Mocked ClientMediatorPod client,
             @Mocked RoomMediator startingRoom,
             @Mocked Exits exits) {
 
@@ -212,7 +225,7 @@ public class MediatorBuilderTest {
     }
 
     @Test
-    public void testFindMediatorForExitNoSite(@Mocked ClientMediator client,
+    public void testFindMediatorForExitNoSite(@Mocked ClientMediatorPod client,
                                               @Mocked RoomMediator startingRoom,
                                               @Mocked Exit north) {
         Exits exits = new Exits();
@@ -238,7 +251,7 @@ public class MediatorBuilderTest {
     }
 
     @Test
-    public void testFindMediatorForExitEmptySite(@Mocked ClientMediator client,
+    public void testFindMediatorForExitEmptySite(@Mocked ClientMediatorPod client,
             @Mocked RoomMediator startingRoom,
             @Mocked Exits exits,
             @Mocked Site site) {
@@ -254,7 +267,7 @@ public class MediatorBuilderTest {
     }
 
     @Test
-    public void testFindMediatorForExitSite(@Mocked ClientMediator client,
+    public void testFindMediatorForExitSite(@Mocked ClientMediatorPod client,
             @Mocked RoomMediator startingRoom,
             @Mocked Exits exits,
             @Mocked Site site,
@@ -273,10 +286,11 @@ public class MediatorBuilderTest {
     @Test
     public void testCreateDelegateEmpty(@Mocked Site site1) {
         new Expectations() {{
+            site1.getId(); result = roomId;
             site1.getInfo(); result = null;
         }};
 
-        RemoteRoomProxy proxy = new RemoteRoomProxy(builder, userId, site1);
+        RemoteRoomProxy proxy = new RemoteRoomProxy(builder, userView, site1.getId());
         Assert.assertEquals(Type.EMPTY, proxy.getType()); // proxy type should reflect the guts!
     }
 
@@ -285,11 +299,12 @@ public class MediatorBuilderTest {
                                    @Mocked RoomInfo info,
                                    @Mocked ClientMediatorPod pod1) {
         new Expectations() {{
+            site1.getId(); result = roomId;
             site1.getInfo(); result = info;
             info.getConnectionDetails().getType(); result = "unknown";
         }};
 
-        RemoteRoomProxy proxy = new RemoteRoomProxy(builder, userId, site1);
+        RemoteRoomProxy proxy = new RemoteRoomProxy(builder, userView, site1.getId());
         Assert.assertEquals(Type.CONNECTING, proxy.getType()); // proxy type should reflect the guts!
 
         // Attempt connection with bad type
@@ -301,10 +316,11 @@ public class MediatorBuilderTest {
     public void testCreateConnectingDelegateHello(@Mocked Site site1,
                                    @Mocked RoomInfo info) {
         new Expectations() {{
+            site1.getId(); result = roomId;
             site1.getInfo(); result = info;
         }};
 
-        RemoteRoomProxy proxy = new RemoteRoomProxy(builder, userId, site1);
+        RemoteRoomProxy proxy = new RemoteRoomProxy(builder, userView, site1.getId());
         Assert.assertEquals(Type.CONNECTING, proxy.getType()); // proxy type should reflect the guts!
 
         // Attept connection
@@ -314,10 +330,11 @@ public class MediatorBuilderTest {
     public void testCreateConnectingDelegateJoin(@Mocked Site site1,
                                    @Mocked RoomInfo info) {
         new Expectations() {{
+            site1.getId(); result = roomId;
             site1.getInfo(); result = info;
         }};
 
-        RemoteRoomProxy proxy = new RemoteRoomProxy(builder, userId, site1);
+        RemoteRoomProxy proxy = new RemoteRoomProxy(builder, userView, site1.getId());
         Assert.assertEquals(Type.CONNECTING, proxy.getType()); // proxy type should reflect the guts!
 
         // Attept connection

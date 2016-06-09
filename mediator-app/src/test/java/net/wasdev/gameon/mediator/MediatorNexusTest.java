@@ -99,8 +99,7 @@ public class MediatorNexusTest {
             room1.getFullName(); result = roomFullName;
             room1.listExits(); result = roomExits;
 
-            builder.findMediatorForRoom(client1, roomId); result = room1;
-            builder.findMediatorForRoom(client2, roomId); result = room1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, roomId); result = room1;
         }};
 
         MediatorNexus nexus = new MediatorNexus();
@@ -183,8 +182,7 @@ public class MediatorNexusTest {
 
         new Verifications() {{
             // mediators created only once per client
-            builder.findMediatorForRoom(client1, roomId); times = 1;
-            builder.findMediatorForRoom(client2, roomId); times = 1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, roomId); times = 2;
 
             client1.setRoomMediator(room1, false); times = 2; // double add
             client1a.setRoomMediator(room1, false); times = 1;
@@ -213,7 +211,7 @@ public class MediatorNexusTest {
             room1.getName(); result = Constants.FIRST_ROOM;
             room1.getFullName(); result = FirstRoom.FIRST_ROOM_FULL;
             room1.listExits(); result = roomExits;
-            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); result = room1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); result = room1;
         }};
 
         MediatorNexus nexus = new MediatorNexus();
@@ -224,7 +222,7 @@ public class MediatorNexusTest {
 
         new Verifications() {{
             // mediators created only once per client
-            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); times = 1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); times = 1;
 
             UserView join;
             room1.join(join = withCapture()); times = 1;
@@ -248,7 +246,7 @@ public class MediatorNexusTest {
             room1.getName(); result = Constants.FIRST_ROOM;
             room1.getFullName(); result = FirstRoom.FIRST_ROOM_FULL;
             room1.listExits(); result = roomExits;
-            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); result = room1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); result = room1;
         }};
 
         MediatorNexus nexus = new MediatorNexus();
@@ -259,7 +257,7 @@ public class MediatorNexusTest {
 
         new Verifications() {{
             // mediators created only once per client
-            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); times = 1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); times = 1;
 
             UserView hello;
             room1.hello(hello = withCapture(), false); times = 1;
@@ -283,7 +281,7 @@ public class MediatorNexusTest {
             room1.getName(); result = Constants.FIRST_ROOM;
             room1.getFullName(); result = FirstRoom.FIRST_ROOM_FULL;
             room1.listExits(); result = roomExits;
-            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); result = room1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); result = room1;
         }};
 
         MediatorNexus nexus = new MediatorNexus();
@@ -294,7 +292,7 @@ public class MediatorNexusTest {
 
         new Verifications() {{
             // mediators created only once per client
-            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); times = 1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); times = 1;
 
             UserView hello;
             room1.hello(hello = withCapture(), false); times = 1;
@@ -318,7 +316,7 @@ public class MediatorNexusTest {
             room1.getName(); result = Constants.FIRST_ROOM;
             room1.getFullName(); result = FirstRoom.FIRST_ROOM_FULL;
             room1.listExits(); result = roomExits;
-            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); result = room1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); result = room1;
         }};
 
         MediatorNexus nexus = new MediatorNexus();
@@ -329,7 +327,7 @@ public class MediatorNexusTest {
 
         new Verifications() {{
             // mediators created only once per client
-            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); times = 1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); times = 1;
 
             UserView hello;
             room1.hello(hello = withCapture(), false); times = 1;
@@ -354,7 +352,7 @@ public class MediatorNexusTest {
             room1.getFullName(); result = roomFullName;
             room1.listExits(); result = roomExits;
 
-            builder.findMediatorForRoom(client1, roomId); result = room1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, roomId); result = room1;
         }};
 
         MediatorNexus nexus = new MediatorNexus();
@@ -389,7 +387,7 @@ public class MediatorNexusTest {
             room1.getName(); result = Constants.FIRST_ROOM;
             room1.getFullName(); result = FirstRoom.FIRST_ROOM_FULL;
             room1.listExits(); result = roomExits;
-            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); result = room1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); result = room1;
         }};
 
         MediatorNexus nexus = new MediatorNexus();
@@ -400,7 +398,7 @@ public class MediatorNexusTest {
 
         new Verifications() {{
             // mediators created only once per client
-            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); times = 1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); times = 1;
 
             UserView hello;
             room1.hello(hello = withCapture(), false); times = 1;
@@ -424,7 +422,7 @@ public class MediatorNexusTest {
             room1.getName(); result = Constants.FIRST_ROOM;
             room1.getFullName(); result = FirstRoom.FIRST_ROOM_FULL;
             room1.listExits(); result = roomExits;
-            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); result = room1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); result = room1;
         }};
 
         MediatorNexus nexus = new MediatorNexus();
@@ -435,7 +433,7 @@ public class MediatorNexusTest {
 
         new Verifications() {{
             // mediators created only once per client
-            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); times = 1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); times = 1;
 
             UserView hello;
             room1.hello(hello = withCapture(), false); times = 1;
@@ -460,7 +458,7 @@ public class MediatorNexusTest {
             room1.getName(); result = roomName;
             room1.getFullName(); result = roomFullName;
             room1.listExits(); result = roomExits;
-            builder.findMediatorForRoom(client1, roomId); result = room1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, roomId); result = room1;
         }};
 
         MediatorNexus nexus = new MediatorNexus();
@@ -474,7 +472,7 @@ public class MediatorNexusTest {
 
         new Verifications() {{
             // mediators created only once per client
-            builder.findMediatorForRoom(client1, roomId); times = 1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, roomId); times = 1;
 
             UserView join;
             room1.join(join = withCapture()); times = 1;
@@ -498,7 +496,7 @@ public class MediatorNexusTest {
             room1.getName(); result = Constants.FIRST_ROOM;
             room1.getFullName(); result = FirstRoom.FIRST_ROOM_FULL;
             room1.listExits(); result = roomExits;
-            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); result = room1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); result = room1;
         }};
 
         MediatorNexus nexus = new MediatorNexus();
@@ -511,7 +509,7 @@ public class MediatorNexusTest {
         nexus.transition(client1, null);
 
         new Verifications() {{
-            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); times = 1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); times = 1;
 
             UserView join;
             room1.join(join = withCapture()); times = 1;
@@ -546,8 +544,8 @@ public class MediatorNexusTest {
             room2.getFullName(); result = roomFullName;
             room2.listExits(); result = roomExits;
 
-            builder.findMediatorForRoom(client1, roomId); result = room1;
-            builder.findMediatorForRoom(client1, roomId2); result = room2;
+            builder.findMediatorForRoom((ClientMediatorPod) any, roomId); result = room1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, roomId2); result = room2;
         }};
 
         MediatorNexus nexus = new MediatorNexus();
@@ -563,7 +561,7 @@ public class MediatorNexusTest {
             room1.join(join = withCapture()); times = 1;
             Assert.assertEquals("join user = " + join , "client1", join.getUserId());
 
-            builder.findMediatorForRoom(client1, roomId); times = 1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, roomId); times = 1;
             client1.setRoomMediator(room1, false); times = 1;
 
             // transition
@@ -571,7 +569,7 @@ public class MediatorNexusTest {
             room1.goodbye(goodbye = withCapture()); times = 1;
             Assert.assertEquals("goodbye user = " + goodbye , "client1", goodbye.getUserId());
 
-            builder.findMediatorForRoom(client1, roomId2); times = 1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, roomId2); times = 1;
             client1.setRoomMediator(room2, false); times = 1;
 
             UserView hello;
@@ -599,7 +597,7 @@ public class MediatorNexusTest {
             room1.getFullName(); result = roomFullName;
             room1.listExits(); result = roomExits;
 
-            builder.findMediatorForRoom(client1, roomId); result = room1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, roomId); result = room1;
         }};
 
         MediatorNexus nexus = new MediatorNexus();
@@ -655,8 +653,8 @@ public class MediatorNexusTest {
             room2.getFullName(); result = roomFullName;
             room2.listExits(); result = roomExits;
 
-            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); result = room1;
-            builder.findMediatorForExit(client1, room1, "N"); result = room2;
+            builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); result = room1;
+            builder.findMediatorForExit((ClientMediatorPod) any, room1, "N"); result = room2;
         }};
 
         MediatorNexus nexus = new MediatorNexus();
@@ -671,7 +669,7 @@ public class MediatorNexusTest {
 
         new Verifications() {{
             // Join (only with client1: client1a is just added to pod)
-            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); times = 1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); times = 1;
 
             UserView join;
             room1.join(join = withCapture()); times = 1;
@@ -687,7 +685,7 @@ public class MediatorNexusTest {
             room1.goodbye(goodbye = withCapture()); times = 1;
             Assert.assertEquals("goodbye user = " + goodbye , "client1", goodbye.getUserId());
 
-            builder.findMediatorForExit(client1, room1, "N"); times = 1;
+            builder.findMediatorForExit((ClientMediatorPod) any, room1, "N"); times = 1;
 
             UserView hello;
             room2.hello(hello = withCapture(), false); times = 1;
@@ -717,7 +715,7 @@ public class MediatorNexusTest {
             room1.getName(); result = Constants.FIRST_ROOM;
             room1.getFullName(); result = FirstRoom.FIRST_ROOM_FULL;
             room1.listExits(); result = roomExits;
-            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); result = room1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); result = room1;
         }};
 
         MediatorNexus nexus = new MediatorNexus();
@@ -728,7 +726,7 @@ public class MediatorNexusTest {
 
         new Verifications() {{
             // mediators created only once per client
-            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); times = 1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); times = 1;
 
             UserView hello;
             room1.hello(hello = withCapture(), false); times = 1;
@@ -753,7 +751,7 @@ public class MediatorNexusTest {
             room1.getName(); result = roomName;
             room1.getFullName(); result = roomFullName;
             room1.listExits(); result = roomExits;
-            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); result = room1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); result = room1;
         }};
 
         MediatorNexus nexus = new MediatorNexus();
@@ -764,7 +762,7 @@ public class MediatorNexusTest {
 
         new Verifications() {{
             // mediators created only once per client
-            builder.findMediatorForRoom(client1, Constants.FIRST_ROOM); times = 1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); times = 1;
 
             UserView hello;
             room1.hello(hello = withCapture(), false); times = 1;
@@ -790,7 +788,7 @@ public class MediatorNexusTest {
             room1.getFullName(); result = roomFullName;
             room1.listExits(); result = roomExits;
 
-            builder.findMediatorForRoom(client1, roomId); result = room1;
+            builder.findMediatorForRoom((ClientMediatorPod) any, roomId); result = room1;
         }};
 
         MediatorNexus nexus = new MediatorNexus();

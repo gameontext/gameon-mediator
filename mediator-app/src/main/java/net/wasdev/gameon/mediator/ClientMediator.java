@@ -18,6 +18,7 @@ package net.wasdev.gameon.mediator;
 import java.util.ConcurrentModificationException;
 import java.util.logging.Level;
 
+import net.wasdev.gameon.mediator.MediatorNexus.UserView;
 import net.wasdev.gameon.mediator.RoutedMessage.FlowTarget;
 import net.wasdev.gameon.mediator.room.FirstRoom;
 import net.wasdev.gameon.mediator.room.RoomMediator;
@@ -27,7 +28,7 @@ import net.wasdev.gameon.mediator.room.RoomMediator.Type;
  * The ClientMediator: mediates the inbound connection from the client device. Handles
  * room transitions.
  */
-public class ClientMediator {
+public class ClientMediator implements UserView {
 
     /**
      * The player's userId. The room will broadcast to all connected clientMediators in
@@ -64,10 +65,12 @@ public class ClientMediator {
         toClient.start();
     }
 
+    @Override
     public String getUserId() {
         return userId;
     }
 
+    @Override
     public String getUserName() {
         return userName;
     }

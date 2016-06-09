@@ -25,6 +25,8 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.websocket.Session;
 
+import net.wasdev.gameon.mediator.MediatorNexus.ClientMediatorPod;
+import net.wasdev.gameon.mediator.MediatorNexus.UserView;
 import net.wasdev.gameon.mediator.RoutedMessage.FlowTarget;
 import net.wasdev.gameon.mediator.models.Exit;
 import net.wasdev.gameon.mediator.models.Exits;
@@ -43,6 +45,12 @@ import net.wasdev.gameon.mediator.room.UnknownRoom;
 
 @ApplicationScoped
 public class MediatorBuilder {
+    
+    public enum UpdateType {
+        HELLO,
+        JOIN,
+        RECONNECT
+    }
 
     /** CDI injection of client for Map */
     @Inject
@@ -92,22 +100,22 @@ public class MediatorBuilder {
      *
      * @return a new room mediator. Never null.
      */
-    public RoomMediator findMediatorForRoom(ClientMediator clientMediator, String roomId) {
-        Log.log(Level.FINEST, clientMediator.getSource(), "findMediatorForRoom: builder={0}, roomId={1}", Log.getHexHash(this), roomId);
+    public RoomMediator findMediatorForRoom(ClientMediatorPod pod, String roomId) {
+        Log.log(Level.FINEST, pod, "findMediatorForRoom: builder={0}, roomId={1}", Log.getHexHash(this), roomId);
 
         if ( roomId == null || roomId.isEmpty() || Constants.FIRST_ROOM.equals(roomId) ) {
-            return getFirstRoomMediator(clientMediator);
+            return getFirstRoomMediator(pod);
         }
 
         Site site = mapClient.getSite(roomId);
         if ( site == null ) {
-             clientMediator.sendToClient(RoutedMessage.createSimpleEventMessage(FlowTarget.player, clientMediator.getUserId(),
+            pod.send(RoutedMessage.createSimpleEventMessage(FlowTarget.player, pod.getUserId(),
                     Constants.EVENTMSG_NO_ROOMS));
 
-            return getFirstRoomMediator(clientMediator);
+            return getFirstRoomMediator(pod);
         }
 
-        return new RemoteRoomProxy(this, clientMediator.getUserId(), roomId);
+        return new RemoteRoomProxy(this, pod, roomId);
     }
 
     /**
@@ -118,39 +126,39 @@ public class MediatorBuilder {
      *
      * @return a new room mediator. Never null.
      */
-    public RoomMediator findMediatorForExit(ClientMediator clientMediator, RoomMediator startingRoom, String direction) {
-        Log.log(Level.FINEST, clientMediator.getSource(), "findMediatorForExit: builder={0}, startingRoom={1}, direction={2}", Log.getHexHash(this), startingRoom, direction);
+    public RoomMediator findMediatorForExit(ClientMediatorPod pod, RoomMediator startingRoom, String direction) {
+        Log.log(Level.FINEST, pod, "findMediatorForExit: builder={0}, startingRoom={1}, direction={2}", Log.getHexHash(this), startingRoom, direction);
 
         Exits exits = startingRoom.getExits();
         Exit target = exits.getExit(direction);
 
         if (target == null ) {
-            clientMediator.sendToClient(RoutedMessage.createSimpleEventMessage(FlowTarget.player, clientMediator.getUserId(),
+            pod.send(RoutedMessage.createSimpleEventMessage(FlowTarget.player, pod.getUserId(),
                     Constants.EVENTMSG_FINDROOM_FAIL));
 
             return startingRoom;
         } else if ( Constants.FIRST_ROOM.equals(target.getId())) {
-            return getFirstRoomMediator(clientMediator);
+            return getFirstRoomMediator(pod);
         }
 
         Site site = mapClient.getSite(target.getId());
         if ( site == null )
             site = new Site(target, RoomUtils.createFallbackExit(startingRoom.getEmergencyReturnExit(), direction));
 
-        return new RemoteRoomProxy(this, clientMediator.getUserId(), site.getId());
+        return new RemoteRoomProxy(this, pod, site.getId());
     }
 
-    public RoomMediator getFirstRoomMediator(ClientMediator clientMediator) {
-        Log.log(Level.FINEST, clientMediator.getSource(), "getFirstRoomMediator: builder={0}, ", Log.getHexHash(this));
+    public RoomMediator getFirstRoomMediator(ClientMediatorPod pod) {
+        Log.log(Level.FINEST, pod, "getFirstRoomMediator: builder={0}, new={1}", Log.getHexHash(this), pod.room == null);
 
-        boolean newbie = clientMediator.getRoomMediator() == null;
+        boolean newbie = pod.room == null;
         Site site = mapClient.getSite(Constants.FIRST_ROOM);
         if ( site == null ) {
             site = FirstRoom.getFallbackSite();
         }
 
         return new FirstRoom(nexus.getMultiUserView(Constants.FIRST_ROOM),
-                clientMediator.getUserJwt(),
+                pod.getUserJwt(),
                 playerClient,
                 mapClient,
                 site,
@@ -162,51 +170,53 @@ public class MediatorBuilder {
      * This is done as a callback to keep all delegate construction mechanics here.
      * This will also schedule an executor to attempt the outbound client connection,
      * which will then replace the delegate if/when it is done.
+     * 
+     * hello will be called on the delegates returned from this method.
      *
      * @param proxy
-     * @param userId
+     * @param user
      * @param roomId
      * @return
      */
-    public RoomMediator createDelegate(RemoteRoomProxy proxy, String userId, String roomId) {
-        Log.log(Level.FINEST, this, "Create connecting delegate: proxy={0}, userId={1}, site={2}", Log.getHexHash(proxy), userId, roomId);
+    public RoomMediator createDelegate(RemoteRoomProxy proxy, UserView user, String roomId) {
+        Log.log(Level.FINEST, this, "Create connecting delegate: proxy={0}, userId={1}, site={2}", Log.getHexHash(proxy), user, roomId);
         Site site = mapClient.getSite(roomId);
 
         if ( site == null ) {
             return new UnknownRoom(mapClient, roomId, nexus.getMultiUserView(roomId));
         } else if ( site.getInfo() == null ) {
-            return new EmptyRoom(mapClient, site, userId, nexus.getMultiUserView(roomId));
+            return new EmptyRoom(mapClient, site, user.getUserId(), nexus.getMultiUserView(roomId));
         }
 
-        return new ConnectingRoom(proxy, mapClient, site, userId, 
+        return new ConnectingRoom(proxy, mapClient, site, user.getUserId(), 
                 nexus.getFilteredMultiUserView(roomId, RoomMediator.Type.CONNECTING));
     }
 
     /**
      * Try to make connection to remote room. Replace delegate IFF that is successful called by
      * {@link RemoteRoomProxy#reconnect()} and {@link RemoteRoomProxy#updateInformation(Site)}
-     *
+     * @param updateType TODO
      * @param proxy
      * @param currentDelegate
-     * @param userId
      * @param site null when reconnecting after a connection failure, otherwise updated site information
+     * @param user
      */
-    public void updateDelegate(RemoteRoomProxy proxy, RoomMediator currentDelegate, String userId, Site site) {
-        Log.log(Level.FINEST, this, "updateDelegate proxy={0}, userId={1}, delegate={2}/{3}, site={4}",
-                Log.getHexHash(proxy), userId, Log.getHexHash(currentDelegate), currentDelegate.getType(), site);
+    public void updateDelegate(UpdateType updateType, RemoteRoomProxy proxy, RoomMediator currentDelegate, Site site, UserView user) {
+        Log.log(Level.FINEST, this, "updateDelegate proxy={0}, user={1}, delegate={2}/{3}, site={4}",
+                Log.getHexHash(proxy), user, Log.getHexHash(currentDelegate), currentDelegate.getType(), site);
 
         // try updating the delegate with the new information. It might return the same delegate
-        RoomMediator newDelegate = internalUpdateDelegate(proxy, currentDelegate, userId, site);
+        RoomMediator newDelegate = internalUpdateDelegate(updateType, proxy, currentDelegate, site, user);
 
         // always complete the update operation on the proxy
         proxy.updateComplete(newDelegate);
 
-        Log.log(Level.FINEST, this, "updateDelegate AFTER: proxy={0}, userId={1}, delegate={2}/{3}",
-                Log.getHexHash(proxy), userId, Log.getHexHash(currentDelegate), currentDelegate.getType());
+        Log.log(Level.FINEST, this, "updateDelegate AFTER: proxy={0}, user={1}, delegate={2}/{3}",
+                Log.getHexHash(proxy), user, Log.getHexHash(currentDelegate), currentDelegate.getType());
     }
 
-    public RoomMediator internalUpdateDelegate(RemoteRoomProxy proxy, RoomMediator currentDelegate, String userId, Site site) {
-
+    
+    public RoomMediator internalUpdateDelegate(UpdateType updateType, RemoteRoomProxy proxy, RoomMediator currentDelegate, Site site, UserView user) {
         Site targetSite = site;
         String roomId = currentDelegate.getId();
 
@@ -229,52 +239,72 @@ public class MediatorBuilder {
                 case UNKNOWN :
                 case CONNECTING :
                     // try connecting to the remote room
-                    return tryRemoteDelegate(proxy, currentDelegate, userId, targetSite);
+                    return tryRemoteDelegate(updateType, proxy, currentDelegate, targetSite, user);
                 default :
                     // refresh exits or descriptions, otherwise stick with what we have.
                     currentDelegate.updateInformation(targetSite);
                     return currentDelegate;
             }
         } else if ( localInfo == null ) {
-            return createUpdateLocalDelegate(Type.EMPTY, proxy, currentDelegate, targetSite, null);
+            return createUpdateLocalDelegate(Type.EMPTY, proxy, currentDelegate, targetSite, user);
         } else {
             // try connecting to the remote room
-            return tryRemoteDelegate(proxy, currentDelegate, userId, targetSite);
+            return tryRemoteDelegate(updateType, proxy, currentDelegate, targetSite, user);
         }
     }
 
-    private RoomMediator tryRemoteDelegate(RemoteRoomProxy proxy, RoomMediator currentDelegate, String userId, Site site) {
-        Log.log(Level.FINEST, this, "tryRemoteDelegate: proxy={0}, userId={1}, delegate={2}/{3}, site={4}",
-                Log.getHexHash(proxy), userId, Log.getHexHash(currentDelegate), currentDelegate.getType(), site);
+    private RoomMediator tryRemoteDelegate(UpdateType updateType, RemoteRoomProxy proxy, RoomMediator currentDelegate, Site site, UserView user) {
+        Log.log(Level.FINEST, this, "tryRemoteDelegate: proxy={0}, userId={1}, delegate={2}/{3}, site={4}, user={5}",
+                Log.getHexHash(proxy), user, Log.getHexHash(currentDelegate), currentDelegate.getType(), site, user);
 
         String roomId = site.getId();
         WSDrain drain = new WSDrain(roomId);
         drain.setThread(threadFactory.newThread(drain));
 
         try {
-            return new RemoteRoom(proxy, mapClient, scheduledExecutor, site, drain, nexus.getSingleUserView(roomId, userId));
+            RemoteRoom room = new RemoteRoom(proxy, mapClient, scheduledExecutor, site, drain, nexus.getSingleUserView(roomId, user));
+            switch(updateType) {
+                case HELLO: 
+                    room.hello(user,false);
+                    break;
+                case JOIN:
+                    room.join(user);
+                    break;
+                case RECONNECT:
+                    room.hello(user, true);
+                    break;
+            }
+            
+            return room;
         } catch(Exception e) {
             Log.log(Level.FINEST, this, "tryRemoteDelegate FAILED: proxy={0}, userId={1}, exception={2}",
-                    Log.getHexHash(proxy), userId, e);
+                    Log.getHexHash(proxy), user, e);
         }
 
-        return createUpdateLocalDelegate(Type.SICK, proxy, currentDelegate, site, userId);
+        return createUpdateLocalDelegate(Type.SICK, proxy, currentDelegate, site, user);
     }
 
-    private RoomMediator createUpdateLocalDelegate(Type type, RemoteRoomProxy proxy, RoomMediator currentDelegate, Site site, String userId) {
+    private RoomMediator createUpdateLocalDelegate(Type type, RemoteRoomProxy proxy, RoomMediator currentDelegate, Site site, UserView user) {
         Log.log(Level.FINEST, this, "createUpdateLocalDelegate: proxy={0}, newType={1}, delegate={2}/{3}, site={4}, userId={5}",
-                Log.getHexHash(proxy), type, Log.getHexHash(currentDelegate), currentDelegate.getType(), site, userId);
+                Log.getHexHash(proxy), type, Log.getHexHash(currentDelegate), currentDelegate.getType(), site, user);
 
         if ( currentDelegate.getType() == type ) {
             currentDelegate.updateInformation(site);
             return currentDelegate;
         }
 
+        RoomMediator mediator;
         if ( type == Type.EMPTY ) {
-            return new EmptyRoom(mapClient, site, userId, nexus.getMultiUserView(site.getId()));
+            mediator = new EmptyRoom(mapClient, site, user.getUserId(), nexus.getMultiUserView(site.getId()));
         } else {
-            return new SickRoom(proxy, mapClient, scheduledExecutor, site, userId,
-                    nexus.getFilteredMultiUserView(site.getId(), RoomMediator.Type.SICK));
+            mediator = new SickRoom(proxy, mapClient, scheduledExecutor, site, user.getUserId(),
+                                nexus.getFilteredMultiUserView(site.getId(), RoomMediator.Type.SICK));
         }
+        mediator.hello(user, false);
+        return mediator;
+    }
+    
+    public void execute(Runnable r) {
+        this.scheduledExecutor.execute(r);
     }
 }

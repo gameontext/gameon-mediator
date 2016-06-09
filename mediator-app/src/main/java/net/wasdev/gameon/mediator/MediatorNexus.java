@@ -185,12 +185,18 @@ public class MediatorNexus  {
         public String getUserName() {
             return userName;
         }
+        
+        public String getUserJwt() {
+            ClientMediator m = clientMediators.iterator().next();
+            m.getUserJwt();
+            return null;
+        }
 
         /**
          * Send message to all connected client mediators
          * @param message
          */
-        private void send(RoutedMessage message) {
+        public void send(RoutedMessage message) {
             if (message.isForUser(userId)) {
                 clientMediators.forEach(s -> s.sendToClient(message));
 
@@ -239,7 +245,7 @@ public class MediatorNexus  {
 
             if ( room == null ) {
                 // create new room mediator: we'te the first in
-                room = mediatorBuilder.findMediatorForRoom(playerSession, targetId);
+                room = mediatorBuilder.findMediatorForRoom(this, targetId);
                 playerSession.setRoomMediator(room, false);
                 playerSession.sendToClient(clientAck());
             } else if ( targetId.equals(room.getId())) {
@@ -305,7 +311,7 @@ public class MediatorNexus  {
                 playerSession.sendToClient(RoutedMessage.createSimpleEventMessage(FlowTarget.player, playerSession.getUserId(),
                         Constants.EVENTMSG_ALREADY_THERE));
             } else if ( currentId.equals(fromRoomId) ) {
-                RoomMediator newRoom = mediatorBuilder.findMediatorForRoom(playerSession, toRoomId);
+                RoomMediator newRoom = mediatorBuilder.findMediatorForRoom(this, toRoomId);
                 performSwitch(newRoom);
             } else  {
                 Log.log(Level.WARNING, playerSession.getSource(), "{0}: {1} could not be moved from pod={2}, expected={3}, new={4}. Connected: {5}",
@@ -325,8 +331,13 @@ public class MediatorNexus  {
 
             Log.log(Level.FINER, playerSession.getSource(), "{0}: post-transition for {1} now in {2}({3}). Connected: {4}",
                     Log.getHexHash(this), userId, room.getName(), room.getId(), clientMediators);
-       }
+        }
 
+        /**
+         * @param playerSession
+         * @param fromRoomId
+         * @param direction
+         */
         private synchronized void transitionViaExit(ClientMediator playerSession, String fromRoomId, String direction) {
             if ( room == null ) {
                 join(playerSession, fromRoomId, "");
@@ -339,7 +350,7 @@ public class MediatorNexus  {
                     Log.getHexHash(this), userId, currentId, fromRoomId, direction, clientMediators);
 
             if ( currentId.equals(fromRoomId) ) {
-                RoomMediator newRoom = mediatorBuilder.findMediatorForExit(playerSession, room, direction);
+                RoomMediator newRoom = mediatorBuilder.findMediatorForExit(this, room, direction);
                 performSwitch(newRoom);
             } else {
                 Log.log(Level.WARNING, playerSession.getSource(), "{0}: post-transition-via-exit for {1} -- could not be moved from pod={2}, expected={3}, direction={4}. Connected: {5}",
@@ -668,7 +679,7 @@ public class MediatorNexus  {
         return new FilteredMultiUserView(roomId, type);
     }
 
-    public View getSingleUserView(String roomId, String userId) {
-        return new SingleUserView(clientMap.get(userId));
+    public View getSingleUserView(String roomId, UserView user) {
+        return new SingleUserView(clientMap.get(user.getUserId()));
     }
 }

@@ -140,13 +140,13 @@ public abstract class AbstractRoomMediator implements RoomMediator {
         JsonObjectBuilder builder = Json.createObjectBuilder();
         buildLocationResponse(builder);
         builder.add(Constants.KEY_BOOKMARK, "go" + getType() + ":" + bookmark.incrementAndGet());
+       
+        // Say hello to.. 
+        sendToClients(RoutedMessage.createMessage(FlowTarget.player, "*",
+                String.format(Constants.EVENT_HELLO, user.getUserName(), user.getUserId(), helloMessage(), bookmark.incrementAndGet())));
 
         // type=location message
         sendToClients(RoutedMessage.createMessage(FlowTarget.player, user.getUserId(), builder.build()));
-        
-        // Say hello to.. 
-        sendToClients(RoutedMessage.createMessage(FlowTarget.player, "*",
-                String.format(Constants.EVENT_HELLO, user.getUserName(), user.getUserId(), bookmark.incrementAndGet())));
      }
 
     @Override
@@ -173,7 +173,6 @@ public abstract class AbstractRoomMediator implements RoomMediator {
         Log.log(Level.FINEST, this, "{0}/{1} received: {2}", getName(), getType(), message);
 
         JsonObject sourceMessage = message.getParsedBody();
-        System.out.println(sourceMessage);
         String userId = sourceMessage.getString(RoomUtils.USER_ID);
 
         JsonObjectBuilder builder = Json.createObjectBuilder();
@@ -256,9 +255,13 @@ public abstract class AbstractRoomMediator implements RoomMediator {
     }
 
 
-    public String goodbyeMessage() {
+    protected String goodbyeMessage() {
         int index = RoomUtils.random.nextInt(GOODBYES.size());
         return GOODBYES.get(index);
+    }
+    
+    protected String helloMessage() {
+        return "Welcone to " + getFullName(); 
     }
 
     @Override
