@@ -15,6 +15,9 @@
  *******************************************************************************/
 package net.wasdev.gameon.mediator.room;
 
+import java.util.logging.Level;
+
+import net.wasdev.gameon.mediator.Log;
 import net.wasdev.gameon.mediator.MapClient;
 import net.wasdev.gameon.mediator.MediatorNexus;
 import net.wasdev.gameon.mediator.RoutedMessage;
@@ -29,11 +32,16 @@ import net.wasdev.gameon.mediator.models.Site;
 public class ConnectingRoom extends AbstractRoomMediator {
 
     final RemoteRoomProxy proxy;
+    
+    /** Associated user id (if not a multiplexed/shared connection) */
+    final String targetUser;
 
-    public ConnectingRoom(RemoteRoomProxy proxy, MediatorNexus.View nexus, MapClient mapClient, Site site) {
+    public ConnectingRoom(RemoteRoomProxy proxy, MapClient mapClient, Site site, String userId, MediatorNexus.View nexus) {
         super(nexus, mapClient, site);
         this.proxy = proxy;
-        roomInfo = site.getInfo();
+        this.targetUser = userId == null ? "*" : userId;
+
+        Log.log(Level.FINEST, this, "Created Connecting Room for " + targetUser + " in " + site.getId());
     }
 
     @Override

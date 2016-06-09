@@ -18,7 +18,9 @@ package net.wasdev.gameon.mediator.room;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
 
+import net.wasdev.gameon.mediator.Log;
 import net.wasdev.gameon.mediator.MapClient;
 import net.wasdev.gameon.mediator.MediatorNexus;
 import net.wasdev.gameon.mediator.models.Site;
@@ -34,9 +36,15 @@ public class EmptyRoom extends AbstractRoomMediator {
             "The center of the room is completely empty",
             "Nothing even remotely interesting is happening in here",
             "This room looks suspiciously like a bunch of other rooms; it's like they're all the same."));
-    
-    public EmptyRoom(MediatorNexus.View nexus, MapClient mapClient, Site site) {
+
+    /** Associated user id (if not a multiplexed/shared connection) */
+    final String targetUser;
+
+    public EmptyRoom(MapClient mapClient, Site site, String userId, MediatorNexus.View nexus) {
         super(nexus, mapClient, site);
+        this.targetUser = userId == null ? "*" : userId;
+        
+        Log.log(Level.FINEST, this, "Created Empty Room for " + targetUser + " in " + site.getId());
     }
 
     @Override

@@ -139,7 +139,7 @@ public abstract class AbstractRoomMediator implements RoomMediator {
     public void hello(MediatorNexus.UserView user, boolean recovery) {
         JsonObjectBuilder builder = Json.createObjectBuilder();
         buildLocationResponse(builder);
-        builder.add(Constants.KEY_BOOKMARK, "go-" + bookmark.incrementAndGet());
+        builder.add(Constants.KEY_BOOKMARK, "go" + getType() + ":" + bookmark.incrementAndGet());
 
         // type=location message
         sendToClients(RoutedMessage.createMessage(FlowTarget.player, user.getUserId(), builder.build()));
@@ -173,6 +173,7 @@ public abstract class AbstractRoomMediator implements RoomMediator {
         Log.log(Level.FINEST, this, "{0}/{1} received: {2}", getName(), getType(), message);
 
         JsonObject sourceMessage = message.getParsedBody();
+        System.out.println(sourceMessage);
         String userId = sourceMessage.getString(RoomUtils.USER_ID);
 
         JsonObjectBuilder builder = Json.createObjectBuilder();
@@ -242,7 +243,7 @@ public abstract class AbstractRoomMediator implements RoomMediator {
      */
     protected String parseCommand(String userId, String userName, JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
         responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT)
-            .add(RoomUtils.CONTENT, NO_COMMANDS);
+            .add(RoomUtils.CONTENT, RoomUtils.buildContentResponse(userId, NO_COMMANDS));
         return userId;
     }
 

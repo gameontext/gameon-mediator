@@ -15,8 +15,6 @@
  *******************************************************************************/
 package net.wasdev.gameon.mediator;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,6 +28,7 @@ import javax.json.JsonObject;
 
 import net.wasdev.gameon.mediator.RoutedMessage.FlowTarget;
 import net.wasdev.gameon.mediator.room.RoomMediator;
+import net.wasdev.gameon.mediator.room.RoomMediator.Type;
 
 /**
  * Clients (Players) subscribed to listen to messages for
@@ -43,8 +42,6 @@ public class MediatorNexus  {
         void sendToClients(RoutedMessage message);
 
         boolean stillConnected();
-
-        Iterable<? extends UserView> getUsers();
     }
 
     public interface UserView {
@@ -205,6 +202,18 @@ public class MediatorNexus  {
             } else if ( !clientMediators.isEmpty() ){
                 Log.log(Level.FINEST, this, "sendToClient -- Dropping message as not for user {0}, destination={0}{1}", userId, message.getFlowTarget(), message.getDestination());
             }
+        }
+
+        /**
+         * Send message to all connected client mediators IFF the room type
+         * is the same, which is significant for sick/connecting/empty
+         * rooms
+         * 
+         * @param message
+         */
+        public void filteredSend(Type roomType, RoutedMessage message) {
+            if( room.getType() == roomType )
+                send(message);
         }
 
         /**
@@ -483,15 +492,15 @@ public class MediatorNexus  {
             
             if ("*".equals(message.getDestination()) ) {
                 PodsByRoom list = roomClients.get(roomId);
-                Log.log(Level.FINEST, this, "Multi-user view {0}: Send {1} to {2}", 
-                        stillConnected(), message, list);
+                Log.log(Level.FINEST, this, "MUV-broadcast({0}): Send {1} to {2}", 
+                        list.sessionPods.isEmpty(), message);
 
                 for( ClientMediatorPod cm : list.sessionPods ) {
                     cm.send(message);
                 }
             } else {
                 ClientMediatorPod p = clientMap.get(message.getDestination());
-                Log.log(Level.FINEST, this, "Multi-user view {0}: Send {1} to {2}", 
+                Log.log(Level.FINEST, this, "MUV-send({0}): Send {1} to {2}", 
                         stillConnected(), message, p);
 
                 if ( p != null )
@@ -507,15 +516,45 @@ public class MediatorNexus  {
             
             return list.sessionPods.isEmpty();
         }
+    }
+    
+    public class FilteredMultiUserView implements View {
+        final String roomId;
+        final RoomMediator.Type roomType;
+
+        private FilteredMultiUserView(String roomId, RoomMediator.Type type) {
+            this.roomId = roomId;
+            this.roomType = type;
+        }
+        
+        @Override
+        public void sendToClients(RoutedMessage message) {
+            
+            if ("*".equals(message.getDestination()) ) {
+                PodsByRoom list = roomClients.get(roomId);
+                Log.log(Level.FINEST, this, "FMUV-broadcast({0}/{1}): Send {2} to {3}", 
+                        roomType, list.sessionPods.isEmpty(), message, list);
+
+                for( ClientMediatorPod cm : list.sessionPods ) {
+                    cm.filteredSend(roomType, message);
+                }
+            } else {
+                ClientMediatorPod p = clientMap.get(message.getDestination());
+                Log.log(Level.FINEST, this, "FMUV-send({0}): Send {1} to {2}", 
+                        stillConnected(), message, p);
+
+                if ( p != null )
+                    p.send(message);
+            }
+        }
 
         @Override
-        public Iterable<? extends UserView> getUsers() {
+        public boolean stillConnected() {
             PodsByRoom list = roomClients.get(roomId);
-            Log.log(Level.FINEST, this, "Multi-user view: getUsers {0}", list);
             if ( list == null )
-                return Collections.emptyList();
+                return false;
             
-            return list.sessionPods;
+            return list.sessionPods.isEmpty();
         }
     }
 
@@ -544,12 +583,6 @@ public class MediatorNexus  {
         @Override
         public boolean stillConnected() {
             return !connectedClients.clientMediators.isEmpty();
-        }
-
-        @Override
-        public Iterable<? extends UserView> getUsers() {
-            Log.log(Level.FINEST, this, "Single-user view: getUsers {0}", connectedClients);
-           return Arrays.asList(connectedClients);
         }
     }
 
@@ -629,6 +662,10 @@ public class MediatorNexus  {
 
     public View getMultiUserView(String roomId) {
         return new MultiUserView(roomId);
+    }
+
+    public View getFilteredMultiUserView(String roomId, RoomMediator.Type type) {
+        return new FilteredMultiUserView(roomId, type);
     }
 
     public View getSingleUserView(String roomId, String userId) {

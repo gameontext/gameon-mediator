@@ -54,7 +54,7 @@ public class ConnectingRoomTest {
             info.getFullName(); returns(fullName);
          }};
         
-        ConnectingRoom delegate = new ConnectingRoom(proxy, nexus, mapClient, site);
+        ConnectingRoom delegate = new ConnectingRoom(proxy, mapClient, site, null, nexus);
         
         Assert.assertEquals(Type.CONNECTING, delegate.getType());
         Assert.assertEquals(name, delegate.getName());

@@ -39,7 +39,7 @@ public class RemoteRoom extends AbstractRoomMediator {
     final RemoteRoomProxy proxy;
     final ScheduledExecutorService scheduledExecutor;
 
-    public RemoteRoom(MediatorNexus.View nexusView, RemoteRoomProxy proxy, MapClient mapClient, ScheduledExecutorService scheduledExecutor, Site site, Drain drain) throws Exception {
+    public RemoteRoom(RemoteRoomProxy proxy, MapClient mapClient, ScheduledExecutorService scheduledExecutor, Site site, Drain drain, MediatorNexus.View nexusView) throws Exception {
         super(nexusView, mapClient, site);
         this.proxy = proxy;
         this.scheduledExecutor = scheduledExecutor;

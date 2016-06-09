@@ -21,7 +21,9 @@ import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
+import net.wasdev.gameon.mediator.Log;
 import net.wasdev.gameon.mediator.MapClient;
 import net.wasdev.gameon.mediator.MediatorNexus;
 import net.wasdev.gameon.mediator.RoutedMessage;
@@ -46,12 +48,20 @@ public class SickRoom extends AbstractRoomMediator {
     final ScheduledExecutorService scheduledExecutor;
     ScheduledFuture<?> pendingAttempt;
     int attempts = 0;
+
+    /** Associated user id (if not a multiplexed/shared connection) */
+    final String targetUser;
+
     
-    
-    public SickRoom(MediatorNexus.View nexus, RemoteRoomProxy proxy, MapClient mapClient, ScheduledExecutorService scheduledExecutor, Site site) {
+    public SickRoom(RemoteRoomProxy proxy, MapClient mapClient, ScheduledExecutorService scheduledExecutor, Site site, String userId, MediatorNexus.View nexus) {
         super(nexus, mapClient, site);
         this.proxy = proxy;
+        this.targetUser = userId == null ? "*" : userId;
         this.scheduledExecutor = scheduledExecutor;
+
+        Log.log(Level.FINEST, this, "Created Sick Room for " + targetUser + " in " + site.getId());
+       
+        this.updateInformation(site);
     }
 
     @Override
@@ -85,9 +95,11 @@ public class SickRoom extends AbstractRoomMediator {
     public void updateInformation(Site site) {
         // update exits and room information
         super.updateInformation(site);
+        
+        Log.log(Level.FINEST, this, "Updated Sick Room for " + targetUser + " in " + site.getId());
 
         // cough.
-        sendToClients(RoutedMessage.createSimpleEventMessage(FlowTarget.player, "*", complaint()));
+        sendToClients(RoutedMessage.createSimpleEventMessage(FlowTarget.player, targetUser, complaint() + "(" + attempts + ")"));
 
         // schedule a retry after an increasing interval
         pendingAttempt = scheduledExecutor.schedule(() -> {

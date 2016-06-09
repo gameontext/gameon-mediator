@@ -37,6 +37,7 @@ public class RemoteRoomProxy implements RoomMediator {
 
     final MediatorBuilder mediatorBuilder;
     final String userId;
+    final String roomId;
     volatile RoomMediator delegate;
 
     AtomicBoolean updating = new AtomicBoolean(false);
@@ -49,10 +50,11 @@ public class RemoteRoomProxy implements RoomMediator {
      * @param userId
      * @param site
      */
-    public RemoteRoomProxy(MediatorBuilder mediatorBuilder, String userId, Site site) {
+    public RemoteRoomProxy(MediatorBuilder mediatorBuilder, String userId, String roomId) {
         this.mediatorBuilder = mediatorBuilder;
         this.userId = userId;
-        delegate = mediatorBuilder.createDelegate(this, userId, site);
+        this.roomId = roomId;
+        this.delegate = mediatorBuilder.createDelegate(this, userId, roomId);
     }
 
     @Override
@@ -140,7 +142,7 @@ public class RemoteRoomProxy implements RoomMediator {
     public void connectRemote(boolean roomHello) {
         if ( updating.compareAndSet(false, true)) {
             Log.log(Level.FINEST, this, "RemoteRoomProxy -- connect");
-            mediatorBuilder.updateDelegate(this, delegate, userId, roomHello);
+            mediatorBuilder.updateDelegate(this, delegate, userId, null);
         } else {
             Log.log(Level.FINEST, this, "RemoteRoomProxy -- connect in progress");
         }

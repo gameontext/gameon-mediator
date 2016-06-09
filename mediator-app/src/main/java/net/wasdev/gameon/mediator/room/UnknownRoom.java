@@ -26,7 +26,7 @@ public class UnknownRoom extends AbstractRoomMediator {
     public static final String UNKNOWN_FULLNAME = "Unknown site";
     public static final String UNKNOWN_DESCRIPTION = "Operator here: We're sorry, but we have no idea where you are. `/sos` is your best option";
     
-    public UnknownRoom(MediatorNexus.View nexus, MapClient mapClient, String id) {
+    public UnknownRoom(MapClient mapClient, String id, MediatorNexus.View nexus) {
         super(nexus, mapClient, new Site(id));
     }
 

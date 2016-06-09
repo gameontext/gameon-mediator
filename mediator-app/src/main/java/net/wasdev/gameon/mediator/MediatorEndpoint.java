@@ -38,11 +38,11 @@ import org.gameontext.signed.SignedRequestMap;
 import net.wasdev.gameon.mediator.RoutedMessage.FlowTarget;
 
 /**
- * Server-side endpoint for the Player Client (phone/browser). This endpoint is
- * scoped to the player's id to avoid session sharing between different users.
- * <p>
- * Relies on default deployment cardinality: there will be one instance of this
- * class per websocket client.
+ * Server-side endpoint for the Player Client (phone/browser). 
+ * 
+ * This does *NOT* make the endpoints unique to the player! The URL is different
+ * (in that the user id is in it), but all sessions are still iterable over the same
+ * endpoint.
  */
 @ServerEndpoint(value = "/ws/{userId}", decoders = RoutedMessageDecoder.class, encoders = RoutedMessageEncoder.class)
 public class MediatorEndpoint {

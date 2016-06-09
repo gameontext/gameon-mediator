@@ -45,7 +45,7 @@ public class EmptyRoomTest {
             site.getInfo(); returns(null); 
          }};
 
-        EmptyRoom emptyRoom = new EmptyRoom(nexus, mapClient, site);
+        EmptyRoom emptyRoom = new EmptyRoom(mapClient, site, null, nexus);
         
         Assert.assertEquals(Type.EMPTY, emptyRoom.getType());
         Assert.assertEquals(EmptyRoom.EMPTY_ROOMNAME, emptyRoom.getName());
