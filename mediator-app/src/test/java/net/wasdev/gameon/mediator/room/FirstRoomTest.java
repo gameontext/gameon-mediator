@@ -57,22 +57,22 @@ public class FirstRoomTest {
     String playerJwt = "testJwt";
     String userId = "dummy.DevUser";
     String userName = "DevUser";
-    
+
     @Rule
     public TestName testName = new TestName();
-    
+
     @Before
     public void before() {
         System.out.println("-- " + testName.getMethodName() + " --------------------------------------");
 
-        
+
         new MockUp<Log>()
         {
             @Mock
             public void log(Level level, Object source, String msg, Object[] params) {
                 System.out.println("Log: " + MessageFormat.format(msg, params));
             }
-            
+
             @Mock
             public void log(Level level, Object source, String msg, Throwable thrown) {
                 System.out.println("Log: " + msg + ": " + thrown.getMessage());
@@ -100,7 +100,7 @@ public class FirstRoomTest {
         Assert.assertEquals(Constants.FIRST_ROOM, firstRoom.getName());
         Assert.assertEquals(FirstRoom.FIRST_ROOM_FULL, firstRoom.getFullName());
         Assert.assertFalse("room info should not be the same when null", firstRoom.sameConnectionDetails(null));
-        
+
         String description = firstRoom.getDescription();
         Assert.assertEquals("get description should return what was in the DB", db_desc, description);
 
@@ -123,7 +123,7 @@ public class FirstRoomTest {
 
     @Test
     public void testTeleportNoRooms(@Mocked Site site) {
-       
+
         new Expectations() {{
             mapClient.getSite("steve"); returns(null);
             mapClient.getRoomsByRoomName("steve"); returns(Collections.emptyList());
@@ -137,17 +137,17 @@ public class FirstRoomTest {
 
         new Verifications() {{
             RoutedMessage result;
-            
+
             nexus.sendToClients(result = withCapture()); times = 1;
             System.out.println(result);
-            
+
             Assert.assertEquals("Message should flow to the player", FlowTarget.player, result.getFlowTarget());
             Assert.assertEquals("Message should be specific to the user", userId, result.getDestination());
             Assert.assertEquals("Should be an event message", "event", getMessageType(result));
-            Assert.assertEquals(FirstRoom.TELEPORT_NO_ROOMS, getContentForUserId(result, userId)); 
+            Assert.assertEquals(FirstRoom.TELEPORT_NO_ROOMS, getContentForUserId(result, userId));
         }};
     }
-    
+
     @Test
     public void testTeleportOneRoom(@Mocked Site site, @Mocked Site site1) {
 
@@ -165,22 +165,22 @@ public class FirstRoomTest {
 
         new Verifications() {{
             RoutedMessage result;
-            
+
             nexus.sendToClients(result = withCapture()); times = 1;
             System.out.println(result);
-            
+
             Assert.assertEquals("Message should be a player location change", FlowTarget.playerLocation, result.getFlowTarget());
             Assert.assertEquals("Message should be specific to the user", userId, result.getDestination());
             Assert.assertEquals("Should be an exit message", "exit", getMessageType(result));
-            
+
             // we have bonus random appended text that might show up, have to go with startsWith instead of equals
-            Assert.assertTrue(getContent(result).startsWith(FirstRoom.TELEPORT_GO)); 
+            Assert.assertTrue(getContent(result).startsWith(FirstRoom.TELEPORT_GO));
         }};
     }
 
     @Test
     public void testTeleportById(@Mocked Site site, @Mocked Site site1) {
-        
+
         new Expectations() {{
             mapClient.getSite("steve"); returns(site1);
             site1.getId(); returns("steve");
@@ -191,23 +191,23 @@ public class FirstRoomTest {
                 "{\"username\":\"DevUser\",\"userId\":\"dummy.DevUser\",\"content\":\"/teleport steve\"}");
 
         firstRoom.sendToRoom(routedMessage);
-        
+
         new Verifications() {{
             RoutedMessage result;
-            
+
             nexus.sendToClients(result = withCapture()); times = 1;
             System.out.println(result);
-            
+
             Assert.assertEquals("Message should be a player location change", FlowTarget.playerLocation, result.getFlowTarget());
             Assert.assertEquals("Message should be specific to the user", userId, result.getDestination());
             Assert.assertEquals("Should be an exit message", "exit", getMessageType(result));
-            
+
             String messageContent = getContent(result);
-            Assert.assertNotNull("message should be specific for user", messageContent);     
+            Assert.assertNotNull("message should be specific for user", messageContent);
 
             // we have bonus random appended text that might show up, have to go with startsWith instead of equals
-            Assert.assertTrue("Message should start with [" + FirstRoom.TELEPORT_GO+ "], but is ["+messageContent+"]", 
-                    messageContent.startsWith(FirstRoom.TELEPORT_GO)); 
+            Assert.assertTrue("Message should start with [" + FirstRoom.TELEPORT_GO+ "], but is ["+messageContent+"]",
+                    messageContent.startsWith(FirstRoom.TELEPORT_GO));
         }};
     }
 
@@ -225,10 +225,10 @@ public class FirstRoomTest {
                 "{\"username\":\"DevUser\",\"userId\":\"dummy.DevUser\",\"content\":\"/teleport steve\"}");
 
         firstRoom.sendToRoom(routedMessage);
-        
+
         new Verifications() {{
             RoutedMessage result;
-            
+
             nexus.sendToClients(result = withCapture()); times = 1;
 
             Assert.assertEquals("Message should flow to the player: " + result, FlowTarget.player, result.getFlowTarget());
@@ -236,20 +236,20 @@ public class FirstRoomTest {
             Assert.assertEquals("Should be an event message: " + result, "event", getMessageType(result));
 
             String messageContent = getContentForUserId(result, userId);
-            Assert.assertNotNull("message should be specific for user: " + result, messageContent);     
-            
+            Assert.assertNotNull("message should be specific for user: " + result, messageContent);
+
             String expectedValue = String.format(FirstRoom.TELEPORT_MANY_ROOMS, "steve");
             // List of rooms & ids will follow, so use startsWith
-            Assert.assertTrue("Message should start with [" + expectedValue + "], but is ["+messageContent+"]", 
-                    messageContent.startsWith(expectedValue)); 
+            Assert.assertTrue("Message should start with [" + expectedValue + "], but is ["+messageContent+"]",
+                    messageContent.startsWith(expectedValue));
         }};
     }
-    
-    
+
+
     String getMessageType(RoutedMessage message) {
         return message.getParsedBody().getString(RoomUtils.TYPE);
     }
-    
+
     String getContent(RoutedMessage message) {
         String content = message.getParsedBody().getString(RoomUtils.CONTENT);
         return content;

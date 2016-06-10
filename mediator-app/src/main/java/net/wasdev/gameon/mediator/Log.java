@@ -40,7 +40,7 @@ public class Log {
             log.log(useLevel(level), msg, thrown);
         }
     }
-    
+
     public static String getHexHash(Object source) {
         return Integer.toHexString(getHash(source));
     }

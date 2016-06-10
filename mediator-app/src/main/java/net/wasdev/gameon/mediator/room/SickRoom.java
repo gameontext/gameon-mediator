@@ -49,7 +49,7 @@ public class SickRoom extends AbstractRoomMediator {
             "The room emits a low and rhythmic rumble, like a congested chest. Is it breathing?",
             "How odd. The room has a stretched tense feeling, like it is desperately trying not to sneeze."
             ));
-    
+
     final RemoteRoomProxy proxy;
     final ScheduledExecutorService scheduledExecutor;
 
@@ -58,10 +58,10 @@ public class SickRoom extends AbstractRoomMediator {
 
     ScheduledFuture<?> pendingAttempt;
     int attempts = 0;
-    
+
     volatile boolean characterMessages = true;
     volatile long retryInterval = 2;
-    
+
     public SickRoom(RemoteRoomProxy proxy, MapClient mapClient, ScheduledExecutorService scheduledExecutor, Site site, String userId, MediatorNexus.View nexus) {
         super(nexus, mapClient, site);
         this.proxy = proxy;
@@ -69,8 +69,8 @@ public class SickRoom extends AbstractRoomMediator {
         this.scheduledExecutor = scheduledExecutor;
 
         Log.log(Level.FINEST, this, "Created Sick Room for {0} in {1}", targetUser, site.getId());
-       
-        this.updateInformation(site); 
+
+        this.updateInformation(site);
     }
 
     @Override
@@ -88,7 +88,7 @@ public class SickRoom extends AbstractRoomMediator {
         int index = RoomUtils.random.nextInt(SICK_DESCRIPTIONS.size());
         return String.format(SICK_DESCRIPTIONS.get(index), roomInfo.getFullName());
     }
-    
+
     @Override
     public Type getType() {
         return Type.SICK;
@@ -99,17 +99,17 @@ public class SickRoom extends AbstractRoomMediator {
      * the same. Only one update in progress at a time, see {@link RemoteRoomProxy#updateInformation(Site)}
      * This method is effectively single threaded: contained w/in the remote
      * proxy update
-     * 
+     *
      * @see net.wasdev.gameon.mediator.room.AbstractRoomMediator#updateInformation(net.wasdev.gameon.mediator.models.Site)
      */
     @Override
     public void updateInformation(Site site) {
         // update exits and room information
         super.updateInformation(site);
-        
+
         ++attempts;
-        
-        // small numbers, but doing this with TimeUnit in seconds.. 
+
+        // small numbers, but doing this with TimeUnit in seconds..
         retryInterval = (retryInterval * 2) + RoomUtils.random.nextInt(3);
 
         // cough.
@@ -124,7 +124,7 @@ public class SickRoom extends AbstractRoomMediator {
             proxy.updateInformation(null);
         }, retryInterval, TimeUnit.SECONDS);
     }
-    
+
     public String complaint() {
         if ( characterMessages ) {
             int index = RoomUtils.random.nextInt(SICK_COMPLAINTS.size());
@@ -142,20 +142,20 @@ public class SickRoom extends AbstractRoomMediator {
         Log.log(Level.FINEST, this, "Sick Room for {0}/{1} disconnected: {2}",
                 targetUser, roomId, pendingAttempt);
     }
-    
+
     @Override
     protected void buildLocationResponse(JsonObjectBuilder responseBuilder) {
         super.buildLocationResponse(responseBuilder);
-        
+
         JsonArrayBuilder objs = Json.createArrayBuilder();
         objs.add("Monitor");
         objs.add("Chart");
         responseBuilder.add(Constants.KEY_ROOM_INVENTORY, objs.build());
     }
-    
+
     @Override
     protected String parseCommand(String userId, String userName, JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
-        
+
         String targetUser = userId;
         String content = sourceMessage.getString(RoomUtils.CONTENT);
         String contentToLower = content.trim().toLowerCase();
@@ -165,21 +165,21 @@ public class SickRoom extends AbstractRoomMediator {
 
             if ( contentToLower.contains(" monitor") ) {
                 if ( characterMessages ) {
-                    contentResponse = RoomUtils.buildContentResponse(userId, 
+                    contentResponse = RoomUtils.buildContentResponse(userId,
                             "You squint at the teensy screen and try to make sense of the text scrolling by.");
                 } else {
-                    contentResponse = RoomUtils.buildContentResponse(userId, 
+                    contentResponse = RoomUtils.buildContentResponse(userId,
                             "The screen flickers sickeningly. You look away.");
                 }
-                
+
                 // now switch modes
                 characterMessages = !characterMessages;
             } else if ( contentToLower.contains(" chart") ) {
                 if ( characterMessages ) {
-                    contentResponse = RoomUtils.buildContentResponse(userId, 
+                    contentResponse = RoomUtils.buildContentResponse(userId,
                             "You skim the page. You don't have to be a doctor to tell this room isn't doing so well.");
                 } else {
-                    contentResponse = RoomUtils.buildContentResponse(userId, 
+                    contentResponse = RoomUtils.buildContentResponse(userId,
                             "Patient: **" + getFullName() + "**\n\n"
                             + "* Connection attempts: " + attempts + "\n"
                             + "* Retry interval: " + retryInterval + " seconds");
@@ -187,13 +187,13 @@ public class SickRoom extends AbstractRoomMediator {
             } else {
                 contentResponse = RoomUtils.buildContentResponse(userId, "It doesn't look interesting.");
             }
-            
+
             responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT)
                  .add(RoomUtils.CONTENT, contentResponse);
         } else {
             targetUser = super.parseCommand(userId, userName, sourceMessage, responseBuilder);
         }
-        
+
         return targetUser;
     }
 }

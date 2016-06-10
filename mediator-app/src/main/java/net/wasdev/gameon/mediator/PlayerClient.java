@@ -169,7 +169,7 @@ public class PlayerClient {
      */
     public String getSharedSecret(String playerId, String jwt) {
         WebTarget target = this.root.path("{playerId}").resolveTemplate("playerId", playerId);
-        
+
         Log.log(Level.FINER, this, "requesting shared secret using {0}", target.getUri().toString());
 
         try {

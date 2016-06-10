@@ -32,7 +32,7 @@ import net.wasdev.gameon.mediator.models.Site;
 public class ConnectingRoom extends AbstractRoomMediator {
 
     final RemoteRoomProxy proxy;
-    
+
     /** Associated user id (if not a multiplexed/shared connection) */
     final String targetUser;
 

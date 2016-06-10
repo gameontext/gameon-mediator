@@ -165,7 +165,7 @@ public class RoutedMessage {
 
     /**
      * Only use the bookmark with v2 join messages: it is noted as a String.
-     * @param version 
+     * @param version
      * @return
      */
     public static RoutedMessage createJoin(long version, String roomId, MediatorNexus.UserView user) {

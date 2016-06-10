@@ -37,11 +37,11 @@ public class CacheFilter implements Filter {
             throws IOException, ServletException {
 
         HttpServletResponse sresponse = (HttpServletResponse) response;
-        
+
         // Link to ws resources contains jwt in query string, and should not be cached.
         sresponse.setHeader("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1.
         sresponse.setHeader("Pragma", "no-cache"); // HTTP 1.0.
-        sresponse.setHeader("Expires", "0"); // Proxies.        
+        sresponse.setHeader("Expires", "0"); // Proxies.
         chain.doFilter(request, response);
     }
 

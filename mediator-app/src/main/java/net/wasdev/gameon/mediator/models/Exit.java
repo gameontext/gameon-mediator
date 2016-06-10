@@ -57,7 +57,7 @@ public class Exit {
                     case "d" :
                         this.door = targetSite.getInfo().getDoors().getD();
                         break;
-                    default: 
+                    default:
                         throw new IllegalArgumentException("Unknown direction for the exit: " + direction);
                 }
             }

@@ -85,7 +85,7 @@ public class ExitTest {
         exit = new Exit(site, "U");
         Assert.assertEquals("Up", exit.getDoor());
     }
-    
+
     @Test(expected=IllegalArgumentException.class)
     public void testCreateExitUnknown() {
         roomInfo.setDescription("description!");
@@ -95,7 +95,7 @@ public class ExitTest {
         Doors doors = new Doors();
         roomInfo.setDoors(doors);
 
-        new Exit(site, "Other");        
+        new Exit(site, "Other");
     }
 
 

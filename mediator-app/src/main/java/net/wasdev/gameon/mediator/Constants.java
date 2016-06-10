@@ -51,10 +51,10 @@ public interface Constants {
 
     String VALID_JWT = "{\"type\": \"joinpart\",\"content\": \"connected: validating JWT\"}";
     String FINDROOM = "{\"type\": \"joinpart\",\"content\": \"%s: knock, knock\"}";
-    String CONNECTING = "{\"type\": \"joinpart\",\"content\": \"connecting to %s\"}";     
+    String CONNECTING = "{\"type\": \"joinpart\",\"content\": \"connecting to %s\"}";
     String JOIN = "{\"type\": \"joinpart\",\"content\": \"enter %s\"}";
     String PART = "{\"type\": \"joinpart\",\"content\": \"exit %s\"}";
-  
+
     String EVENT_HELLO = "{\"type\": \"event\",\"content\": {\"*\": \"%s is here\",\"%s\": \"%s\"},\"bookmark\": \"go-%d\"}";
     String EVENT_GOODBYE =  "{\"type\": \"event\",\"content\": {\"*\": \"%s has gone\",\"%s\": \"%s\"},\"bookmark\": \"g-%d\"}";
 

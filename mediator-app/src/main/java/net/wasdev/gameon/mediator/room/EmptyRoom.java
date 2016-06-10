@@ -43,7 +43,7 @@ public class EmptyRoom extends AbstractRoomMediator {
     public EmptyRoom(MapClient mapClient, Site site, String userId, MediatorNexus.View nexus) {
         super(nexus, mapClient, site);
         this.targetUser = userId == null ? "*" : userId;
-        
+
         Log.log(Level.FINEST, this, "Created Empty Room for " + targetUser + " in " + site.getId());
     }
 
@@ -62,7 +62,7 @@ public class EmptyRoom extends AbstractRoomMediator {
         int index = RoomUtils.random.nextInt(EMTPY_ROOMS.size());
         return EMTPY_ROOMS.get(index);
     }
-    
+
     @Override
     public Type getType() {
         return Type.EMPTY;

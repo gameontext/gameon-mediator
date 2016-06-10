@@ -60,7 +60,7 @@ public class RoomUtilsTest {
         exits = RoomUtils.createFallbackExit(returnRoom.getEmergencyReturnExit(), "w");
         assertExits(exits, "Create fallback exits going west", false, false, true, false);
     }
-    
+
     @Test(expected=IllegalArgumentException.class)
     public void testCreateExitsOther(@Mocked RoomMediator returnRoom) {
         RoomUtils.createFallbackExit(returnRoom.getEmergencyReturnExit(), "");

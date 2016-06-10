@@ -137,14 +137,17 @@ public class RemoteRoomProxy implements RoomMediator {
     }
 
     /**
-     * Callback when the remote connection is disrupted. Go back to the
-     * mediatorBuilder to start again.
-     * @param roomHello
+     * This is called by hello/join in ConnectingRoom to trigger initial
+     * attempt at creating a remote delegate. This creates a new thread
+     * to allow the hello method on ConnectingRoom to return promptly,
+     * as it is w/in a synchronized block on the pod.
+     *
+     * @param roomHello true if this is triggered by a hello, false if
+     * triggered by a join.
      */
     public void connectRemote(boolean roomHello) {
         if ( updating.compareAndSet(false, true)) {
-            // Queue the initial connect to a different thread: the connecting room
-            // is holding down the fort.
+            // Queue the initial connect to a different thread
             mediatorBuilder.execute(() -> {
                 Log.log(Level.FINEST, this, "RemoteRoomProxy -- connect for {0}", user);
                 UpdateType type = roomHello ? UpdateType.HELLO : UpdateType.JOIN;
@@ -157,7 +160,7 @@ public class RemoteRoomProxy implements RoomMediator {
 
     /**
      * Called after remote connection has dropped, or on a schedule (sick room)
-     *
+     * This is an independently fired event/
      */
     public void reconnect() {
         if ( updating.compareAndSet(false, true)) {

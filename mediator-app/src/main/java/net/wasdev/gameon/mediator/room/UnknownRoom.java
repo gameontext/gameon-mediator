@@ -21,11 +21,11 @@ import net.wasdev.gameon.mediator.models.RoomInfo;
 import net.wasdev.gameon.mediator.models.Site;
 
 public class UnknownRoom extends AbstractRoomMediator {
-    
+
     public static final String UNKNOWN_NAME = "unknown";
     public static final String UNKNOWN_FULLNAME = "Unknown site";
     public static final String UNKNOWN_DESCRIPTION = "Operator here: We're sorry, but we have no idea where you are. `/sos` is your best option";
-    
+
     public UnknownRoom(MapClient mapClient, String id, MediatorNexus.View nexus) {
         super(nexus, mapClient, new Site(id));
     }
@@ -44,18 +44,18 @@ public class UnknownRoom extends AbstractRoomMediator {
     public String getDescription() {
         return UNKNOWN_DESCRIPTION;
     }
-    
+
     @Override
     public Type getType() {
         return Type.UNKNOWN;
     }
-    
+
     @Override
     public void updateInformation(Site site) {
         super.exits = site.getExits();
         roomInfo = site.getInfo();
     }
-    
+
     @Override
     public boolean sameConnectionDetails(RoomInfo info) {
         return info == null;

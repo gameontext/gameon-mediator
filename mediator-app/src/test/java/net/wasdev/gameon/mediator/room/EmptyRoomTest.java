@@ -34,26 +34,26 @@ import net.wasdev.gameon.mediator.room.RoomMediator.Type;
 
 @RunWith(JMockit.class)
 public class EmptyRoomTest {
-    
+
     @Test
     public void testBasics(@Mocked MediatorNexus.View nexus,
                            @Mocked MapClient mapClient,
                            @Mocked Site site,
                            @Mocked JsonObjectBuilder builder) {
-        
+
         new Expectations() {{
-            site.getInfo(); returns(null); 
+            site.getInfo(); returns(null);
          }};
 
         EmptyRoom emptyRoom = new EmptyRoom(mapClient, site, null, nexus);
-        
+
         Assert.assertEquals(Type.EMPTY, emptyRoom.getType());
         Assert.assertEquals(EmptyRoom.EMPTY_ROOMNAME, emptyRoom.getName());
         Assert.assertEquals(EmptyRoom.EMPTY_FULLNAME, emptyRoom.getFullName());
         Assert.assertTrue("room info should be the same when null: " + emptyRoom, emptyRoom.sameConnectionDetails(null));
 
         emptyRoom.buildLocationResponse(builder);
-        
+
         new Verifications() {{
             builder.add(RoomUtils.TYPE, RoomUtils.LOCATION);  times = 1;
             builder.add(Constants.KEY_ROOM_NAME, EmptyRoom.EMPTY_ROOMNAME); times = 1;

@@ -40,14 +40,14 @@ public class ConnectionDetails {
     public void setTarget(String target) {
         this.target = target;
     }
-    
+
     public String getToken() {
         return token;
     }
     public void setToken(String token) {
         this.token = token;
     }
-    
+
     public boolean isShared() {
         return shared;
     }

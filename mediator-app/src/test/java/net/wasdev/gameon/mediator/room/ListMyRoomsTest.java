@@ -47,7 +47,7 @@ public class ListMyRoomsTest {
 
     @Test
     public void testNoRooms(@Mocked MapClient mapClient,
-                            @Mocked View nexusView, 
+                            @Mocked View nexusView,
                             @Mocked Site site) {
         PlayerClient playerClient = new PlayerClient();
         String playerJwt = "testUser";
@@ -62,31 +62,31 @@ public class ListMyRoomsTest {
                 "{\"username\":\"DevUser\",\"userId\":\"testUser\",\"content\":\"/listmyrooms\"}");
 
         firstRoom.sendToRoom(routedMessage);
-        
+
         new Verifications() {{
             List<RoutedMessage> responses = new ArrayList<>();
-            
+
             // no message for a non-newbie: only the one for the command we issued
             nexusView.sendToClients(withCapture(responses)); times = 1;
-            
+
             checkMessageHeaders(responses.get(0), FlowTarget.player, playerJwt, "event");
             checkMessageContentAsObject(responses.get(0), "You have no rooms registered!");
-            
+
         }};
     }
 
     @Test
     public void testOneRoom(@Mocked MapClient mapClient,
-            @Mocked View nexusView, 
+            @Mocked View nexusView,
             @Mocked Site site) {
 
         PlayerClient playerClient = new PlayerClient();
         String playerJwt = "testUser";
-        
+
         RoomInfo roomInfo = new RoomInfo();
         roomInfo.setFullName("AnotherRoomForSteve");
         roomInfo.setName("stevesRoom");
-        
+
         Site singleReturnedRoom = new Site();
         singleReturnedRoom.setId("steve");
         singleReturnedRoom.setInfo(roomInfo);
@@ -102,37 +102,37 @@ public class ListMyRoomsTest {
 
         RoutedMessage routedMessage = RoutedMessage.createMessage(FlowTarget.room, "firstRoom",
                 "{\"username\":\"DevUser\",\"userId\":\"testUser\",\"content\":\"/listmyrooms\"}");
-       
+
 
        firstRoom.sendToRoom(routedMessage);
 
        new Verifications() {{
            List<RoutedMessage> responses = new ArrayList<>();
-           
+
            // no message for a non-newbie: only the one for the command we issued
            nexusView.sendToClients(withCapture(responses)); times = 1;
-           
+
            checkMessageHeaders(responses.get(0), FlowTarget.player, playerJwt, "event");
-           checkMessageContentAsObject(responses.get(0), 
+           checkMessageContentAsObject(responses.get(0),
                    "You have registered the following rooms... \n"
                    + " - '" + singleReturnedRoom.getInfo().getFullName() + "' with id "
                    + singleReturnedRoom.getInfo().getName() + " (long id: " + singleReturnedRoom.getId() +")\n"
                    + "\nYou can go directly to a room using /teleport <roomid>");
-           
+
        }};
     }
 
     @Test
     public void testTwoRooms(@Mocked MapClient mapClient,
-            @Mocked View nexusView, 
+            @Mocked View nexusView,
             @Mocked Site site) {
         PlayerClient playerClient = new PlayerClient();
         String playerJwt = "testUser";
-        
+
         RoomInfo roomInfo1 = new RoomInfo();
         roomInfo1.setFullName("site1FullName");
         roomInfo1.setName("site1");
-        
+
         Site room1 = new Site();
         room1.setId("siteIdForRoom1");
         room1.setInfo(roomInfo1);
@@ -162,19 +162,19 @@ public class ListMyRoomsTest {
 
         new Verifications() {{
             List<RoutedMessage> responses = new ArrayList<>();
-            
+
             // no message for a non-newbie: only the one for the command we issued
             nexusView.sendToClients(withCapture(responses)); times = 1;
-            
+
             checkMessageHeaders(responses.get(0), FlowTarget.player, playerJwt, "event");
-            checkMessageContentAsObject(responses.get(0), 
+            checkMessageContentAsObject(responses.get(0),
                     "You have registered the following rooms... \n"
                     + " - '" + room1.getInfo().getFullName() + "' with id "
                     + room1.getInfo().getName() + " (long id: " + room1.getId() +")\n"
                     + " - '" + room2.getInfo().getFullName() + "' with id "
                     + room2.getInfo().getName() + " (long id: " + room2.getId() +")\n"
                     + "\nYou can go directly to a room using /teleport <roomid>");
-            
+
         }};
     }
 

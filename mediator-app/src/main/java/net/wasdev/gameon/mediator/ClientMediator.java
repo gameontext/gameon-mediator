@@ -197,7 +197,7 @@ public class ClientMediator implements UserView {
             Log.log(Level.FINEST, toClient, "sendToClient -- Dropping message {0}", message);
         }
     }
-    
+
     public Object getSource() {
         return toClient;
     }

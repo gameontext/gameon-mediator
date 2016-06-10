@@ -34,20 +34,20 @@ import io.jsonwebtoken.SignatureAlgorithm;
 
 @ApplicationScoped
 public class SignedJWTValidator {
-    
+
     public static final String JWT_QUERY_PARAMETER = "jwt";
     public static final String JWT_CLIENT_HEADER = "gameon-jwt";
     public static final String JWT_CLIENT_VALID = "valid";
     public static final String JWT_CLIENT_INVALID = "invalid";
-    
+
 
     // Keystore info for jwt parsing / creation.
     @Resource(lookup = "jwtKeyStore")
     String keyStore;
-    
+
     @Resource(lookup = "jwtKeyStorePassword")
     String keyStorePW;
-    
+
     @Resource(lookup = "jwtKeyStoreAlias")
     String keyStoreAlias;
 
@@ -75,11 +75,11 @@ public class SignedJWTValidator {
             throw new IllegalStateException("Unable to retrieve keystore required to sign JWTs: " + keyStore, e);
         }
     }
-    
+
     public SignedJWT getJWT(String jwtParam) {
         return new SignedJWT(signingKey, jwtParam);
     }
-        
+
     public String clientToServer(SignedJWT jwt) {
         if ( jwt.isValid() ) {
             Claims onwardsClaims = Jwts.claims();
@@ -94,8 +94,8 @@ public class SignedJWTValidator {
                     .signWith(SignatureAlgorithm.RS256, signingKey).compact();
 
             return newJwt;
-        } 
-        
+        }
+
         return null;
     }
 }

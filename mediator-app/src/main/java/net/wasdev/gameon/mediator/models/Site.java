@@ -45,7 +45,7 @@ public class Site {
         this.info = new RoomInfo(exit);
         this.exits = new Exits();
     }
-    
+
     /**
      * Create a new site using the exit information
      * from a previous site, and use the provided fallback

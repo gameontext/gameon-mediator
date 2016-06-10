@@ -8,10 +8,10 @@ public interface Drain {
     void send(RoutedMessage message);
 
     void close(CloseReason reason);
-    
+
     void start();
-    
+
     void start(Session session);
-    
+
     void stop();
 }

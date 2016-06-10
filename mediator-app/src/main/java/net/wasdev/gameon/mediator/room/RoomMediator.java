@@ -31,22 +31,22 @@ public interface RoomMediator {
         EMPTY,
         REMOTE,
         SICK,
-        UNKNOWN, 
+        UNKNOWN,
         FIRST_ROOM;
     }
-    
+
     Type getType();
-    
+
     String getId();
-    
+
     String getName();
 
     String getFullName();
-    
+
     String getDescription();
-    
+
     Exits getExits();
-    
+
     JsonValue listExits();
 
     void updateInformation(Site site);
@@ -58,16 +58,16 @@ public interface RoomMediator {
     void goodbye(MediatorNexus.UserView user);
 
     void join(MediatorNexus.UserView user);
-    
+
     void part(MediatorNexus.UserView user);
 
     void sendToRoom(RoutedMessage message);
-    
+
     void sendToClients(RoutedMessage message);
 
     void disconnect();
 
     boolean sameConnectionDetails(RoomInfo localInfo);
-    
+
     MediatorNexus.View getNexusView();
 }

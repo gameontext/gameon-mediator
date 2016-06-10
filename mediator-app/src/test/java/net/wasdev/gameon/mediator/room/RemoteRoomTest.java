@@ -29,22 +29,22 @@ public class RemoteRoomTest {
     String playerJwt = "testJwt";
     String userId = "dummy.DevUser";
     String userName = "DevUser";
-    
+
     @Rule
     public TestName testName = new TestName();
-    
+
     @Before
     public void before() {
         System.out.println("-- " + testName.getMethodName() + " --------------------------------------");
-        
-        
+
+
         new MockUp<Log>()
         {
             @Mock
             public void log(Level level, Object source, String msg, Object[] params) {
                 System.out.println("Log: " + MessageFormat.format(msg, params));
             }
-            
+
             @Mock
             public void log(Level level, Object source, String msg, Throwable thrown) {
                 System.out.println("Log: " + msg + ": " + thrown.getMessage());

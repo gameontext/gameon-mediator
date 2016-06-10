@@ -50,26 +50,26 @@ public class SickRoomTest {
                            @Mocked RemoteRoomProxy proxy,
                            @Mocked ScheduledExecutorService exec,
                            @Mocked JsonObjectBuilder builder) {
-        
-        
+
+
         new Expectations() {{
             site.getInfo(); returns(info);
             info.getName(); returns(name);
             info.getFullName(); returns(fullName);
          }};
-        
+
          SickRoom sickRoom = new SickRoom(proxy, mapClient, exec, site, null, nexus);
-        
+
         Assert.assertEquals(Type.SICK, sickRoom.getType());
         Assert.assertEquals(name, sickRoom.getName());
         Assert.assertEquals(fullName, sickRoom.getFullName());
         Assert.assertFalse("room info should not be the same when null", sickRoom.sameConnectionDetails(null));
-        
-        Assert.assertNotEquals("Sick room should provide its own description", 
+
+        Assert.assertNotEquals("Sick room should provide its own description",
                 description, sickRoom.getDescription());
 
         sickRoom.buildLocationResponse(builder);
-        
+
         new Verifications() {{
             info.getDescription(); times = 0;
             builder.add(RoomUtils.TYPE, RoomUtils.LOCATION);  times = 1;

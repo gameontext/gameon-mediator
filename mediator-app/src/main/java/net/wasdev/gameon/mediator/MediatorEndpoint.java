@@ -38,8 +38,8 @@ import org.gameontext.signed.SignedRequestMap;
 import net.wasdev.gameon.mediator.RoutedMessage.FlowTarget;
 
 /**
- * Server-side endpoint for the Player Client (phone/browser). 
- * 
+ * Server-side endpoint for the Player Client (phone/browser).
+ *
  * This does *NOT* make the endpoints unique to the player! The URL is different
  * (in that the user id is in it), but all sessions are still iterable over the same
  * endpoint.
@@ -120,8 +120,8 @@ public class MediatorEndpoint {
         try {
             if (message.getFlowTarget() == FlowTarget.ready) {
                 // wait to process the ready message until we've validated the JWT (see onOpen)
-                mediatorCheck.await(); 
-                
+                mediatorCheck.await();
+
                 clientMediator.ready(message);
                 goodToGo = true; // eventually all threads will see that we're happy
             } else if (goodToGo || mediatorCheck.getCount() == 0) {

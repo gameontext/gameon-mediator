@@ -35,7 +35,7 @@ import net.wasdev.gameon.mediator.room.RoomMediator.Type;
 
 @RunWith(JMockit.class)
 public class ConnectingRoomTest {
-    
+
     static final String name = "test";
     static final String fullName = "Full Test";
     static final String description = "Room description";
@@ -49,23 +49,23 @@ public class ConnectingRoomTest {
                            @Mocked JsonObjectBuilder builder) {
 
         new Expectations() {{
-            site.getInfo(); returns(info); 
+            site.getInfo(); returns(info);
             info.getName(); returns(name);
             info.getFullName(); returns(fullName);
          }};
-        
+
         ConnectingRoom delegate = new ConnectingRoom(proxy, mapClient, site, null, nexus);
-        
+
         Assert.assertEquals(Type.CONNECTING, delegate.getType());
         Assert.assertEquals(name, delegate.getName());
         Assert.assertEquals(fullName, delegate.getFullName());
         Assert.assertFalse("room info should not be the same when null", delegate.sameConnectionDetails(null));
-        
-        Assert.assertNotEquals("Connecting room should provide its own description", 
+
+        Assert.assertNotEquals("Connecting room should provide its own description",
                 description, delegate.getDescription());
 
         delegate.buildLocationResponse(builder);
-        
+
         new Verifications() {{
             info.getDescription(); times = 0;
             builder.add(RoomUtils.TYPE, RoomUtils.LOCATION);  times = 1;

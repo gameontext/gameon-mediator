@@ -140,8 +140,8 @@ public abstract class AbstractRoomMediator implements RoomMediator {
         JsonObjectBuilder builder = Json.createObjectBuilder();
         buildLocationResponse(builder);
         builder.add(Constants.KEY_BOOKMARK, "go" + getType() + ":" + bookmark.incrementAndGet());
-       
-        // Say hello to.. 
+
+        // Say hello to..
         sendToClients(RoutedMessage.createMessage(FlowTarget.player, "*",
                 String.format(Constants.EVENT_HELLO, user.getUserName(), user.getUserId(), helloMessage(), bookmark.incrementAndGet())));
 
@@ -196,33 +196,34 @@ public abstract class AbstractRoomMediator implements RoomMediator {
     }
 
     protected String parseMessage(String userId, JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
-        String content = sourceMessage.getString(RoomUtils.CONTENT).trim().toLowerCase();
+        String content = sourceMessage.getString(RoomUtils.CONTENT).trim();
         String userName = sourceMessage.getString(Constants.KEY_USERNAME);
         String targetId = userId;
 
-        if ( content.startsWith("/go") ) {
-            String exitDirection = RoomUtils.getDirection(content);
-            if ( exitDirection == null ) {
-                responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT)
-                    .add(RoomUtils.CONTENT, RoomUtils.buildContentResponse(userId, "Hmm. That direction didn't make sense. Try again?"));
-            } else if ( "u".equals(exitDirection) ) {
-                responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT)
-                    .add(RoomUtils.CONTENT, RoomUtils.buildContentResponse(userId, "There might be a ceiling, or perhaps just clouds. Certainly no doors."));
-            } else if ( "d".equals(exitDirection) ) {
-                responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT)
-                    .add(RoomUtils.CONTENT, RoomUtils.buildContentResponse(userId, "Ooof. Yep. That's a floor."));
+        if ( content.charAt(0) == '/' ) {
+            String contentToLower = content.toLowerCase();
+
+            if ( contentToLower.startsWith("/go") ) {
+                String exitDirection = RoomUtils.getDirection(contentToLower);
+                if ( exitDirection == null ) {
+                    responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT)
+                        .add(RoomUtils.CONTENT, RoomUtils.buildContentResponse(userId, "Hmm. That direction didn't make sense. Try again?"));
+                } else if ( "u".equals(exitDirection) ) {
+                    responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT)
+                        .add(RoomUtils.CONTENT, RoomUtils.buildContentResponse(userId, "There might be a ceiling, or perhaps just clouds. Certainly no doors."));
+                } else if ( "d".equals(exitDirection) ) {
+                    responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT)
+                        .add(RoomUtils.CONTENT, RoomUtils.buildContentResponse(userId, "Ooof. Yep. That's a floor."));
+                } else {
+                    responseBuilder.add(RoomUtils.TYPE, RoomUtils.EXIT)
+                        .add(RoomUtils.EXIT_ID, exitDirection)
+                        .add(RoomUtils.CONTENT, "You head " + RoomUtils.longDirection(exitDirection));
+                }
+            } else if ( "/look".equals(contentToLower) ) {
+                buildLocationResponse(responseBuilder);
             } else {
-                responseBuilder.add(RoomUtils.TYPE, RoomUtils.EXIT)
-                    .add(RoomUtils.EXIT_ID, exitDirection)
-                    .add(RoomUtils.CONTENT, "You head " + RoomUtils.longDirection(exitDirection));
+                targetId = parseCommand(userId, userName, sourceMessage, responseBuilder);
             }
-
-        } else if ( "/look".equals(content) ) {
-            buildLocationResponse(responseBuilder);
-
-        } else if ( content.charAt(0) == '/' ) {
-            targetId = parseCommand(userId, userName, sourceMessage, responseBuilder);
-
         } else {
             // chat is broadcast
             targetId = "*";
@@ -231,7 +232,7 @@ public abstract class AbstractRoomMediator implements RoomMediator {
                 .add(Constants.KEY_BOOKMARK, "go-" + bookmark.incrementAndGet())
                 .add(RoomUtils.TYPE, RoomUtils.CHAT);
         }
-        
+
         responseBuilder.add(Constants.KEY_BOOKMARK, "go-" + bookmark.incrementAndGet());
 
         return targetId;
@@ -259,9 +260,9 @@ public abstract class AbstractRoomMediator implements RoomMediator {
         int index = RoomUtils.random.nextInt(GOODBYES.size());
         return GOODBYES.get(index);
     }
-    
+
     protected String helloMessage() {
-        return "Welcone to " + getFullName(); 
+        return "Welcone to " + getFullName();
     }
 
     @Override
@@ -272,7 +273,7 @@ public abstract class AbstractRoomMediator implements RoomMediator {
                 + ", full="+getFullName()
                 + "]";
     }
-    
+
     public String toFullString() {
         return this.getClass().getSimpleName()
                 + "[name="+getName()
@@ -281,5 +282,5 @@ public abstract class AbstractRoomMediator implements RoomMediator {
                 + ", exits="+exits
                 + "]";
     }
-    
+
 }

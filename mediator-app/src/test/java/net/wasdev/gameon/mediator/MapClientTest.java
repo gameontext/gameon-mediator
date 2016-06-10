@@ -44,23 +44,23 @@ import net.wasdev.gameon.mediator.models.Site;
 
 @RunWith(JMockit.class)
 public class MapClientTest {
-    
+
     @Mocked WebTarget target;
     @Mocked Builder builder;
     @Mocked Response response;
     @Mocked StatusType statusInfo;
     MapClient mapClient = new MapClient();
-    
+
     @Before
     public void setup() {
-        
+
         new MockUp<Log>()
         {
             @Mock
             public void log(Level level, Object source, String msg, Object[] params) {
                 System.out.println("Log: " + MessageFormat.format(msg, params));
             }
-            
+
             @Mock
             public void log(Level level, Object source, String msg, Throwable thrown) {
                 System.out.println("Log: " + msg + ": " + thrown.getMessage());
@@ -78,16 +78,16 @@ public class MapClientTest {
 
     @Test
     public void test204() {
-        
+
         new Expectations() {{
             statusInfo.getStatusCode(); returns(204);
         }};
-        
+
         List<Site> sites = mapClient.getSites(target);
         assertNotNull("A 204 should not return a null object", sites);
         assertTrue("No sites should be returned", sites.isEmpty());
     }
-    
+
     @Test
     public void test200WithNoSites() {
         List<Site> returnedSiteList = new ArrayList<Site>();
@@ -101,7 +101,7 @@ public class MapClientTest {
         assertNotNull("A 200 should not return a null object", sites);
         assertTrue("No sites should be returned", sites.isEmpty());
     }
-    
+
     @Test
     public void test200WithOneSite() {
         List<Site> returnedSiteList = new ArrayList<Site>();
@@ -112,21 +112,21 @@ public class MapClientTest {
             statusInfo.getStatusCode(); returns(200);
             response.readEntity(new GenericType<List<Site>>() {}); returns (returnedSiteList);
         }};
-        
+
         List<Site> sites = mapClient.getSites(target);
         assertNotNull("A 200 should not return a null object", sites);
         assertEquals("No sites should be returned", 1, sites.size());
     }
-    
+
     @Test
     public void test200WithNullSitesObject() {
-        
+
         MapClient mapClient = new MapClient();
         new Expectations() {{
             statusInfo.getStatusCode(); returns(200);
             response.readEntity(new GenericType<List<Site>>() {}); returns (null);
         }};
-        
+
         List<Site> sites = mapClient.getSites(target);
         assertNotNull("A 200 should not return a null object", sites);
         assertTrue("No sites should be returned", sites.isEmpty());

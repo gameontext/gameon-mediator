@@ -76,7 +76,7 @@ public class MapClient {
 
     /**
      * The system id, that we use when making our map queries.
-     * 
+     *
      * @see {@code systemId} in
      *      {@code /mediator-wlpcfg/servers/gameon-mediator/server.xml}
      */
@@ -134,12 +134,12 @@ public class MapClient {
         WebTarget target = this.queryRoot.queryParam("owner", ownerId);
         return getSites(target);
     }
-    
+
     public List<Site> getRoomsByRoomName(String name) {
         WebTarget target = this.queryRoot.queryParam("name", name);
         return getSites(target);
     }
-    
+
     public List<Site> getRoomsByOwnerAndRoomName(String ownerId,String roomName) {
         WebTarget target = this.queryRoot.queryParam("owner", ownerId).queryParam("name",roomName);
         return getSites(target);
@@ -276,7 +276,7 @@ public class MapClient {
             }
 
             // The return code indicates something went wrong, but it wasn't bad enough to cause an exception
-            return Collections.emptyList();        
+            return Collections.emptyList();
         } catch (ResponseProcessingException rpe) {
             Response response = rpe.getResponse();
             Log.log(Level.FINER, this, "Exception fetching room list uri: {0} resp code: {1} ",

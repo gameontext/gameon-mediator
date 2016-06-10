@@ -33,7 +33,7 @@ class WSDrain implements Runnable, Drain {
     private final String id;
     private Thread thread;
     private Session targetSession;
-    boolean wsToRoom; 
+    boolean wsToRoom;
 
     /** Queue of messages  */
     private final LinkedBlockingDeque<RoutedMessage> pendingMessages;
@@ -59,7 +59,7 @@ class WSDrain implements Runnable, Drain {
         this.pendingMessages = new LinkedBlockingDeque<RoutedMessage>();
         this.wsToRoom = false; // outbound client connection
     }
-    
+
     public WSDrain(String id) {
         this.id = id;
         this.pendingMessages = new LinkedBlockingDeque<RoutedMessage>();
@@ -70,12 +70,12 @@ class WSDrain implements Runnable, Drain {
     public void send(RoutedMessage message) {
         pendingMessages.offer(message);
     }
-    
+
     @Override
     public void close(CloseReason reason) {
         WSUtils.tryToClose(targetSession, reason);
     }
-    
+
     @Override
     public void run() {
 
@@ -87,13 +87,13 @@ class WSDrain implements Runnable, Drain {
         while (keepGoing) {
             try {
                 RoutedMessage message = pendingMessages.take();
-                
+
                 if ( wsToRoom ) {
                     Log.log(Level.FINEST, this, "C    M -> R : {0} {1}", message, targetSession.getId());
                 } else {
                     Log.log(Level.FINEST, this, "C <- M    R : {0} {1}", message, targetSession.getId());
                 }
-                
+
                 try {
                     if (!WSUtils.sendMessage(targetSession, message)) {
                         // If the send failed, tuck the message back in the
@@ -116,7 +116,7 @@ class WSDrain implements Runnable, Drain {
 
         ended.countDown();
     }
-    
+
     @Override
     public void start() {
         if ( targetSession == null )
@@ -151,7 +151,7 @@ class WSDrain implements Runnable, Drain {
 
         WSUtils.tryToClose(targetSession);
     }
-    
+
     public void setThread(Thread t) {
         this.thread = t;
     }

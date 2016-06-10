@@ -45,7 +45,7 @@ import net.wasdev.gameon.mediator.room.UnknownRoom;
 
 @ApplicationScoped
 public class MediatorBuilder {
-    
+
     public enum UpdateType {
         HELLO,
         JOIN,
@@ -170,7 +170,7 @@ public class MediatorBuilder {
      * This is done as a callback to keep all delegate construction mechanics here.
      * This will also schedule an executor to attempt the outbound client connection,
      * which will then replace the delegate if/when it is done.
-     * 
+     *
      * hello will be called on the delegates returned from this method.
      *
      * @param proxy
@@ -188,7 +188,7 @@ public class MediatorBuilder {
             return new EmptyRoom(mapClient, site, user.getUserId(), nexus.getMultiUserView(roomId));
         }
 
-        return new ConnectingRoom(proxy, mapClient, site, user.getUserId(), 
+        return new ConnectingRoom(proxy, mapClient, site, user.getUserId(),
                 nexus.getFilteredMultiUserView(roomId, RoomMediator.Type.CONNECTING));
     }
 
@@ -215,7 +215,7 @@ public class MediatorBuilder {
                 Log.getHexHash(proxy), user, Log.getHexHash(currentDelegate), currentDelegate.getType());
     }
 
-    
+
     public RoomMediator internalUpdateDelegate(UpdateType updateType, RemoteRoomProxy proxy, RoomMediator currentDelegate, Site site, UserView user) {
         Site targetSite = site;
         String roomId = currentDelegate.getId();
@@ -264,7 +264,7 @@ public class MediatorBuilder {
         try {
             RemoteRoom room = new RemoteRoom(proxy, mapClient, scheduledExecutor, site, drain, nexus.getSingleUserView(roomId, user));
             switch(updateType) {
-                case HELLO: 
+                case HELLO:
                     room.hello(user,false);
                     break;
                 case JOIN:
@@ -274,7 +274,7 @@ public class MediatorBuilder {
                     room.hello(user, true);
                     break;
             }
-            
+
             return room;
         } catch(Exception e) {
             Log.log(Level.FINEST, this, "tryRemoteDelegate FAILED: proxy={0}, userId={1}, exception={2}",
@@ -303,7 +303,7 @@ public class MediatorBuilder {
         mediator.hello(user, false);
         return mediator;
     }
-    
+
     public void execute(Runnable r) {
         this.scheduledExecutor.execute(r);
     }

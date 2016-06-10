@@ -1,6 +1,8 @@
 package net.wasdev.gameon.mediator;
 
+import java.lang.reflect.Field;
 import java.text.MessageFormat;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
 import javax.enterprise.concurrent.ManagedScheduledExecutorService;
@@ -297,18 +299,40 @@ public class MediatorBuilderTest {
     @Test
     public void testCreateConnectingDelegateHelloBadConnectionType(@Mocked Site site1,
                                    @Mocked RoomInfo info,
-                                   @Mocked ClientMediatorPod pod1) {
+                                   @Mocked ClientMediatorPod pod1) throws Exception {
+
+        // Special mock of sched exec to run immediately
+        ManagedScheduledExecutorService executor = new MockUp<ManagedScheduledExecutorService>() {
+            @Mock
+            public void execute(Runnable command) {
+                System.out.println("HEY!!!");
+                command.run();
+            }
+        }.getMockInstance();
+
+        builder.scheduledExecutor = executor;
+
+
         new Expectations() {{
             site1.getId(); result = roomId;
             site1.getInfo(); result = info;
+            info.getName(); result = roomName;
+            info.getFullName(); result = roomFullName;
             info.getConnectionDetails().getType(); result = "unknown";
         }};
 
-        RemoteRoomProxy proxy = new RemoteRoomProxy(builder, userView, site1.getId());
+        RemoteRoomProxy proxy = new RemoteRoomProxy(builder, userView, roomId);
+
+        Field field_updating = RemoteRoomProxy.class.getDeclaredField("updating");
+        field_updating.setAccessible(true);
+        AtomicBoolean updating = (AtomicBoolean) field_updating.get(proxy);
+
         Assert.assertEquals(Type.CONNECTING, proxy.getType()); // proxy type should reflect the guts!
 
         // Attempt connection with bad type
         proxy.hello(pod1, false);
+
+        Assert.assertFalse("Updating flag should be reset to false", updating.get());
         Assert.assertEquals(Type.SICK, proxy.getType()); // proxy type should reflect the guts!
     }
 

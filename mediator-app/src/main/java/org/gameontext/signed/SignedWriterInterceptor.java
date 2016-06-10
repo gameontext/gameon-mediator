@@ -37,7 +37,7 @@ public class SignedWriterInterceptor implements WriterInterceptor {
             context.proceed();
         } else {
             SignedRequestMap headers = new SignedRequestMap.MVSO_StringMap(context.getHeaders());
- 
+
             OutputStream old = context.getOutputStream();
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             context.setOutputStream(baos);
@@ -52,7 +52,7 @@ public class SignedWriterInterceptor implements WriterInterceptor {
                 // Finalize signature
                 hmac.generateBodyHash(headers, body)
                     .signRequest(headers);
-                
+
                 SignedRequestFeature.writeLog(Level.FINEST, this, "WRITER INTERCEPTOR: {0}", headers);
             } finally {
                 // Write the response
