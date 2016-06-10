@@ -262,7 +262,7 @@ public abstract class AbstractRoomMediator implements RoomMediator {
     }
 
     protected String helloMessage() {
-        return "Welcone to " + getFullName();
+        return "Welcome to " + getFullName();
     }
 
     @Override

@@ -91,6 +91,7 @@ public class RemoteRoom extends AbstractRoomMediator {
         Log.log(Level.FINER, this, "REMOTE GOODBYE {0}", getId());
 
         connection.sendToRoom(RoutedMessage.createGoodbye(roomId, user));
+        connection.disconnect(); // will work w/ connection type to clean up after send
     }
 
     @Override
@@ -113,6 +114,7 @@ public class RemoteRoom extends AbstractRoomMediator {
             Log.log(Level.FINER, this, "REMOTE PART {0}", getId());
 
             connection.sendToRoom(RoutedMessage.createPart(roomId, user));
+            connection.disconnect(); // will work with connection type to clean up after send
         } else {
             goodbye(user);
         }

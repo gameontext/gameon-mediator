@@ -385,7 +385,6 @@ public class MediatorNexus  {
 
                 // remove this pod from the old room index
                 oldRoom.goodbye(this);
-                oldRoom.disconnect();
                 removeDeleteEmptyPlayerList(oldRoom.getId(), this);
 
                 // assign the new room
@@ -412,7 +411,6 @@ public class MediatorNexus  {
             if ( clientMediators.contains(playerSession) && clientMediators.size() == 1 ) {
                 // we're the last session standing: part the room.
                 room.part(this);
-                room.disconnect();
 
                 // self-cleaning. This element is about to vanish, so remove it from the room-indexed list, too
                 removeDeleteEmptyPlayerList(room.getId(), this);

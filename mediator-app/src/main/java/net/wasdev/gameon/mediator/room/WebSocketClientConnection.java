@@ -66,7 +66,7 @@ class WebSocketClientConnection extends Endpoint implements RemoteRoom.Connectio
     @Override
     public void connect() throws DeploymentException, IOException {
         ConnectionDetails details = info.getConnectionDetails();
-        Log.log(Level.FINE, this, "Creating websocket to {0}", details.getTarget());
+        Log.log(Level.FINE, drain, "Creating websocket to {0}", details.getTarget());
 
         URI uriServerEP = URI.create(details.getTarget());
 
@@ -82,14 +82,13 @@ class WebSocketClientConnection extends Endpoint implements RemoteRoom.Connectio
 
     @Override
     public void sendToRoom(RoutedMessage message) {
-        Log.log(Level.FINE, this, "WS SEND... " + message);
-
         drain.send(message);
     }
 
     @Override
     public void disconnect() {
-        WSUtils.tryToClose(session);
+        Log.log(Level.FINE, drain, "Disconnecting... ");
+        drain.stop();
     }
 
     @Override
@@ -107,14 +106,14 @@ class WebSocketClientConnection extends Endpoint implements RemoteRoom.Connectio
         }
 
         // let the room mediator know the connection was opened
-        Log.log(Level.FINER, this, "ROOM CONNECTION OPEN {0}: {1}", id, this);
+        Log.log(Level.FINER, drain, "ROOM CONNECTION OPEN {0}: {1}", id, this);
         drain.start(session);
 
         // Add message handler
         session.addMessageHandler(new MessageHandler.Whole<RoutedMessage>() {
             @Override
             public void onMessage(RoutedMessage message) {
-                Log.log(Level.FINEST, this, "C    M <- R : {0}", message);
+                Log.log(Level.FINEST, drain, "C    M <- R : {0}", message);
 
                 if(message.getFlowTarget() == FlowTarget.ack){
                     //ack from room is meant for us..
@@ -133,7 +132,7 @@ class WebSocketClientConnection extends Endpoint implements RemoteRoom.Connectio
     @Override
     public void onClose(Session session, CloseReason closeReason) {
         // let the room mediator know the connection was closed
-        Log.log(Level.FINER, this, "ROOM CONNECTION CLOSED {0}: {1}", id, closeReason);
+        Log.log(Level.FINER, drain, "ROOM CONNECTION CLOSED {0}: {1}", id, closeReason);
         drain.stop();
 
         if (nexus.stillConnected() && !closeReason.getCloseCode().equals(CloseCodes.NORMAL_CLOSURE)) {
@@ -143,7 +142,7 @@ class WebSocketClientConnection extends Endpoint implements RemoteRoom.Connectio
 
     @Override
     public void onError(Session session, Throwable thr) {
-        Log.log(Level.FINEST, this, "BADNESS " + session.getUserProperties(), thr);
+        Log.log(Level.FINEST, drain, "BADNESS " + session.getUserProperties(), thr);
 
         WSUtils.tryToClose(session,
                 new CloseReason(CloseReason.CloseCodes.UNEXPECTED_CONDITION, thr.toString()));
@@ -204,15 +203,15 @@ class WebSocketClientConnection extends Endpoint implements RemoteRoom.Connectio
             super.afterResponse(hr);
             if( wsHmac != null ) {
                 try {
-                    Log.log(Level.FINEST, this, "Validating HMAC supplied for WS");
+                    Log.log(Level.FINEST, drain, "Validating HMAC supplied for WS");
                     wsHmac.wsVerifySignature(new SignedRequestMap.MLS_StringMap(hr.getHeaders()));
-                    Log.log(Level.FINEST, this, "Validating HMAC result is {0}", responseValid);
+                    Log.log(Level.FINEST, drain, "Validating HMAC result is {0}", responseValid);
                 } catch (Exception e) {
-                    Log.log(Level.FINEST, this, "Failed to validate HMAC, unable to establish connection", e);
+                    Log.log(Level.FINEST, drain, "Failed to validate HMAC, unable to establish connection", e);
                 }
 
             } else {
-                Log.log(Level.INFO,this,"No token supplied for room, skipping WS handshake validation");
+                Log.log(Level.INFO, drain, "No token supplied for room, skipping WS handshake validation");
                 responseValid = true;
             }
         }
