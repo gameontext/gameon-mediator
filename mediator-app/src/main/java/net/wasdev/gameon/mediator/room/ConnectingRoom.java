@@ -15,56 +15,72 @@
  *******************************************************************************/
 package net.wasdev.gameon.mediator.room;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.logging.Level;
 
 import net.wasdev.gameon.mediator.Log;
 import net.wasdev.gameon.mediator.MapClient;
 import net.wasdev.gameon.mediator.MediatorNexus;
+import net.wasdev.gameon.mediator.RoutedMessage;
+import net.wasdev.gameon.mediator.RoutedMessage.FlowTarget;
 import net.wasdev.gameon.mediator.models.Site;
 
-public class EmptyRoom extends AbstractRoomMediator {
+/**
+ * Placeholder while we connect to a remote room.
+ * Connection is triggered by roomHello/roomJoin
+ *
+ */
+public class ConnectingRoom extends AbstractRoomMediator {
 
-    public static final String EMPTY_ROOMNAME = "emptyRoom";
-    public static final String EMPTY_FULLNAME = "Empty Room";
-
-    static final List<String> EMTPY_ROOMS = Collections.unmodifiableList(Arrays.asList(
-            "Said your name, in an empty room",
-            "Is that... padding on the walls?",
-            "The center of the room is completely empty",
-            "Nothing even remotely interesting is happening in here",
-            "This room looks suspiciously like a bunch of other rooms; it's like they're all the same."));
+    final RemoteRoomProxy proxy;
 
     /** Associated user id (if not a multiplexed/shared connection) */
     final String targetUser;
 
-    public EmptyRoom(MapClient mapClient, Site site, String userId, MediatorNexus.View nexus) {
+    public ConnectingRoom(RemoteRoomProxy proxy, MapClient mapClient, Site site, String userId, MediatorNexus.View nexus) {
         super(nexus, mapClient, site);
+        this.proxy = proxy;
         this.targetUser = userId == null ? "*" : userId;
 
-        Log.log(Level.FINEST, this, "Created Empty Room for " + targetUser + " in " + site.getId());
+        Log.log(Level.FINEST, this, "Created Connecting Room for " + targetUser + " in " + site.getId());
     }
 
     @Override
     public String getName() {
-        return EMPTY_ROOMNAME;
+        return roomInfo.getName();
     }
 
     @Override
     public String getFullName() {
-        return EMPTY_FULLNAME;
+        return roomInfo.getFullName();
     }
 
     @Override
     public String getDescription() {
-        int index = RoomUtils.random.nextInt(EMTPY_ROOMS.size());
-        return EMTPY_ROOMS.get(index);
+        return "Connecting to "+roomInfo.getFullName()+". Please hold.";
     }
 
     @Override
     public Type getType() {
-        return Type.EMPTY;
+        return Type.CONNECTING;
+    }
+
+    @Override
+    public void hello(MediatorNexus.UserView user, boolean recovery) {
+        // there might be a few instances of the player around..
+        // they should all have moved together, so we use the broadcast flag to send
+        // to all of them.
+        sendToClients(RoutedMessage.createSimpleEventMessage(FlowTarget.player, user.getUserId(),
+                getDescription()));
+
+        // Attempt to connect to the real deal.
+        proxy.connectRemote(true);
+     }
+
+    @Override
+    public void join(MediatorNexus.UserView user) {
+        super.join(user);
+
+        // Attempt to connect to the real deal.
+        proxy.connectRemote(false);
     }
 }

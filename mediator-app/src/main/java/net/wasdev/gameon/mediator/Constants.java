@@ -15,6 +15,8 @@
  *******************************************************************************/
 package net.wasdev.gameon.mediator;
 
+import java.util.UUID;
+
 import javax.json.Json;
 import javax.json.JsonObject;
 
@@ -25,53 +27,49 @@ import javax.json.JsonObject;
 public interface Constants {
 
     /**
-     * Routing: Mediator sends hello when a player enters the room (new room)
-     */
-    String ROOM_HELLO = "roomHello";
-
-    /** Routing: Mediator sends goodbye when a player leaves the room */
-    String ROOM_GOODBYE = "roomGoodbye";
-
-    /** Routing: Message directed from room to player */
-    String PLAYER = "player";
-
-    /**
-     * Routing: Message from room to mediator indicating that the player
-     * successfully opened a door. This will tell the mediator to attempt a room
-     * change.
-     */
-    String PLAYER_LOCATION = "playerLocation";
-
-    /**
-     * Routing: sent by the player to attempt a "rescue" (a jump from one room
-     * to a random other room if they get stuck (or feel like exploring).
-     */
-    String SOS = "sos";
-
-    /**
      * The id of the first room (special, provided by the mediator itself).
      */
     String FIRST_ROOM = "firstroom";
 
-    String ROOM_ID = "roomId";
-    
-    String ACK = "ack";
+    String KEY_ROOM_ID = "roomId";
 
-    /** Room name (ack, room location events) */
-    String NAME = "name";
+    /** Room name (for ack, room location events) */
+    String KEY_ROOM_NAME = "name";
 
-    /** Full room name (ack, room location events) */
-    String FULL_NAME = "fullName";
+    /** Full room name (for ack, room location events) */
+    String KEY_ROOM_FULLNAME = "fullName";
 
     /** Room exits (ack, room location events) */
-    String ROOM_EXITS = "exits";
+    String KEY_ROOM_EXITS = "exits";
 
-    /** Commands (ack, room location events) */
-    String COMMANDS = "commands";
+    /** Commands (for ack, room location events) */
+    String KEY_COMMANDS = "commands";
+    String KEY_BOOKMARK = "bookmark";
+    String KEY_USERNAME = "username";
+    String KEY_MEDIATOR_ID = "mediatorId";
+    String KEY_ROOM_INVENTORY = "roomInventory";
 
-    String BOOKMARK = "bookmark";
+    String VALID_JWT = "{\"type\": \"joinpart\",\"content\": \"connected: validating JWT\"}";
+    String FINDROOM = "{\"type\": \"joinpart\",\"content\": \"%s: knock, knock\"}";
+    String CONNECTING = "{\"type\": \"joinpart\",\"content\": \"connecting to %s\"}";
+    String JOIN = "{\"type\": \"joinpart\",\"content\": \"enter %s\"}";
+    String PART = "{\"type\": \"joinpart\",\"content\": \"exit %s\"}";
 
-    String USERNAME = "username";
+    String EVENT_HELLO = "{\"type\": \"event\",\"content\": {\"*\": \"%s is here\",\"%s\": \"%s\"},\"bookmark\": \"go-%d\"}";
+    String EVENT_GOODBYE =  "{\"type\": \"event\",\"content\": {\"*\": \"%s has gone\",\"%s\": \"%s\"},\"bookmark\": \"g-%d\"}";
+
+    String EVENT_GENERIC = "{\"type\": \"event\",\"content\": {\"%s\": \"%s\"}}";
+
+    String EVENTMSG_INVALID_JWT = "Your JWT is invalid, try [logging in again](/#/login).";
+    String EVENTMSG_FINDROOM_FAIL = "Oh dear. That door led nowhere.";
+    String EVENTMSG_NO_ROOMS = "Sad news. There isn't a room or site with the id you've requested. The room may have been deleted, or the map may be down. Routing you (back) to First Room.";
+    String EVENTMSG_SPLINCH_RECOVERY = "Ow! You were splinched! After a brief jolt (getting unsplinched isn't comfortable), all instances of you should hopefully be in the same room.";
+    String EVENTMSG_BAD_RIDE = "There is a sudden jerk, and you feel as though a hook somewhere behind your navel was yanking you ... somewhere.";
+    String EVENTMSG_REJOIN_ADVENTURE = "... Your adventure is already in progress on another device, joining ... ";
+    String EVENTMSG_MOVING = "You tried to leave when you'd already left! Sadly, it meant going nowhere new.";
+    String EVENTMSG_ALREADY_THERE = "You're already right where you wanted to be.";
+
+    String EXIT_ELECTRIC_THUMB = "{\"type\": \"exit\",\"content\": \"In a desperate plea for rescue, you stick out your [Electric Thumb](http://hitchhikers.wikia.com/wiki/Electronic_Thumb) and hope for the best.\"}";
 
     /**
      * List of common/always present commands
@@ -86,6 +84,6 @@ public interface Constants {
             .add("/help", "List available commands")
             .build();
 
-    String MEDIATOR_ID = "mediatorId";
+    String MEDIATOR_UUID = UUID.randomUUID().toString(); // there is a liberty server one?
 
 }

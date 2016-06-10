@@ -21,9 +21,7 @@
   <!-- To access this server from a remote client add a host attribute to
     the following element, e.g. host="*" -->
   <httpEndpoint host="*" httpPort="9080" httpsPort="9443" id="defaultHttpEndpoint">
-    <accessLogging
-        filepath="${server.output.dir}/logs/http_defaultEndpoint_access.log"
-        logFormat='%h %u %t "%r" %s %b %D %{User-agent}i'>
+    <accessLogging filepath="${server.output.dir}/logs/http_defaultEndpoint_access.log" logFormat="%h %u %t &quot;%r&quot; %s %b %D %{User-agent}i">
     </accessLogging>
   </httpEndpoint>
 
@@ -39,12 +37,16 @@
 
   <jndiEntry jndiName="systemId" value="${env.SYSTEM_ID}"/>
 
-  <logging consoleLogLevel="INFO" traceSpecification="*=info:net.wasdev.gameon.*=all"/>
+  <applicationMonitor dropinsEnabled="false" updateTrigger="mbean"/>
+  <config updateTrigger="mbean" />
 
+  <logging consoleLogLevel="INFO" traceSpecification="*=info:net.wasdev.gameon.*=all:org.gameontext.*=all"/>
+
+  <!-- This is required to prevent the web apps from being lazily loaded -->
+  <webContainer deferServletLoad="false"/>
   <!-- The JVM can get confused about available CPU in virtualized envs -->
-  <executor coreThreads="10"  />
+  <executor coreThreads="5"  />
 
-  <applicationMonitor dropinsEnabled="false"/>
   <webApplication contextRoot="/mediator" id="mediator-app" location="mediator-app.war" name="mediator-app"/>
 
 </server>

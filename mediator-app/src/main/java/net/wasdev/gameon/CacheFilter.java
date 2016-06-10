@@ -27,21 +27,21 @@ import javax.servlet.annotation.WebFilter;
 import javax.servlet.http.HttpServletResponse;
 
 @WebFilter(
-        filterName = "corsFilter",
-        urlPatterns = {"/*"}
+        filterName = "cacheFilter",
+        urlPatterns = {"/ws/*"}
         )
-public class CORSFilter implements Filter {
+public class CacheFilter implements Filter {
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
 
         HttpServletResponse sresponse = (HttpServletResponse) response;
-        sresponse.setHeader("Access-Control-Allow-Origin", "*");
-        sresponse.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
-        sresponse.setHeader("Access-Control-Max-Age", "86400");
-        sresponse.setHeader("Access-Control-Allow-Credentials", "true");
 
+        // Link to ws resources contains jwt in query string, and should not be cached.
+        sresponse.setHeader("Cache-Control", "no-cache, no-store, must-revalidate"); // HTTP 1.1.
+        sresponse.setHeader("Pragma", "no-cache"); // HTTP 1.0.
+        sresponse.setHeader("Expires", "0"); // Proxies.
         chain.doFilter(request, response);
     }
 
