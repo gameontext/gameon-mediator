@@ -31,6 +31,10 @@ dependencies {
 
 test {
    jvmArgs "-javaagent:${configurations.jmockit.singleFile.absolutePath}"
+   
+   jacoco {
+     excludes = ["*\$Impl_*"]
+   }
 }
 
 // Keep test and application binaries separate
