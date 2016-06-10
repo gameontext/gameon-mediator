@@ -591,7 +591,7 @@ public class MediatorNexus  {
 
         @Override
         public boolean stillConnected() {
-            return !connectedClients.clientMediators.isEmpty();
+            return connectedClients.clientMediators != null && !connectedClients.clientMediators.isEmpty();
         }
     }
 

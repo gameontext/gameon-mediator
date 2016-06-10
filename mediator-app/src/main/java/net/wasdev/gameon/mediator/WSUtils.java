@@ -96,10 +96,12 @@ public class WSUtils {
      *            {@link CloseReason} the WebSocket is closing.
      */
     public static void tryToClose(Session s, CloseReason reason) {
-        try {
-            s.close(reason);
-        } catch (IOException e) {
-            tryToClose(s);
+        if ( s != null ) {
+            try {
+                s.close(reason);
+            } catch (IOException e) {
+                tryToClose(s);
+            }
         }
     }
 
