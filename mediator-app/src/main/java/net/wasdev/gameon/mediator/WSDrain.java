@@ -15,9 +15,7 @@
  *******************************************************************************/
 package net.wasdev.gameon.mediator;
 
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import javax.websocket.CloseReason;
@@ -29,7 +27,6 @@ import javax.websocket.Session;
  *
  */
 class WSDrain implements Runnable, Drain {
-    private final CountDownLatch ended = new CountDownLatch(1);
     private final String id;
     private Thread thread;
     private Session targetSession;
@@ -108,13 +105,15 @@ class WSDrain implements Runnable, Drain {
                 interrupted = true;
             }
         }
+
         Log.log(Level.FINER, this, "DRAIN CLOSED {0}", id);
+        
+        // this really needs to not be in the stop method.
+        WSUtils.tryToClose(targetSession);
 
         // reset interrupted flag
         if (interrupted)
             Thread.currentThread().interrupt();
-
-        ended.countDown();
     }
 
     @Override
@@ -138,18 +137,7 @@ class WSDrain implements Runnable, Drain {
         // Interrupt the other thread
         if (thread != null) {
             thread.interrupt();
-
-            // Wait for the interrupted thread to finish
-            try {
-                ended.await(400, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-
-            thread = null;
         }
-
-        WSUtils.tryToClose(targetSession);
     }
 
     public void setThread(Thread t) {
