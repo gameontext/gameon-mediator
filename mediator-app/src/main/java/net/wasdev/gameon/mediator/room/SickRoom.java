@@ -59,6 +59,7 @@ public class SickRoom extends AbstractRoomMediator {
     ScheduledFuture<?> pendingAttempt;
     int attempts = 0;
 
+    volatile boolean connected = true;
     volatile boolean characterMessages = true;
     volatile long retryInterval = 2;
 
@@ -107,22 +108,24 @@ public class SickRoom extends AbstractRoomMediator {
         // update exits and room information
         super.updateInformation(site);
 
-        ++attempts;
+        if ( connected ) {
+            ++attempts;
 
-        // small numbers, but doing this with TimeUnit in seconds..
-        retryInterval = (retryInterval * 2) + RoomUtils.random.nextInt(3);
+            // small numbers, but doing this with TimeUnit in seconds..
+            retryInterval = (retryInterval * 2) + RoomUtils.random.nextInt(3);
 
-        // cough.
-        sendToClients(RoutedMessage.createSimpleEventMessage(FlowTarget.player, targetUser, complaint()));
+            // cough.
+            sendToClients(RoutedMessage.createSimpleEventMessage(FlowTarget.player, targetUser, complaint()));
 
-        Log.log(Level.FINEST, this, "Update {0} of Sick Room for {1} in {2}",
-                attempts, targetUser, roomId);
+            Log.log(Level.FINEST, this, "Update {0} of Sick Room for {1} in {2}",
+                    attempts, targetUser, roomId);
 
-        // schedule a retry after an increasing interval
-        pendingAttempt = scheduledExecutor.schedule(() -> {
-            // attempt to reconnect
-            proxy.updateInformation(null);
-        }, retryInterval, TimeUnit.SECONDS);
+            // schedule a retry after an increasing interval
+            pendingAttempt = scheduledExecutor.schedule(() -> {
+                // attempt to reconnect
+                proxy.updateInformation(null);
+            }, retryInterval, TimeUnit.SECONDS);
+        }
     }
 
     public String complaint() {
@@ -136,6 +139,8 @@ public class SickRoom extends AbstractRoomMediator {
 
     @Override
     public void disconnect() {
+        connected = false;
+        
         if ( pendingAttempt != null ) {
             pendingAttempt.cancel(true);
         }
