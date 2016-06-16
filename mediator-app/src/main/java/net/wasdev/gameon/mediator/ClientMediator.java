@@ -95,6 +95,8 @@ public class ClientMediator implements UserView {
         if ( roomMediator == null || ! roomMediator.getId().equals(targetRoom.getId()) ) {
             if ( splinched ) {
                 sendToClient(RoutedMessage.createSimpleEventMessage(FlowTarget.player, userId, Constants.EVENTMSG_SPLINCH_RECOVERY));
+
+                sendToClient(targetRoom.getLocationEventMessage(this));
             } else {
                 // if actually changing rooms, send messages to client to show room transition
                 if ( roomMediator != null ) {

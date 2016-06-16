@@ -94,6 +94,13 @@ public class SickRoom extends AbstractRoomMediator {
     public Type getType() {
         return Type.SICK;
     }
+    
+    @Override
+    public void goodbye(MediatorNexus.UserView user) {
+        super.goodbye(user);
+        disconnect();
+    }
+
 
     /**
      * Called whenever site information has been updated but the delegate stays
@@ -117,8 +124,9 @@ public class SickRoom extends AbstractRoomMediator {
             // cough.
             sendToClients(RoutedMessage.createSimpleEventMessage(FlowTarget.player, targetUser, complaint()));
 
-            Log.log(Level.FINEST, this, "Update {0} of Sick Room for {1} in {2}",
-                    attempts, targetUser, roomId);
+
+            Log.log(Level.FINEST, this, "Update {0} of Sick Room for {1} in {2}, next retry attempt in {3} seconds",
+                    attempts, targetUser, roomId, retryInterval);
 
             // schedule a retry after an increasing interval
             pendingAttempt = scheduledExecutor.schedule(() -> {
@@ -140,7 +148,7 @@ public class SickRoom extends AbstractRoomMediator {
     @Override
     public void disconnect() {
         connected = false;
-        
+
         if ( pendingAttempt != null ) {
             pendingAttempt.cancel(true);
         }

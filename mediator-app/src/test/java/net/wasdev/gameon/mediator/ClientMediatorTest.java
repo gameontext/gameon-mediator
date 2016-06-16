@@ -25,6 +25,7 @@ import java.util.logging.Level;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
+import javax.websocket.DecodeException;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -82,7 +83,7 @@ public class ClientMediatorTest {
     }
 
     @Test
-    public void testReadyNoSavedRoom(@Mocked RoomMediator room) {
+    public void testReadyNoSavedRoom(@Mocked RoomMediator room) throws DecodeException {
 
         ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt);
 
@@ -103,7 +104,7 @@ public class ClientMediatorTest {
     }
 
     @Test
-    public void testReadyUserName(@Mocked RoomMediator room) {
+    public void testReadyUserName(@Mocked RoomMediator room) throws DecodeException {
 
         ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt);
 
@@ -125,7 +126,7 @@ public class ClientMediatorTest {
 
 
     @Test
-    public void testReadyZeroBookmark(@Mocked RoomMediator room) {
+    public void testReadyZeroBookmark(@Mocked RoomMediator room) throws DecodeException {
 
         ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt);
 
@@ -147,7 +148,7 @@ public class ClientMediatorTest {
 
 
     @Test
-    public void testReadySavedRoom(@Mocked RoomMediator room) {
+    public void testReadySavedRoom(@Mocked RoomMediator room) throws DecodeException {
 
         ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt);
 

@@ -12,7 +12,10 @@ import net.wasdev.gameon.mediator.Constants;
 import net.wasdev.gameon.mediator.Log;
 import net.wasdev.gameon.mediator.MapClient;
 import net.wasdev.gameon.mediator.MediatorNexus;
+import net.wasdev.gameon.mediator.MediatorNexus.UserView;
 import net.wasdev.gameon.mediator.PlayerClient;
+import net.wasdev.gameon.mediator.RoutedMessage;
+import net.wasdev.gameon.mediator.RoutedMessage.FlowTarget;
 import net.wasdev.gameon.mediator.models.Exits;
 import net.wasdev.gameon.mediator.models.RoomInfo;
 import net.wasdev.gameon.mediator.models.Site;
@@ -83,7 +86,7 @@ public class FirstRoom extends AbstractRoomMediator {
 
     @Override
     public String getDescription() {
-        return roomInfo.getDescription();
+        return FIRST_ROOM_DESC;
     }
 
     @Override
@@ -136,6 +139,18 @@ public class FirstRoom extends AbstractRoomMediator {
             responseBuilder.add(RoomUtils.DESCRIPTION, FIRST_ROOM_DESC);
         }
     }
+
+
+    @Override
+    public RoutedMessage getLocationEventMessage(UserView user) {
+        JsonObjectBuilder builder = Json.createObjectBuilder();
+        super.buildLocationResponse(builder);
+        builder.add(Constants.KEY_COMMANDS, buildHelpResponse());
+        builder.add(Constants.KEY_BOOKMARK, "go" + getType() + ":" + bookmark.incrementAndGet());
+
+        return RoutedMessage.createMessage(FlowTarget.player, user.getUserId(), builder.build());
+    }
+
 
     protected JsonObject buildInventoryResponse() {
         if (inventory)

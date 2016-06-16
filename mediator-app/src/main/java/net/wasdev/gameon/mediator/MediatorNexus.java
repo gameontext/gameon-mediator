@@ -244,7 +244,7 @@ public class MediatorNexus  {
                 targetId = Constants.FIRST_ROOM;
 
             if ( room == null ) {
-                // create new room mediator: we'te the first in
+                // create new room mediator: we're the first in
                 room = mediatorBuilder.findMediatorForRoom(this, targetId);
                 playerSession.setRoomMediator(room, false);
                 playerSession.sendToClient(clientAck());
@@ -252,6 +252,8 @@ public class MediatorNexus  {
                 // easy, no conflicts, just join the existing session
                 playerSession.setRoomMediator(room, false);
                 playerSession.sendToClient(clientAck());
+                playerSession.sendToClient(RoutedMessage.createSimpleEventMessage(FlowTarget.player, playerSession.getUserId(), Constants.EVENTMSG_REJOIN_ADVENTURE));
+                playerSession.sendToClient(room.getLocationEventMessage(playerSession));
             } else {
                 // TODO & conflict: existing clientMediators are somewhere different than new
                 // session: which is the right value? the one that came in or the (possibly older)
