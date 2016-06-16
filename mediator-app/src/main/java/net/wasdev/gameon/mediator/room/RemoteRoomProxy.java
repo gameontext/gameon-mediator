@@ -132,7 +132,7 @@ public class RemoteRoomProxy implements RoomMediator {
             }
         } finally {
             updating.set(false);
-            Log.log(Level.FINEST, this, "RemoteRoomProxy -- update complete: {0}", delegate);
+            Log.log(Level.FINEST, this, "RemoteRoomProxy -- update complete: old={0}, new={1}", oldDelegate, delegate);
         }
     }
 
@@ -220,6 +220,11 @@ public class RemoteRoomProxy implements RoomMediator {
     @Override
     public MediatorNexus.View getNexusView() {
         return delegate.getNexusView();
+    }
+
+    @Override
+    public RoutedMessage getLocationEventMessage(UserView user) {
+        return delegate.getLocationEventMessage(user);
     }
 
     @Override

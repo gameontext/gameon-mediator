@@ -29,6 +29,7 @@ import net.wasdev.gameon.mediator.Constants;
 import net.wasdev.gameon.mediator.Log;
 import net.wasdev.gameon.mediator.MapClient;
 import net.wasdev.gameon.mediator.MediatorNexus;
+import net.wasdev.gameon.mediator.MediatorNexus.UserView;
 import net.wasdev.gameon.mediator.RoutedMessage;
 import net.wasdev.gameon.mediator.RoutedMessage.FlowTarget;
 import net.wasdev.gameon.mediator.models.Exit;
@@ -137,16 +138,12 @@ public abstract class AbstractRoomMediator implements RoomMediator {
 
     @Override
     public void hello(MediatorNexus.UserView user, boolean recovery) {
-        JsonObjectBuilder builder = Json.createObjectBuilder();
-        buildLocationResponse(builder);
-        builder.add(Constants.KEY_BOOKMARK, "go" + getType() + ":" + bookmark.incrementAndGet());
-
         // Say hello to..
         sendToClients(RoutedMessage.createMessage(FlowTarget.player, "*",
                 String.format(Constants.EVENT_HELLO, user.getUserName(), user.getUserId(), helloMessage(), bookmark.incrementAndGet())));
 
         // type=location message
-        sendToClients(RoutedMessage.createMessage(FlowTarget.player, user.getUserId(), builder.build()));
+        sendToClients(getLocationEventMessage(user));
      }
 
     @Override
@@ -193,6 +190,15 @@ public abstract class AbstractRoomMediator implements RoomMediator {
     @Override
     public void sendToClients(RoutedMessage message) {
         nexusView.sendToClients(message);
+    }
+
+    @Override
+    public RoutedMessage getLocationEventMessage(UserView user) {
+        JsonObjectBuilder builder = Json.createObjectBuilder();
+        buildLocationResponse(builder);
+        builder.add(Constants.KEY_BOOKMARK, "go" + getType() + ":" + bookmark.incrementAndGet());
+
+        return RoutedMessage.createMessage(FlowTarget.player, user.getUserId(), builder.build());
     }
 
     protected String parseMessage(String userId, JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {

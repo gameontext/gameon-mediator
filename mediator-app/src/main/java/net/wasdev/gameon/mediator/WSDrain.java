@@ -107,7 +107,7 @@ class WSDrain implements Runnable, Drain {
         }
 
         Log.log(Level.FINER, this, "DRAIN CLOSED {0}", id);
-        
+
         // this really needs to not be in the stop method.
         WSUtils.tryToClose(targetSession);
 

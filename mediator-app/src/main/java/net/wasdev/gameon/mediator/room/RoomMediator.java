@@ -70,4 +70,6 @@ public interface RoomMediator {
     boolean sameConnectionDetails(RoomInfo localInfo);
 
     MediatorNexus.View getNexusView();
+
+    RoutedMessage getLocationEventMessage(MediatorNexus.UserView user);
 }
