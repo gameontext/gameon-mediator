@@ -259,8 +259,12 @@ public abstract class AbstractRoomMediator implements RoomMediator {
         responseBuilder.add(Constants.KEY_ROOM_FULLNAME, getFullName());
         responseBuilder.add(Constants.KEY_ROOM_EXITS, exits.toSimpleJsonList());
         responseBuilder.add(RoomUtils.DESCRIPTION, getDescription());
+        addCommands(responseBuilder);
     }
-
+    
+    protected void addCommands(JsonObjectBuilder responseBuilder) {
+        // no-op.
+    }
 
     protected String goodbyeMessage() {
         int index = RoomUtils.random.nextInt(GOODBYES.size());

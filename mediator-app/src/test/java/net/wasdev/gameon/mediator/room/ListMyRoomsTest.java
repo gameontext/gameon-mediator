@@ -33,14 +33,12 @@ import mockit.Mocked;
 import mockit.Verifications;
 import mockit.integration.junit4.JMockit;
 import net.wasdev.gameon.mediator.MapClient;
-import net.wasdev.gameon.mediator.MediatorNexus;
+import net.wasdev.gameon.mediator.MediatorNexus.View;
 import net.wasdev.gameon.mediator.PlayerClient;
 import net.wasdev.gameon.mediator.RoutedMessage;
-import net.wasdev.gameon.mediator.MediatorNexus.View;
 import net.wasdev.gameon.mediator.RoutedMessage.FlowTarget;
 import net.wasdev.gameon.mediator.models.RoomInfo;
 import net.wasdev.gameon.mediator.models.Site;
-import net.wasdev.gameon.mediator.room.FirstRoom;
 
 @RunWith(JMockit.class)
 public class ListMyRoomsTest {

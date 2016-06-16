@@ -86,8 +86,6 @@ public class FirstRoomTest {
                            @Mocked RoomInfo info,
                            @Mocked JsonObjectBuilder builder) {
 
-        String db_desc = "Description from DB";
-
         new Expectations() {{
             site.getInfo(); returns(info);
         }};
