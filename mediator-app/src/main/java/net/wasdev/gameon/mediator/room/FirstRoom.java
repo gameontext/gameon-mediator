@@ -83,7 +83,7 @@ public class FirstRoom extends AbstractRoomMediator {
 
     @Override
     public String getDescription() {
-        return roomInfo.getDescription();
+        return FIRST_ROOM_DESC;
     }
 
     @Override
@@ -127,7 +127,6 @@ public class FirstRoom extends AbstractRoomMediator {
     @Override
     protected void buildLocationResponse(JsonObjectBuilder responseBuilder) {
         super.buildLocationResponse(responseBuilder);
-        responseBuilder.add(Constants.KEY_COMMANDS, buildHelpResponse());
 
         if (newbie) {
             responseBuilder.add(RoomUtils.DESCRIPTION, FIRST_ROOM_DESC + FIRST_ROOM_EXTENDED);
@@ -136,6 +135,16 @@ public class FirstRoom extends AbstractRoomMediator {
             responseBuilder.add(RoomUtils.DESCRIPTION, FIRST_ROOM_DESC);
         }
     }
+    
+    @Override
+    protected void addCommands(JsonObjectBuilder responseBuilder) {
+        JsonObjectBuilder content = Json.createObjectBuilder();
+        content.add("/listmyrooms", "List all of your rooms");
+        content.add("/teleport", "Teleport to the specified room, e.g. `/teleport room-id`");
+        content.add("/deleteroom", "Deregisters a room you have registered. e.g. `/deleteroom room-id`");
+
+        responseBuilder.add(Constants.KEY_COMMANDS, content.build());
+    }
 
     protected JsonObject buildInventoryResponse() {
         if (inventory)
@@ -143,14 +152,6 @@ public class FirstRoom extends AbstractRoomMediator {
 
         inventory = true;
         return RoomUtils.buildContentResponse(FIRST_ROOM_POCKETS + FIRST_ROOM_POCKETS_EXTENDED);
-    }
-
-    protected JsonObject buildHelpResponse() {
-        JsonObjectBuilder content = Json.createObjectBuilder();
-        content.add("/listmyrooms", "List all of your rooms");
-        content.add("/teleport", "Teleport to the specified room, e.g. `/teleport room-id`");
-        content.add("/deleteroom", "Deregisters a room you have registered. e.g. `/deleteroom room-id`");
-        return content.build();
     }
 
     private void processListMyRoomsCommand(String userId, JsonObjectBuilder responseBuilder) {

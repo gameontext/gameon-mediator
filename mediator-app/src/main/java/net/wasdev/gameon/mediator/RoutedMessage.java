@@ -27,6 +27,7 @@ import javax.json.JsonObject;
 import javax.json.JsonReader;
 import javax.json.JsonValue;
 import javax.json.JsonValue.ValueType;
+import javax.websocket.DecodeException;
 
 import net.wasdev.gameon.mediator.room.RoomMediator;
 
@@ -228,17 +229,17 @@ public class RoutedMessage {
      *
      * @param msg
      *            Text message pulled off the WebSocket
+     * @throws DecodeException 
      */
-    public RoutedMessage(String message) {
+    public RoutedMessage(String message) throws DecodeException {
         this.wholeMessage = message;
 
         // this is getting parsed in a low-level/raw way, again to avoid doing
-        // anything
-        // with the Json payload unless/until we need to.
+        // anything with the Json payload unless/until we need to.
         // Also, we don't split on commas arbitrarily: there are commas in the
-        // json payload,
-        // which means unnecessary splitting and joining.
+        // json payload, which means unnecessary splitting and joining.
         ArrayList<String> list = new ArrayList<>(3);
+        
         int brace = message.indexOf('{');
         int i = 0;
         int j = message.indexOf(',');
@@ -246,6 +247,11 @@ public class RoutedMessage {
             list.add(message.substring(i, j).trim());
             i = j + 1;
             j = message.indexOf(',', i);
+        }
+        
+        if ( list.isEmpty() ) {
+            // UMMM. Badness. Bad message. Bad!
+            throw new DecodeException(message, "Badly formatted payload, unable to determine flow target");
         }
 
         // stash all of the rest in the data field.

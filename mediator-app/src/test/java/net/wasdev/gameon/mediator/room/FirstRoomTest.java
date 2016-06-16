@@ -86,11 +86,8 @@ public class FirstRoomTest {
                            @Mocked RoomInfo info,
                            @Mocked JsonObjectBuilder builder) {
 
-        String db_desc = "Description from DB";
-
         new Expectations() {{
             site.getInfo(); returns(info);
-            info.getDescription(); returns(db_desc);
         }};
 
         FirstRoom firstRoom = new FirstRoom(nexus, playerJwt, playerClient, mapClient, site, true);
@@ -102,7 +99,7 @@ public class FirstRoomTest {
         Assert.assertFalse("room info should not be the same when null", firstRoom.sameConnectionDetails(null));
 
         String description = firstRoom.getDescription();
-        Assert.assertEquals("get description should return what was in the DB", db_desc, description);
+        Assert.assertEquals("get description should return the constant (avoid confusion)", FirstRoom.FIRST_ROOM_DESC, description);
 
         firstRoom.buildLocationResponse(builder);
         firstRoom.buildLocationResponse(builder);
@@ -117,7 +114,7 @@ public class FirstRoomTest {
             builder.add(Constants.KEY_ROOM_EXITS, (JsonObject) any); times = 2;
             builder.add(Constants.KEY_COMMANDS, (JsonObject) any); times = 2;
             builder.add(RoomUtils.DESCRIPTION, FirstRoom.FIRST_ROOM_DESC + FirstRoom.FIRST_ROOM_EXTENDED); times = 1;
-            builder.add(RoomUtils.DESCRIPTION, FirstRoom.FIRST_ROOM_DESC); times = 1;
+            builder.add(RoomUtils.DESCRIPTION, FirstRoom.FIRST_ROOM_DESC); times = 3;
         }};
     }
 
