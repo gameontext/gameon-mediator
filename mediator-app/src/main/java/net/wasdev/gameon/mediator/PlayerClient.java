@@ -182,8 +182,8 @@ public class PlayerClient {
 
             JsonReader p = Json.createReader(new StringReader(result));
             JsonObject j = p.readObject();
-
-            return j.getString("apiKey");
+            JsonObject creds = j.getJsonObject("credentials");
+            return creds.getString("sharedSecret");
         } catch (ResponseProcessingException rpe) {
             Response response = rpe.getResponse();
             Log.log(Level.FINER, this, "Exception obtaining shared secret for player,  uri: {0} resp code: {1} data: {2}",
