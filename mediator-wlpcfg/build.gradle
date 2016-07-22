@@ -26,11 +26,7 @@ if (null != System.getenv('DOCKER_CERT_PATH')){
 	dockerCertPath = System.getenv('DOCKER_CERT_PATH')
 }
 
-def localEnvironment = ["LICENSE=accept",
-			"CONCIERGE_URL=" + System.getenv('CONCIERGE_URL'),
-			"CONCIERGE_KEY=" + System.getenv('CONCIERGE_KEY'),
-			"MEDIATOR_PLAYER_URL=" + System.getenv('MEDIATOR_PLAYER_URL')
-		]
+def localEnvironment = ["LICENSE=accept"]
 
 if (null != System.getenv("SSL_CERT"))
 {

@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Configure amalgam8 for this container
+export A8_SERVICE=mediator:v1
+export A8_ENDPOINT_PORT=9443
+export A8_ENDPOINT_TYPE=https
+
+
 if [ "$SERVERDIRNAME" == "" ]; then
   SERVERDIRNAME=defaultServer
 else
@@ -37,8 +43,8 @@ if [ "$ETCDCTL_ENDPOINT" != "" ]; then
   keytool -v -importkeystore -srcalias 1 -alias 1 -destalias default -noprompt -srcstorepass keystore -deststorepass testOnlyKeystore -srckeypass keystore -destkeypass testOnlyKeystore -srckeystore cert.pkcs12 -srcstoretype PKCS12 -destkeystore security/key.jks -deststoretype JKS
 
   export MAP_KEY=$(etcdctl get /passwords/map-key)
-  export MAP_URL=$(etcdctl get /map/url)
-  export MEDIATOR_PLAYER_URL=$(etcdctl get /player/url)
+  export MAP_SERVICE_URL=$(etcdctl get /map/url)
+  export PLAYER_SERVICE_URL=$(etcdctl get /player/url)
   export LOGSTASH_ENDPOINT=$(etcdctl get /logstash/endpoint)
   export LOGMET_HOST=$(etcdctl get /logmet/host)
   export LOGMET_PORT=$(etcdctl get /logmet/port)
@@ -64,5 +70,5 @@ if [ "$ETCDCTL_ENDPOINT" != "" ]; then
     /opt/ibm/wlp/bin/server run $SERVERDIRNAME
   fi
 else
-  exec /opt/ibm/wlp/bin/server run $SERVERDIRNAME
+  exec a8sidecar --supervise /opt/ibm/wlp/bin/server run $SERVERDIRNAME
 fi
