@@ -217,7 +217,7 @@ public class MapClient {
         SignedClientRequestFilter apikey = new SignedClientRequestFilter(userid, secret);
         client.register(apikey);
 
-        WebTarget target = client.target(mapLocation).resolveTemplate("roomId", roomId).path("{roomId}");
+        WebTarget target = client.target(mapLocation).path(roomId);
 
         Log.log(Level.FINER, this, "making request to {0} for room", target.getUri().toString());
         Response r = null;
