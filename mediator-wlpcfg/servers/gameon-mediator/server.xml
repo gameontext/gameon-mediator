@@ -20,7 +20,7 @@
 
   <!-- To access this server from a remote client add a host attribute to
     the following element, e.g. host="*" -->
-  <httpEndpoint host="*" httpPort="9080" httpsPort="9443" id="defaultHttpEndpoint">
+  <httpEndpoint host="*" httpPort="-1" httpsPort="9443" id="defaultHttpEndpoint">
     <accessLogging filepath="${server.output.dir}/logs/http_defaultEndpoint_access.log" logFormat="%h %u %t &quot;%r&quot; %s %b %D %{User-agent}i">
     </accessLogging>
   </httpEndpoint>
@@ -30,9 +30,9 @@
   <jndiEntry jndiName="jwtKeyStorePassword" value="testOnlyKeystore"/>
   <jndiEntry jndiName="jwtKeyStoreAlias" value="default"/>
 
-  <jndiEntry jndiName="playerUrl" value="${env.MEDIATOR_PLAYER_URL}"/>
+  <jndiEntry jndiName="playerUrl" value="${env.PLAYER_SERVICE_URL}"/>
 
-  <jndiEntry jndiName="mapUrl" value="${env.MAP_URL}"/>
+  <jndiEntry jndiName="mapUrl" value="${env.MAP_SERVICE_URL}"/>
   <jndiEntry jndiName="mapApiKey" value="${env.MAP_KEY}"/>
 
   <jndiEntry jndiName="systemId" value="${env.SYSTEM_ID}"/>
