@@ -188,8 +188,7 @@ public class MediatorNexus  {
 
         public String getUserJwt() {
             ClientMediator m = clientMediators.iterator().next();
-            m.getUserJwt();
-            return null;
+            return m.getUserJwt();
         }
 
         /**
