@@ -43,7 +43,7 @@ else
     ../docker stop -t 0 gameon-mediator || true
     ../docker rm gameon-mediator || true
     echo Starting new container.
-    ../docker run -d -p 9086:9080 -p 9446:9443 --link etcd -e LICENSE=accept -e ETCDCTL_ENDPOINT=http://etcd:4001 --name=gameon-mediator gameon-mediator
+    ../docker run -d -p 9086:9080 -p 9446:9443 --restart=always --link etcd -e LICENSE=accept -e ETCDCTL_ENDPOINT=http://etcd:4001 --name=gameon-mediator gameon-mediator
     if [ $? != 0 ]
     then
       echo Docker Run failed.
