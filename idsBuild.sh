@@ -32,7 +32,7 @@ then
   echo Gradle Build failed.
   exit -1
 else
-  cd map-wlpcfg
+  cd mediator-wlpcfg
   ../docker build -t gameon-mediator -f Dockerfile.live .
   if [ $? != 0 ]
   then
