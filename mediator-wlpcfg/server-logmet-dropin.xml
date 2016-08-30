@@ -2,7 +2,7 @@
 <server description="new server">
 
     <featureManager>
-        <feature>logmetCollector-1.0</feature>
+        <feature>bluemixLogCollector-1.1</feature>
     </featureManager>
 
     <keyStore id="javaKeyStore" location="${java.home}/lib/security/cacerts" password="changeit" />
