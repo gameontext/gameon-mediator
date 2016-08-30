@@ -1,0 +1,24 @@
+apply plugin: 'eclipse'
+
+buildscript {
+	repositories {
+	    mavenCentral()
+	}
+}
+
+task copyWAR(type: Copy) {
+    from '../mediator-app/build/libs/mediator-app-1.0.war'
+    into 'servers/gameon-mediator/apps/'
+    rename("mediator-app-1.0.war", "mediator-app.war")
+}
+
+task build(dependsOn: ['copyWAR']){
+}
+
+task clean {
+    delete "servers/gameon-mediator/apps"
+    delete "servers/gameon-mediator/lib"
+    delete "servers/gameon-mediator/logs"
+    delete "servers/gameon-mediator/workarea"
+}
+
