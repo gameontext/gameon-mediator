@@ -97,18 +97,15 @@ public class PlayerClient {
             throw new IllegalStateException("Unable to initialize PlayerClient");
         }
 
-        try{
-            Client client;
-            ClientBuilder builder = ClientBuilder.newBuilder().sslContext(SSLContext.getDefault());
-            if("development".equals(System.getenv("MAP_PLAYER_MODE"))){
-                builder.hostnameVerifier(new TheNotVerySensibleHostnameVerifier());
-            }
-            client = builder.build().register(JsonProvider.class);
+        Client client = ClientBuilder.newBuilder()
+                                     .property("com.ibm.ws.jaxrs.client.ssl.config", "DefaultSSLSettings")
+                                     .property("com.ibm.ws.jaxrs.client.disableCNCheck", true)
+                                     .build();
 
-            this.root = client.target(playerLocation);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("Unable to initialize PlayerClient without SSL support", e);
-        }
+        client.register(JsonProvider.class);
+        
+        this.root = client.target(playerLocation);
+
         Log.log(Level.FINER, this, "Player client initialized with {0}", playerLocation);
     }
 
