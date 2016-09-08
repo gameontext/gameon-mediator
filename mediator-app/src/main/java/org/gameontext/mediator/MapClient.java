@@ -113,7 +113,12 @@ public class MapClient {
             throw new IllegalStateException("Unable to initialize MapClient");
         }
 
-        Client queryClient = ClientBuilder.newClient().register(JsonProvider.class);
+        Client queryClient = ClientBuilder.newBuilder()
+                                          .property("com.ibm.ws.jaxrs.client.ssl.config", "DefaultSSLSettings")
+                                          .property("com.ibm.ws.jaxrs.client.disableCNCheck", true)
+                                          .build();
+
+        queryClient.register(JsonProvider.class);
 
         //add our shared secret so all our queries come from the system id
         queryClient.register(new SignedClientRequestFilter(SYSTEM_ID, querySecret));
