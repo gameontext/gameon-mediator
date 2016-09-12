@@ -6,7 +6,7 @@
 
 #!/bin/bash
 echo Informing Slack...
-curl -X 'POST' --silent --data-binary '{"text":"A new build for the mediator service has started."}' $WEBHOOK > /dev/null
+curl -X 'POST' --silent --data-binary '{"text":"A new build for the mediator service has started."}' $SLACK_WEBHOOK_PATH > /dev/null
 
 echo Setting up Docker...
 mkdir dockercfg ; cd dockercfg
