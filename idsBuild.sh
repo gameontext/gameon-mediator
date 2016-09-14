@@ -33,7 +33,7 @@ then
   exit -1
 else
   cd mediator-wlpcfg
-  ../docker build -t gameon-mediator -f Dockerfile.live .
+  ../docker build -t gameon-mediator -f Dockerfile .
   if [ $? != 0 ]
   then
     echo Docker Build failed.
