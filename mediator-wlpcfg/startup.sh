@@ -17,6 +17,9 @@ else
   ln -s $WLP_OUTPUT_DIR/$SERVERDIRNAME /output
 fi
 
+SERVER_PATH=/opt/ibm/wlp/usr/servers/$SERVERDIRNAME
+mkdir -p ${SERVER_PATH}/configDropins/overrides
+
 if [ "$ETCDCTL_ENDPOINT" != "" ]; then
   echo Setting up etcd...
   echo "** Testing etcd is accessible"
@@ -33,14 +36,15 @@ if [ "$ETCDCTL_ENDPOINT" != "" ]; then
   done
   echo "etcdctl returned sucessfully, continuing"
 
-  mkdir -p /opt/ibm/wlp/usr/servers/$SERVERDIRNAME/resources/security
-  cd /opt/ibm/wlp/usr/servers/$SERVERDIRNAME/resources/
+  mkdir -p ${SERVER_PATH}/resources/security
+  cd ${SERVER_PATH}/resources/
   etcdctl get /proxy/third-party-ssl-cert > cert.pem
   openssl pkcs12 -passin pass:keystore -passout pass:keystore -export -out cert.pkcs12 -in cert.pem
   keytool -import -v -trustcacerts -alias default -file cert.pem -storepass truststore -keypass keystore -noprompt -keystore security/truststore.jks
   keytool -genkey -storepass testOnlyKeystore -keypass wefwef -keyalg RSA -alias endeca -keystore security/key.jks -dname CN=rsssl,OU=unknown,O=unknown,L=unknown,ST=unknown,C=CA
   keytool -delete -storepass testOnlyKeystore -alias endeca -keystore security/key.jks
   keytool -v -importkeystore -srcalias 1 -alias 1 -destalias default -noprompt -srcstorepass keystore -deststorepass testOnlyKeystore -srckeypass keystore -destkeypass testOnlyKeystore -srckeystore cert.pkcs12 -srcstoretype PKCS12 -destkeystore security/key.jks -deststoretype JKS
+  cd ${SERVER_PATH}
 
   export MAP_KEY=$(etcdctl get /passwords/map-key)
   export MAP_SERVICE_URL=$(etcdctl get /map/url)
@@ -52,23 +56,14 @@ if [ "$ETCDCTL_ENDPOINT" != "" ]; then
   export LOGMET_PWD=$(etcdctl get /logmet/pwd)
   export SYSTEM_ID=$(etcdctl get /global/system_id)
 
-  # Softlayer needs a logstash endpoint so we set up the server
-  # to run in the background and the primary task is running the
-  # forwarder. In ICS, Liberty is the primary task so we need to
-  # run it in the foreground
-  if [ "$LOGSTASH_ENDPOINT" != "" ]; then
-    /opt/ibm/wlp/bin/server start $SERVERDIRNAME
-    echo Starting the logstash forwarder...
-    sed -i s/PLACEHOLDER_LOGHOST/$LOGSTASH_ENDPOINT/g /opt/forwarder.conf
-    cd /opt
-    chmod +x ./forwarder
-    etcdctl get /logstash/cert > logstash-forwarder.crt
-    etcdctl get /logstash/key > logstash-forwarder.key
-    sleep 0.5
-    ./forwarder --config ./forwarder.conf
-  else
-    /opt/ibm/wlp/bin/server run $SERVERDIRNAME
-  fi
+  #to run with message hub, we need a jaas jar we can only obtain
+  #from github, and have to use an extra config snippet to enable it.
+  mv ${SERVER_PATH}/configDropins/messageHub.xml ${SERVER_PATH}/configDropins/overrides
+  wget https://github.com/ibm-messaging/message-hub-samples/raw/master/java/message-hub-liberty-sample/lib-message-hub/messagehub.login-1.0.0.jar
+
+  exec /opt/ibm/wlp/bin/server run $SERVERDIRNAME
 else
+  cp ${SERVER_PATH}/configDropins/localDev.xml ${SERVER_PATH}/configDropins/overrides
+
   exec a8sidecar --log --proxy --register --supervise /opt/ibm/wlp/bin/server run $SERVERDIRNAME
 fi
