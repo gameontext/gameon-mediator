@@ -1,5 +1,7 @@
 <server description="Settings for local development (overlays), skip/remove for built containers">
 
+  <logging consoleLogLevel="INFO" />
+
   <applicationMonitor updateTrigger="polled" pollingRate="30s"/>
   <config updateTrigger="polled" monitorInterval="30s" />
 
