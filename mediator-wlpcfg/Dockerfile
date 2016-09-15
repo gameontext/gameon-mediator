@@ -2,8 +2,7 @@ FROM websphere-liberty:latest
 
 MAINTAINER Erin Schnabel <schnabel@us.ibm.com> (@ebullientworks)
 
-RUN wget -qO- https://github.com/amalgam8/sidecar/releases/download/v0.2.0-alpha2/install-a8sidecar.sh | sh
-#RUN wget -qO- https://raw.githubusercontent.com/amalgam8/sidecar/master/install-a8sidecar.sh | sh
+RUN wget -qO- https://github.com/amalgam8/amalgam8/releases/download/v0.3.0/a8sidecar.sh | sh
 
 RUN wget https://github.com/coreos/etcd/releases/download/v2.2.2/etcd-v2.2.2-linux-amd64.tar.gz -q && \
     tar xzf etcd-v2.2.2-linux-amd64.tar.gz etcd-v2.2.2-linux-amd64/etcdctl --strip-components=1 && \

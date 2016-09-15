@@ -70,5 +70,5 @@ if [ "$ETCDCTL_ENDPOINT" != "" ]; then
     /opt/ibm/wlp/bin/server run $SERVERDIRNAME
   fi
 else
-  exec a8sidecar --supervise /opt/ibm/wlp/bin/server run $SERVERDIRNAME
+  exec a8sidecar --log --proxy --register --supervise /opt/ibm/wlp/bin/server run $SERVERDIRNAME
 fi
