@@ -27,6 +27,5 @@ ENV SERVERDIRNAME mediator
 
 COPY ./startup.sh /opt/startup.sh
 ADD ./servers/gameon-mediator /opt/ibm/wlp/usr/servers/defaultServer/
-ADD ./server-logmet-dropin.xml /opt/ibm/wlp/usr/servers/defaultServer/configDropins/overrides/
 
 CMD ["/opt/startup.sh"]
