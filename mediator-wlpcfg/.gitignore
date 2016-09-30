@@ -13,3 +13,4 @@ dockerrc
 /build/
 /servers/.classCache
 /servers/gameon-mediator/configDropins/overrides
+/servers/gameon-mediator/defaultServer
