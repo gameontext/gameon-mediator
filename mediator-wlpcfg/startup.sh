@@ -5,19 +5,9 @@ export A8_SERVICE=mediator:v1
 export A8_ENDPOINT_PORT=9443
 export A8_ENDPOINT_TYPE=https
 
+export CONTAINER_NAME=mediator
 
-if [ "$SERVERDIRNAME" == "" ]; then
-  SERVERDIRNAME=defaultServer
-else
-  # Share the configuration directory via symlink
-  ln -s /opt/ibm/wlp/usr/servers/defaultServer /opt/ibm/wlp/usr/servers/$SERVERDIRNAME
-
-  # move the convenience output dir link to the new output location
-  rm /output
-  ln -s $WLP_OUTPUT_DIR/$SERVERDIRNAME /output
-fi
-
-SERVER_PATH=/opt/ibm/wlp/usr/servers/$SERVERDIRNAME
+SERVER_PATH=/opt/ibm/wlp/usr/servers/defaultServer
 mkdir -p ${SERVER_PATH}/configDropins/overrides
 
 if [ "$ETCDCTL_ENDPOINT" != "" ]; then
@@ -61,9 +51,9 @@ if [ "$ETCDCTL_ENDPOINT" != "" ]; then
   mv ${SERVER_PATH}/configDropins/messageHub.xml ${SERVER_PATH}/configDropins/overrides
   wget https://github.com/ibm-messaging/message-hub-samples/raw/master/java/message-hub-liberty-sample/lib-message-hub/messagehub.login-1.0.0.jar
 
-  exec /opt/ibm/wlp/bin/server run $SERVERDIRNAME
+  exec /opt/ibm/wlp/bin/server run defaultServer
 else
   cp ${SERVER_PATH}/configDropins/localDev.xml ${SERVER_PATH}/configDropins/overrides
 
-  exec a8sidecar --log --proxy --register --supervise /opt/ibm/wlp/bin/server run $SERVERDIRNAME
+  exec a8sidecar --log --proxy --register --supervise /opt/ibm/wlp/bin/server run defaultServer
 fi
