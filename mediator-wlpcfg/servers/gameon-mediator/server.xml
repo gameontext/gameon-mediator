@@ -49,4 +49,8 @@
 
   <webApplication contextRoot="/mediator" id="mediator-app" location="mediator-app.war" name="mediator-app"/>
 
+  <include location="${env.GAMEON_MODE}-local.xml" optional="true" />
+  <include location="${env.GAMEON_MODE}-logCollector.xml" optional="true" />
+  <include location="${env.GAMEON_MODE}-messageHub.xml" optional="true" />
+
 </server>
