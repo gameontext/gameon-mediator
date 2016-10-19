@@ -75,13 +75,12 @@ public interface Constants {
      * List of common/always present commands
      */
     JsonObject COMMON_COMMANDS = Json.createObjectBuilder()
-            .add("/look", "Look at the room")
-            .add("/examine", "Examine an item, e.g. `/examine` or `/examine item`")
-            .add("/inventory", "List your inventory (will vary by room)")
             .add("/exits", "List room exits")
+            .add("/examine", "Examine an item. Implementaitons will vary: this may be similar to look, or may not work at all")
             .add("/go", "Exit the room using the specified door, e.g. `/go N`")
+            .add("/look", "Describe a room or an item. Implementaitons will vary")
             .add("/sos", "Emergency rescue: will return you to First Room")
-            .add("/help", "List available commands")
+            .add("/help", "List available commands. Result will vary room to room")
             .build();
 
     String MEDIATOR_UUID = UUID.randomUUID().toString(); // there is a liberty server one?
