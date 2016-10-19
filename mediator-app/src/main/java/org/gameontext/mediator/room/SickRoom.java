@@ -40,7 +40,7 @@ public class SickRoom extends AbstractRoomMediator {
 
     // %s will be replaced by the room's full name
     static final List<String> SICK_DESCRIPTIONS = Collections.unmodifiableList(Arrays.asList(
-            "A hasty message has been taped to the wall, `Not feeling well, I've gone to lie down -- %s`"
+            "A hasty message has been taped to the wall: \n\n> Not feeling well, I've gone to lie down\n> \n> -- %s\n\nThis room is not healthy."
             ));
 
     static final List<String> SICK_COMPLAINTS = Collections.unmodifiableList(Arrays.asList(
@@ -173,7 +173,7 @@ public class SickRoom extends AbstractRoomMediator {
         String content = sourceMessage.getString(RoomUtils.CONTENT);
         String contentToLower = content.trim().toLowerCase();
 
-        if (contentToLower.startsWith("/examine") ) {
+        if (contentToLower.startsWith("/examine") || contentToLower.startsWith("/look") ) {
             JsonObject contentResponse;
 
             if ( contentToLower.contains(" monitor") ) {

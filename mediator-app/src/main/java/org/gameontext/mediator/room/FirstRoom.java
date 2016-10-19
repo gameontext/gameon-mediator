@@ -5,6 +5,7 @@ import java.util.Random;
 import java.util.logging.Level;
 
 import javax.json.Json;
+import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
@@ -22,8 +23,8 @@ public class FirstRoom extends AbstractRoomMediator {
     public static final String TELEPORT = "teleport";
 
     public static final String FIRST_ROOM_FULL = "The First Room";
-    static final String FIRST_ROOM_DESC = "You've entered a vaguely squarish room, with walls of an indeterminate color.";
-    static final String FIRST_ROOM_EXTENDED = "\n\nTL;DR README (The extended edition is [here](https://gameontext.gitbooks.io/gameon-gitbook/content/)): \n\n"
+    static final String FIRST_ROOM_DESC = "You've entered a vaguely squarish room, with walls of an indeterminate color. A note is pinned to the wall.";
+    static final String FIRST_ROOM_EXTENDED = "\n\nTL;DR README (The extended edition is [here](https://book.game-on.org/)): \n\n"
             + "* Commands start with '/'.\n"
             + "* Use `/help` to list all available commands. The list will change from room to room.\n"
             + "* Use `/exits` to list all available exits.\n"
@@ -31,7 +32,7 @@ public class FirstRoom extends AbstractRoomMediator {
             + "* Rooms might try to fool you, but these three commands will always work.";
 
     static final String FIRST_ROOM_INV = "Sadly, there is nothing here.";
-
+ 
     static final String FIRST_ROOM_POCKETS = "You do not appear to be carrying anything.";
     static final String FIRST_ROOM_POCKETS_EXTENDED = "\n\n Individual rooms "
             + " may or may not support the notion of items. So whether or not you have things in your pockets"
@@ -96,13 +97,28 @@ public class FirstRoom extends AbstractRoomMediator {
     protected String parseCommand(String userId, String userName, JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
         String content = sourceMessage.getString(RoomUtils.CONTENT);
         String contentToLower = content.toLowerCase();
-
-        if (contentToLower.startsWith("/inventory")) {
+        
+        if ( contentToLower.startsWith("/look ") || (contentToLower.startsWith("/examine"))) {
+            JsonObject contentResponse;
+            if ( contentToLower.contains(" note") ) {
+                contentResponse = RoomUtils.buildContentResponse(userId,
+                        "Welcome to Game On!\n\n"
+                        + "Please take some time to explore the game and wander from room to room (`/go N`). "
+                        + "Each room is a separate microservice provided by developers like you. "
+                        + "We hope you feel encouraged to explore microservices by building your own room.\n\n"
+                        + "* Command behavior will vary from room to room, as different people write different things\n"
+                        + "* The Mediator (the service providing First Room) connects to rooms on your behalf using pre-defined websocket endpoints.\n"
+                        + "* Status updates on the right side show the Mediator's progress as it coordinates switching rooms.");
+                
+                responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT, contentResponse);
+            } else if ( contentToLower.contains(" room") ) {
+                buildLocationResponse(responseBuilder);
+            } else {
+                contentResponse = RoomUtils.buildContentResponse(userId, "Not sure what you're trying to examine.");                
+                responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT, contentResponse);
+            }
+        } else if (contentToLower.startsWith("/inventory")) {
             responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT, buildInventoryResponse());
-
-        } else if (contentToLower.startsWith("/examine")) {
-            responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
-                    RoomUtils.buildContentResponse("You don't see anything of interest."));
 
         } else if (contentToLower.startsWith("/listmyrooms")) {
             processListMyRoomsCommand(userId, responseBuilder);
@@ -139,11 +155,19 @@ public class FirstRoom extends AbstractRoomMediator {
     @Override
     protected void addCommands(JsonObjectBuilder responseBuilder) {
         JsonObjectBuilder content = Json.createObjectBuilder();
+        content.add("/inventory", "Check your pockets");
         content.add("/listmyrooms", "List all of your rooms");
         content.add("/teleport", "Teleport to the specified room, e.g. `/teleport room-id`");
         content.add("/deleteroom", "Deregisters a room you have registered. e.g. `/deleteroom room-id`");
 
         responseBuilder.add(Constants.KEY_COMMANDS, content.build());
+    }
+
+    @Override
+    protected void addRoomItems(JsonObjectBuilder responseBuilder) {
+        JsonArrayBuilder content = Json.createArrayBuilder();
+        content.add("Note");
+        responseBuilder.add(Constants.KEY_ROOM_INVENTORY, content.build());
     }
 
     protected JsonObject buildInventoryResponse() {
