@@ -26,13 +26,11 @@ import java.util.logging.Level;
 import javax.json.Json;
 import javax.json.JsonObject;
 
-import org.gameontext.mediator.ClientMediator;
-import org.gameontext.mediator.Constants;
-import org.gameontext.mediator.Log;
-import org.gameontext.mediator.MediatorBuilder;
-import org.gameontext.mediator.MediatorNexus;
 import org.gameontext.mediator.MediatorNexus.ClientMediatorPod;
 import org.gameontext.mediator.MediatorNexus.UserView;
+import org.gameontext.mediator.events.EventSubscription;
+import org.gameontext.mediator.events.MediatorEvents;
+import org.gameontext.mediator.events.MediatorEvents.PlayerEventHandler;
 import org.gameontext.mediator.room.FirstRoom;
 import org.gameontext.mediator.room.RoomMediator;
 import org.junit.Assert;
@@ -44,6 +42,7 @@ import org.junit.runner.RunWith;
 
 import mockit.Deencapsulation;
 import mockit.Expectations;
+import mockit.Injectable;
 import mockit.Mock;
 import mockit.MockUp;
 import mockit.Mocked;
@@ -63,6 +62,9 @@ public class MediatorNexusTest {
     static final JsonObject roomExits = Json.createObjectBuilder().build();
 
     @Mocked MediatorBuilder builder;
+    
+    @Mocked MediatorEvents events;
+    @Mocked EventSubscription subscription;
 
     @Rule
     public TestName testName = new TestName();
@@ -71,6 +73,8 @@ public class MediatorNexusTest {
     public void before() {
         System.out.println("-- " + testName.getMethodName() + " --------------------------------------");
 
+        new Expectations() {{ events.subscribeToPlayerEvents((String)any, (PlayerEventHandler)any); result = subscription; }};
+        
         new MockUp<Log>()
         {
             @Mock
@@ -108,6 +112,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
+        nexus.events = events;
         nexus.setBuilder(builder);
 
         Map<String, ClientMediatorPod> map = nexus.clientMap;
@@ -220,6 +225,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
+        nexus.events = events;
         nexus.setBuilder(builder);
 
         nexus.join(client1, "", "previous");
@@ -255,6 +261,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
+        nexus.events = events;
         nexus.setBuilder(builder);
 
         // This is effectively a roomHello via join.
@@ -290,6 +297,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
+        nexus.events = events;
         nexus.setBuilder(builder);
 
         // This is effectively a roomHello via join.
@@ -325,6 +333,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
+        nexus.events = events;
         nexus.setBuilder(builder);
 
         // This is effectively a roomHello via join.
@@ -361,6 +370,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
+        Deencapsulation.setField(nexus, events);
         nexus.setBuilder(builder);
 
         // initial join
@@ -396,6 +406,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
+        Deencapsulation.setField(nexus, events);
         nexus.setBuilder(builder);
 
         // This is effectively a roomHello via join.
@@ -431,6 +442,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
+        Deencapsulation.setField(nexus, events);
         nexus.setBuilder(builder);
 
         // This is effectively a hello via join.
@@ -467,6 +479,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
+        Deencapsulation.setField(nexus, events);
         nexus.setBuilder(builder);
 
         // put client1 in a room
@@ -505,6 +518,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
+        Deencapsulation.setField(nexus, events);
         nexus.setBuilder(builder);
 
         // put client1 in a room
@@ -554,6 +568,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
+        Deencapsulation.setField(nexus, events);
         nexus.setBuilder(builder);
 
         // put client1 in room1
@@ -606,6 +621,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
+        Deencapsulation.setField(nexus, events);
         nexus.setBuilder(builder);
 
         // initial join
@@ -663,6 +679,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
+        Deencapsulation.setField(nexus, events);
         nexus.setBuilder(builder);
 
         // put client1 AND client1a in room1
@@ -724,6 +741,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
+        Deencapsulation.setField(nexus, events);
         nexus.setBuilder(builder);
 
         // This is effectively a join.
@@ -760,6 +778,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
+        Deencapsulation.setField(nexus, events);
         nexus.setBuilder(builder);
 
         // This is effectively a join.
@@ -797,6 +816,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
+        Deencapsulation.setField(nexus, events);
         nexus.setBuilder(builder);
 
         // initial join

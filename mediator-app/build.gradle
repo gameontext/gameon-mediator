@@ -29,6 +29,12 @@ dependencies {
     jmockit 'org.jmockit:jmockit:1.22'
     testCompile 'junit:junit:4.12'
     testRuntime 'org.glassfish:javax.json:1.0.4'
+    
+    // kafka client =)
+    compile 'org.apache.kafka:kafka-clients:0.9.0.1'
+    
+    // rxjava
+    compile 'io.reactivex:rxjava:1.1.5'
 }
 
 test {

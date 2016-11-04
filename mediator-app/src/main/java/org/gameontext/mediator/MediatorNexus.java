@@ -27,6 +27,9 @@ import javax.json.Json;
 import javax.json.JsonObject;
 
 import org.gameontext.mediator.RoutedMessage.FlowTarget;
+import org.gameontext.mediator.events.EventSubscription;
+import org.gameontext.mediator.events.MediatorEvents;
+import org.gameontext.mediator.events.MediatorEvents.PlayerEventHandler;
 import org.gameontext.mediator.room.RoomMediator;
 import org.gameontext.mediator.room.RoomMediator.Type;
 
@@ -52,6 +55,9 @@ public class MediatorNexus  {
 
     @Inject
     PlayerClient playerClient;
+    
+    @Inject 
+    MediatorEvents events;   
 
     MediatorBuilder mediatorBuilder;
 
@@ -59,8 +65,8 @@ public class MediatorNexus  {
     protected final ConcurrentHashMap<String, ClientMediatorPod> clientMap = new ConcurrentHashMap<>();
 
     // Room Id to list of MediatorPods
-    protected final ConcurrentHashMap<String, PodsByRoom> roomClients = new ConcurrentHashMap<>();
-
+    protected final ConcurrentHashMap<String, PodsByRoom> roomClients = new ConcurrentHashMap<>();  
+    
     /**
      * Set the builder used by the nexus.
      *
@@ -146,6 +152,7 @@ public class MediatorNexus  {
     }
 
     private ClientMediatorPod getCreatePod(ClientMediator playerSession) {
+    	//construct pod if required, or return existing.
         return clientMap.computeIfAbsent(playerSession.getUserId(), k -> new ClientMediatorPod(playerSession.getUserId()));
     }
 
@@ -165,18 +172,26 @@ public class MediatorNexus  {
      * This maps a player (multiple clientMediators) with a room mediator
      *
      */
-    public class ClientMediatorPod implements UserView {
+    public class ClientMediatorPod implements UserView,PlayerEventHandler {
         final String userId;
         final Set<ClientMediator> clientMediators;
         volatile String userName;
         volatile RoomMediator room;
+        private EventSubscription activeSubscription;
 
         private ClientMediatorPod(String userId) {
             this.userId = userId;
             this.clientMediators = new CopyOnWriteArraySet<>();
+            activeSubscription = events.subscribeToPlayerEvents(userId,this);
         }
 
         @Override
+		public void playerUpdated(String userId, String userName, String favoriteColor) {
+            Log.log(Level.FINEST, this, "player update event for "+userId+" name:"+userName+" color:"+favoriteColor);
+			send(clientUpdateRequiredAck());
+		}
+
+		@Override
         public String getUserId() {
             return userId;
         }
@@ -410,13 +425,16 @@ public class MediatorNexus  {
         private synchronized void part(ClientMediator playerSession) {
 
             if ( clientMediators.contains(playerSession) && clientMediators.size() == 1 ) {
+            	//unsubscribe to events.
+            	activeSubscription.unsubscribe();
+            	
                 // we're the last session standing: part the room.
                 room.part(this);
 
                 // self-cleaning. This element is about to vanish, so remove it from the room-indexed list, too
                 removeDeleteEmptyPlayerList(room.getId(), this);
 
-                clientMap.remove(userId); // Auto-cleanup! We're empty!
+                clientMap.remove(userId); // Auto-cleanup! We're empty!                                
             }
 
             // do this last, after room part
@@ -441,6 +459,21 @@ public class MediatorNexus  {
                     .add(Constants.KEY_ROOM_FULLNAME, room.getFullName())
                     .add(Constants.KEY_ROOM_EXITS, room.listExits())
                     .add(Constants.KEY_COMMANDS, Constants.COMMON_COMMANDS).build();
+
+            return RoutedMessage.createMessage(FlowTarget.ack, ack);
+        }
+        
+        /**
+         * Compose an acknowledgement to send back to the client that contains the
+         * mediator id and a request for the client to update it's view of the player
+         * it represents.
+         *
+         * @return ack message with mediator id
+         */
+        public RoutedMessage clientUpdateRequiredAck() {
+            JsonObject ack = Json.createObjectBuilder()
+                    .add(Constants.KEY_MEDIATOR_ID, Constants.MEDIATOR_UUID)
+                    .add(Constants.KEY_PLAYER_UPDATE_REQUIRED, Boolean.TRUE).build();
 
             return RoutedMessage.createMessage(FlowTarget.ack, ack);
         }
@@ -484,6 +517,7 @@ public class MediatorNexus  {
         private MediatorNexus getOuterType() {
             return MediatorNexus.this;
         }
+       
     }
 
     /**

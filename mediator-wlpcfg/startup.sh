@@ -45,6 +45,9 @@ if [ "$ETCDCTL_ENDPOINT" != "" ]; then
   export LOGMET_TENANT=$(etcdctl get /logmet/tenant)
   export LOGMET_PWD=$(etcdctl get /logmet/pwd)
   export SYSTEM_ID=$(etcdctl get /global/system_id)
+  export KAFKA_SERVICE_URL=$(etcdctl get /kafka/url)  
+  export MESSAGEHUB_USER=$(etcdctl get /kafka/user)
+  export MESSAGEHUB_PASSWORD=$(etcdctl get /passwords/kafka)  
 
   GAMEON_MODE=$(etcdctl get /global/mode)
   export GAMEON_MODE=${GAMEON_MODE:-production}

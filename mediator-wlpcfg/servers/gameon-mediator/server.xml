@@ -36,6 +36,8 @@
   <jndiEntry jndiName="mapApiKey" value="${env.MAP_KEY}"/>
 
   <jndiEntry jndiName="systemId" value="${env.SYSTEM_ID}"/>
+   
+  <jndiEntry jndiName="kafkaUrl" value="${env.KAFKA_SERVICE_URL}"/>
 
   <applicationMonitor dropinsEnabled="false" updateTrigger="mbean"/>
   <config updateTrigger="mbean" />
