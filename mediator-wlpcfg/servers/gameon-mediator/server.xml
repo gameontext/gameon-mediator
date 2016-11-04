@@ -49,8 +49,11 @@
 
   <webApplication contextRoot="/mediator" id="mediator-app" location="mediator-app.war" name="mediator-app"/>
 
-  <include location="${env.GAMEON_MODE}-local.xml" optional="true" />
-  <include location="${env.GAMEON_MODE}-logCollector.xml" optional="true" />
-  <include location="${env.GAMEON_MODE}-messageHub.xml" optional="true" />
+
+  <jndiEntry jndiName="developmentMode" value="${env.GAMEON_MODE}"/>
+  <jndiEntry jndiName="targetPlatform" value="${env.TARGET_PLATFORM}"/>
+  <include location="${env.TARGET_PLATFORM}-config.xml" optional="true" />
+  <include location="${env.TARGET_PLATFORM}-logCollector.xml" optional="true" />
+  <include location="${env.TARGET_PLATFORM}-messageHub.xml" optional="true" />
 
 </server>
