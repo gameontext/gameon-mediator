@@ -83,9 +83,9 @@ public class KafkaCDIBridge {
     }
 
     public void destroy(@Observes @Destroyed(ApplicationScoped.class) Object init) {
-        System.out.println("CDI Shutting down kafka polling thread");
+    	Log.log(Level.FINEST, this, "CDI Shutting down kafka polling thread");
         pollingThread.cancel(true);
-        System.out.println("CDI Closing kafka consumer.");
+        Log.log(Level.FINEST, this, "CDI Closing kafka consumer.");
         consumer.close();
     }
 

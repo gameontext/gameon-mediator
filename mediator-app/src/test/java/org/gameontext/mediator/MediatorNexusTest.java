@@ -370,7 +370,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
-        Deencapsulation.setField(nexus, events);
+        nexus.events = events;
         nexus.setBuilder(builder);
 
         // initial join
@@ -406,7 +406,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
-        Deencapsulation.setField(nexus, events);
+        nexus.events = events;
         nexus.setBuilder(builder);
 
         // This is effectively a roomHello via join.
@@ -442,7 +442,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
-        Deencapsulation.setField(nexus, events);
+        nexus.events = events;
         nexus.setBuilder(builder);
 
         // This is effectively a hello via join.
@@ -479,7 +479,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
-        Deencapsulation.setField(nexus, events);
+        nexus.events = events;
         nexus.setBuilder(builder);
 
         // put client1 in a room
@@ -518,7 +518,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
-        Deencapsulation.setField(nexus, events);
+        nexus.events = events;
         nexus.setBuilder(builder);
 
         // put client1 in a room
@@ -568,7 +568,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
-        Deencapsulation.setField(nexus, events);
+        nexus.events = events;
         nexus.setBuilder(builder);
 
         // put client1 in room1
@@ -621,7 +621,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
-        Deencapsulation.setField(nexus, events);
+        nexus.events = events;
         nexus.setBuilder(builder);
 
         // initial join
@@ -679,7 +679,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
-        Deencapsulation.setField(nexus, events);
+        nexus.events = events;
         nexus.setBuilder(builder);
 
         // put client1 AND client1a in room1
@@ -741,7 +741,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
-        Deencapsulation.setField(nexus, events);
+        nexus.events = events;
         nexus.setBuilder(builder);
 
         // This is effectively a join.
@@ -778,7 +778,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
-        Deencapsulation.setField(nexus, events);
+        nexus.events = events;
         nexus.setBuilder(builder);
 
         // This is effectively a join.
@@ -816,7 +816,7 @@ public class MediatorNexusTest {
         }};
 
         MediatorNexus nexus = new MediatorNexus();
-        Deencapsulation.setField(nexus, events);
+        nexus.events = events;
         nexus.setBuilder(builder);
 
         // initial join
