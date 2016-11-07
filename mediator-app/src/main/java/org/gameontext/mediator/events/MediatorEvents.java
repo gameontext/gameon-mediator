@@ -86,6 +86,8 @@ public class MediatorEvents {
                 case "CREATE" : {
                     break;
                 }
+                default:
+                	break;
             }
         } catch (IOException e) {
             Log.log(Level.SEVERE, this, "Error parsing event", e);
