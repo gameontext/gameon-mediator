@@ -32,7 +32,8 @@ import rx.Subscription;
 public class MediatorEvents {
 	
 	public interface PlayerEventHandler{
-		public void playerUpdated(String userId, String userName, String favoriteColor);
+		public void playerUpdated(String userId, String userName, String favoriteColor);	
+		public void locationUpdated(String userId, String newLocation);
 		//add additional methods as required for other event types...
 	}
 	
@@ -78,6 +79,14 @@ public class MediatorEvents {
                     break;
                 }
                 case "UPDATE_LOCATION" : {
+                	System.out.println("LOCATION UPDATE JSON:: "+goe.getValue());
+                	
+                	JsonNode player = tree.get("player");
+                	String location = player.get("location").asText();
+                	
+                	System.out.println("LOCATION INVOKE "+location);
+                	peh.locationUpdated(goe.getKey(), location);
+                	
                     break;
                 }
                 case "UPDATE_APIKEY" : {

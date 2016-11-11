@@ -15,6 +15,7 @@
  *******************************************************************************/
 package org.gameontext.mediator;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.util.logging.Level;
 
@@ -36,6 +37,8 @@ import javax.ws.rs.client.ResponseProcessingException;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
 
 /**
  * A wrapped/encapsulation of outbound REST requests to the player service.
@@ -121,32 +124,42 @@ public class PlayerClient {
      * @param newRoomId
      *            The new room's id
      * @return The id of the selected new room, taking contention into account.
+     * @throws IOException 
+     * @throws JsonProcessingException 
      */
     public String updatePlayerLocation(String playerId, String jwt, String oldRoomId, String newRoomId) {
         WebTarget target = this.root.path("{playerId}/location").resolveTemplate("playerId", playerId).queryParam("jwt",
                 jwt);
 
-        JsonObject parameter = Json.createObjectBuilder().add("old", oldRoomId).add("new", newRoomId).build();
+        JsonObject parameter = Json.createObjectBuilder().add("oldLocation", oldRoomId).add("newLocation", newRoomId).build();
 
-        Log.log(Level.FINER, this, "updating location using {0}", target.getUri().toString());
+        Log.log(Level.INFO, this, "updating location using {0} with putdata {1}", target.getUri().toString(), parameter.toString());
 
         try {
             // Make PUT request using the specified target, get result as a
             // string containing JSON
-            JsonObject result = target.request(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
-                    .header("Content-type", "application/json").put(Entity.json(parameter), JsonObject.class);
-
-            return result.getString("location");
+            String resultString = target.request(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
+                    .header("Content-type", "application/json").put(Entity.json(parameter), String.class);
+            
+            Log.log(Level.INFO, this, "response was {0}", resultString);
+            
+            JsonReader r = Json.createReader(new StringReader(resultString));
+            JsonObject result = r.readObject();
+            String location = result.getString("location");
+            
+            Log.log(Level.INFO, this, "response location {0}", location);
+            //location should match the 'newRoomId' unless we didn't win the race to change the location.
+            return location;
         } catch (ResponseProcessingException rpe) {
             Response response = rpe.getResponse();
-            Log.log(Level.FINER, this, "Exception changing player location,  uri: {0} resp code: {1} data: {2}",
+            Log.log(Level.WARNING, this, "Exception changing player location,  uri: {0} resp code: {1}",
                     target.getUri().toString(),
-                    response.getStatusInfo().getStatusCode() + " " + response.getStatusInfo().getReasonPhrase(),
-                    response.readEntity(String.class));
-
-            Log.log(Level.FINEST, this, "Exception changing player location", rpe);
+                    response.getStatusInfo().getStatusCode() + " " + response.getStatusInfo().getReasonPhrase()
+                    );
+            Log.log(Level.WARNING, this, "Exception changing player location", rpe);
         } catch (ProcessingException | WebApplicationException ex) {
-            Log.log(Level.FINEST, this, "Exception changing player location (" + target.getUri().toString() + ")", ex);
+            Log.log(Level.WARNING, this, "Exception changing player location (" + target.getUri().toString() + ")", ex);
+            ex.printStackTrace();
         }
 
         // Sadly, badness happened while trying to set the new room location

@@ -42,7 +42,6 @@ import org.junit.runner.RunWith;
 
 import mockit.Deencapsulation;
 import mockit.Expectations;
-import mockit.Injectable;
 import mockit.Mock;
 import mockit.MockUp;
 import mockit.Mocked;
@@ -65,6 +64,8 @@ public class MediatorNexusTest {
     
     @Mocked MediatorEvents events;
     @Mocked EventSubscription subscription;
+    
+    @Mocked PlayerClient playerClient;
 
     @Rule
     public TestName testName = new TestName();
@@ -570,6 +571,7 @@ public class MediatorNexusTest {
         MediatorNexus nexus = new MediatorNexus();
         nexus.events = events;
         nexus.setBuilder(builder);
+        Deencapsulation.setField(nexus,playerClient);
 
         // put client1 in room1
         nexus.join(client1, roomId, "previous");
@@ -591,6 +593,8 @@ public class MediatorNexusTest {
 
             builder.findMediatorForRoom((ClientMediatorPod) any, roomId2); times = 1;
             client1.setRoomMediator(room2, false); times = 1;
+            
+            playerClient.updatePlayerLocation("client1",(String)any,roomId,roomId2); times = 1;
 
             UserView hello;
             room2.hello(hello = withCapture(), false); times = 1;
@@ -634,7 +638,7 @@ public class MediatorNexusTest {
 
         // CHEATING: call nested inner directly
         try {
-            Deencapsulation.invoke(pod, "transition", client1, "otherRoom", Constants.FIRST_ROOM);
+            Deencapsulation.invoke(pod, "transition", client1, "otherRoom", Constants.FIRST_ROOM, false);
             Assert.fail("Expected concurrent modification exception");
         } catch(ConcurrentModificationException ex) {
             //YAY!!
@@ -681,6 +685,7 @@ public class MediatorNexusTest {
         MediatorNexus nexus = new MediatorNexus();
         nexus.events = events;
         nexus.setBuilder(builder);
+        Deencapsulation.setField(nexus,playerClient);
 
         // put client1 AND client1a in room1
         nexus.join(client1, null, "previous");
@@ -708,6 +713,8 @@ public class MediatorNexusTest {
             Assert.assertEquals("goodbye user = " + goodbye , "client1", goodbye.getUserId());
 
             builder.findMediatorForExit((ClientMediatorPod) any, room1, "N"); times = 1;
+            
+            playerClient.updatePlayerLocation("client1",(String)any,Constants.FIRST_ROOM,roomId); times = 1;
 
             UserView hello;
             room2.hello(hello = withCapture(), false); times = 1;
