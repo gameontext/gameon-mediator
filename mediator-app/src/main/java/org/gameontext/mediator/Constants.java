@@ -48,6 +48,7 @@ public interface Constants {
     String KEY_USERNAME = "username";
     String KEY_MEDIATOR_ID = "mediatorId";
     String KEY_ROOM_INVENTORY = "roomInventory";
+    String KEY_PLAYER_UPDATE_REQUIRED = "playerUpdate";
 
     String VALID_JWT = "{\"type\": \"joinpart\",\"content\": \"connected: validating JWT\"}";
     String FINDROOM = "{\"type\": \"joinpart\",\"content\": \"%s: knock, knock\"}";
