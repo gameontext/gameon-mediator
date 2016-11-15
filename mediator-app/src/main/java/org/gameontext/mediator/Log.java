@@ -24,7 +24,7 @@ import java.util.logging.Logger;
  *
  */
 public class Log {
-    private final static Logger log = Logger.getLogger("net.wasdev.gameon.mediator");
+    private final static Logger log = Logger.getLogger("org.gameontext.mediator");
     private static final String endpoint_log_format = ": %-8x : %s";
 
     public static void log(Level level, Object source, String message, Object... args) {

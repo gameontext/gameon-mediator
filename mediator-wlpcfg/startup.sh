@@ -8,7 +8,6 @@ export A8_ENDPOINT_TYPE=https
 export CONTAINER_NAME=mediator
 
 SERVER_PATH=/opt/ibm/wlp/usr/servers/defaultServer
-mkdir -p ${SERVER_PATH}/configDropins/overrides
 
 if [ "$ETCDCTL_ENDPOINT" != "" ]; then
   echo Setting up etcd...
@@ -51,6 +50,7 @@ if [ "$ETCDCTL_ENDPOINT" != "" ]; then
 
   GAMEON_MODE=$(etcdctl get /global/mode)
   export GAMEON_MODE=${GAMEON_MODE:-production}
+  export TARGET_PLATFORM=$(etcdctl get /global/targetPlatform)
 
   #to run with message hub, we need a jaas jar we can only obtain
   #from github, and have to use an extra config snippet to enable it.
