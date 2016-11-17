@@ -324,6 +324,12 @@ public class MediatorNexus  {
             return ( lastMessage == null || lastMessage.isEmpty() || "0".equals(lastMessage) );
         }
 
+        /**
+         * @param playerSession
+         * @param fromRoomId
+         * @param targetRoomId
+         * @param updatePlayerLocation true if the transition should update the player service with the new location on a successful transition.
+         */
         private synchronized void transition(ClientMediator playerSession, String fromRoomId, String targetRoomId, boolean updatePlayerLocation) {
             if ( room == null ) {
                 join(playerSession, targetRoomId, "");
@@ -407,6 +413,7 @@ public class MediatorNexus  {
         /**
          * Perform the actual transition between rooms: not synchronized, as all callers are.
          * @param newRoom
+         * @param withUpdate true if the room switch should also update the playerservice with the new location.
          */
         private void performSwitch(RoomMediator newRoom, boolean withUpdate) {
             if ( newRoom != room ) {
