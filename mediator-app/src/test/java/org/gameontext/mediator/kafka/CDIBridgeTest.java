@@ -1,3 +1,18 @@
+/*******************************************************************************
+ * Copyright (c) 2016 IBM Corp.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
 package org.gameontext.mediator.kafka;
 
 import java.util.ArrayList;
@@ -89,7 +104,14 @@ public class CDIBridgeTest {
                 GameOnEvent e1 = (GameOnEvent)events.get(0);
                 GameOnEvent e2 = (GameOnEvent)events.get(1);
                 
-                
+                Assert.assertEquals("stilettos",e1.getKey());
+                Assert.assertEquals("wedge",e2.getKey());
+                Assert.assertEquals("playerEvents",e1.getTopic());
+                Assert.assertEquals("playerEvents",e2.getTopic());
+                Assert.assertEquals("leather",e1.getValue());
+                Assert.assertEquals("patent",e2.getValue());
+                Assert.assertEquals(0L,e1.getOffset());
+                Assert.assertEquals(1L,e2.getOffset());
             }};
             
             
