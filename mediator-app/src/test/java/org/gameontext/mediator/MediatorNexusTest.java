@@ -854,6 +854,56 @@ public class MediatorNexusTest {
             room1.part((UserView) any); times = 0;  // should not see part!
         }};
     }
+    
+    @Test
+    public void testLocationCallback(@Mocked ClientMediator client1,
+            @Mocked RoomMediator room1,
+            @Mocked RoomMediator room2){
+        String userid = "client1";
+        
+        new Expectations() {{
+            client1.getUserId(); result = userid;
+            room1.getId(); result = roomId;
+            room1.getName(); result = roomName;
+            room1.getFullName(); result = roomFullName;
+            room1.listExits(); result = roomExits;
+            events.subscribeToPlayerEvents((String)any, (PlayerEventHandler)any);
+
+            builder.findMediatorForRoom((ClientMediatorPod) any, roomId); result = room1;
+        }};
+
+        MediatorNexus nexus = new MediatorNexus();
+        nexus.events = events;
+        nexus.setBuilder(builder);
+
+        //start by placing user in a room, to prime the mediator pod.
+        nexus.join(client1, roomId, "previous");
+
+        new Verifications() {{
+            //capture the callback..
+            PlayerEventHandler peh;
+            events.subscribeToPlayerEvents(userid, peh = withCapture());
+            
+            new Expectations() {{
+                room1.getId(); result = roomId;
+                room1.getName(); result = roomName;
+                room2.getId(); result = Constants.FIRST_ROOM;
+                room2.getName(); result = Constants.FIRST_ROOM;
+                room2.getFullName(); result = FirstRoom.FIRST_ROOM_FULL;
+                builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); result = room2;
+            }};
+            
+            //join complete, trigger the callback..
+            //we'll claim the user has moved to first room. 
+            //the expectations block above preps builder to 
+            //return room2 for that id.
+            peh.locationUpdated(userid, Constants.FIRST_ROOM);
+            
+            //check we are now in room2.
+            RoomMediator result = client1.getRoomMediator();
+            Assert.assertEquals(room2, result);
+        }};
+    }
 
     void assertMapSize(String prefix, int size, Map<?, ?> map) {
         Assert.assertEquals(prefix + ": " + map, size, map.size());
