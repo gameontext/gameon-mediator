@@ -104,7 +104,6 @@ public class MediatorNexus  {
      * @param playerSession
      * @param oldRoom
      * @param newRoom
-     * @return true if location changed (hello/goodbye should be sent)
      * @throws ConcurrentModificationException if change can not be made
      */
     public void transition(ClientMediator playerSession, String toRoomId) {
@@ -115,7 +114,7 @@ public class MediatorNexus  {
         Log.log(Level.FINER, playerSession.getSource(), "{0}: request transition from expected={1}, new={2}",
                 Log.getHexHash(pod), fromRoom, toRoomId);
 
-        pod.transition(playerSession, fromRoom, toRoomId);
+        pod.transition(playerSession, fromRoom, toRoomId, true);
     }
 
     /**
@@ -124,7 +123,6 @@ public class MediatorNexus  {
      * @param playerSession
      * @param oldRoom
      * @param newRoom
-     * @return true if location changed (hello/goodbye should be sent)
      * @throws ConcurrentModificationException if change can not be made
      */
     public void transitionViaExit(ClientMediator playerSession, String direction) {
@@ -152,7 +150,7 @@ public class MediatorNexus  {
     }
 
     private ClientMediatorPod getCreatePod(ClientMediator playerSession) {
-    	//construct pod if required, or return existing.
+        //construct pod if required, or return existing.
         return clientMap.computeIfAbsent(playerSession.getUserId(), k -> new ClientMediatorPod(playerSession.getUserId()));
     }
 
@@ -186,12 +184,30 @@ public class MediatorNexus  {
         }
 
         @Override
-		public void playerUpdated(String userId, String userName, String favoriteColor) {
-            Log.log(Level.FINEST, this, "player update event for "+userId+" name:"+userName+" color:"+favoriteColor);
-			send(clientUpdateRequiredAck());
-		}
+        public void playerUpdated(String userId, String userName, String favoriteColor) {
+            Log.log(Level.FINEST, this,
+                    "player update event for " + userId + " name:" + userName + " color:" + favoriteColor);
+            send(clientUpdateRequiredAck());
+        }
 
-		@Override
+        @Override
+        public void locationUpdated(String userId, String newLocation) {
+            if (room.getId().equals(newLocation)) {
+                // no action.. we're already in the right room..
+                Log.log(Level.FINEST, this,
+                        "location update event for " + userId + " pod is already in correct location");
+            } else {
+                Log.log(Level.INFO, this, "location update event for " + userId + " (known at location " + room.getId()
+                        + ") to location " + newLocation);
+                // transition, but do not update the db, else db update will
+                // lead to locationUpdated which could trigger a loop / war
+                // between scaled pods.
+                ClientMediator anyMediator = clientMediators.iterator().next();
+                transition(anyMediator, room.getId(), newLocation, false);
+            }
+        }
+
+        @Override
         public String getUserId() {
             return userId;
         }
@@ -203,6 +219,7 @@ public class MediatorNexus  {
 
         public String getUserJwt() {
             ClientMediator m = clientMediators.iterator().next();
+            //TODO: if jwt expired, try jwt from next clientMediator instead.. etc. 
             return m.getUserJwt();
         }
 
@@ -307,7 +324,13 @@ public class MediatorNexus  {
             return ( lastMessage == null || lastMessage.isEmpty() || "0".equals(lastMessage) );
         }
 
-        private synchronized void transition(ClientMediator playerSession, String fromRoomId, String targetRoomId) {
+        /**
+         * @param playerSession
+         * @param fromRoomId
+         * @param targetRoomId
+         * @param updatePlayerLocation true if the transition should update the player service with the new location on a successful transition.
+         */
+        private synchronized void transition(ClientMediator playerSession, String fromRoomId, String targetRoomId, boolean updatePlayerLocation) {
             if ( room == null ) {
                 join(playerSession, targetRoomId, "");
                 return;
@@ -328,7 +351,7 @@ public class MediatorNexus  {
                         Constants.EVENTMSG_ALREADY_THERE));
             } else if ( currentId.equals(fromRoomId) ) {
                 RoomMediator newRoom = mediatorBuilder.findMediatorForRoom(this, toRoomId);
-                performSwitch(newRoom);
+                performSwitch(newRoom,updatePlayerLocation);
             } else  {
                 Log.log(Level.WARNING, playerSession.getSource(), "{0}: {1} could not be moved from pod={2}, expected={3}, new={4}. Connected: {5}",
                         Log.getHexHash(this), userId, currentId, fromRoomId, toRoomId, clientMediators);
@@ -367,7 +390,7 @@ public class MediatorNexus  {
 
             if ( currentId.equals(fromRoomId) ) {
                 RoomMediator newRoom = mediatorBuilder.findMediatorForExit(this, room, direction);
-                performSwitch(newRoom);
+                performSwitch(newRoom,true);
             } else {
                 Log.log(Level.WARNING, playerSession.getSource(), "{0}: post-transition-via-exit for {1} -- could not be moved from pod={2}, expected={3}, direction={4}. Connected: {5}",
                         Log.getHexHash(this), userId, currentId, fromRoomId, direction, clientMediators);
@@ -390,8 +413,9 @@ public class MediatorNexus  {
         /**
          * Perform the actual transition between rooms: not synchronized, as all callers are.
          * @param newRoom
+         * @param withUpdate true if the room switch should also update the playerservice with the new location.
          */
-        private void performSwitch(RoomMediator newRoom) {
+        private void performSwitch(RoomMediator newRoom, boolean withUpdate) {
             if ( newRoom != room ) {
                 RoomMediator oldRoom = room;
 
@@ -412,6 +436,14 @@ public class MediatorNexus  {
                     s.setRoomMediator(newRoom, false);
                     s.sendToClient(ack);
                 });
+                
+                if(withUpdate){
+                    //update the location in the db.
+                    playerClient.updatePlayerLocation(getUserId(), getUserJwt(), oldRoom.getId(), newRoom.getId());
+                    //we could read the response from updatePlayerLocation to know if the db update was succesfull,
+                    //but if we lost a race to update the location, we'll process the location that won via the 
+                    //event from kafka.. giving us a single timeline of locations to process.
+                }
 
                 // say hello to the room
                 newRoom.hello(this, false);
@@ -425,9 +457,9 @@ public class MediatorNexus  {
         private synchronized void part(ClientMediator playerSession) {
 
             if ( clientMediators.contains(playerSession) && clientMediators.size() == 1 ) {
-            	//unsubscribe to events.
-            	activeSubscription.unsubscribe();
-            	
+                //unsubscribe to events.
+                activeSubscription.unsubscribe();
+                
                 // we're the last session standing: part the room.
                 room.part(this);
 

@@ -41,16 +41,16 @@ public class KafkaRxJavaObservable {
     ManagedScheduledExecutorService executor;
 
     public Observable<GameOnEvent> consume() {
-		Log.log(Level.FINEST, this, "RXJava Observable [" + this.hashCode() + "] consume invoked. Obtaining dataProvider.");
+        Log.log(Level.FINEST, this, "RXJava Observable [" + this.hashCode() + "] consume invoked. Obtaining dataProvider.");
         
         KafkaRxAsyncDataProvider dp = dataProvider.get();
         Action0 unsubscribeHandler = new Action0() {
             @Override
             public void call() {
-				Log.log(Level.FINEST, this, "RXJava Observable [" + KafkaRxJavaObservable.this.hashCode()
+                Log.log(Level.FINEST, this, "RXJava Observable [" + KafkaRxJavaObservable.this.hashCode()
                 + "] unsubscribe called, shutting down dataProvider.");
                 dp.shutdown();
-				Log.log(Level.FINEST, this, "RXJava Observable [" + KafkaRxJavaObservable.this.hashCode()
+                Log.log(Level.FINEST, this, "RXJava Observable [" + KafkaRxJavaObservable.this.hashCode()
                 + "] dataProvider shutdown complete.");
             }
         };

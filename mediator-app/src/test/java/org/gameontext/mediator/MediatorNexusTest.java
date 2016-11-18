@@ -42,7 +42,6 @@ import org.junit.runner.RunWith;
 
 import mockit.Deencapsulation;
 import mockit.Expectations;
-import mockit.Injectable;
 import mockit.Mock;
 import mockit.MockUp;
 import mockit.Mocked;
@@ -65,6 +64,8 @@ public class MediatorNexusTest {
     
     @Mocked MediatorEvents events;
     @Mocked EventSubscription subscription;
+    
+    @Mocked PlayerClient playerClient;
 
     @Rule
     public TestName testName = new TestName();
@@ -570,6 +571,7 @@ public class MediatorNexusTest {
         MediatorNexus nexus = new MediatorNexus();
         nexus.events = events;
         nexus.setBuilder(builder);
+        Deencapsulation.setField(nexus,playerClient);
 
         // put client1 in room1
         nexus.join(client1, roomId, "previous");
@@ -591,6 +593,8 @@ public class MediatorNexusTest {
 
             builder.findMediatorForRoom((ClientMediatorPod) any, roomId2); times = 1;
             client1.setRoomMediator(room2, false); times = 1;
+            
+            playerClient.updatePlayerLocation("client1",(String)any,roomId,roomId2); times = 1;
 
             UserView hello;
             room2.hello(hello = withCapture(), false); times = 1;
@@ -634,7 +638,7 @@ public class MediatorNexusTest {
 
         // CHEATING: call nested inner directly
         try {
-            Deencapsulation.invoke(pod, "transition", client1, "otherRoom", Constants.FIRST_ROOM);
+            Deencapsulation.invoke(pod, "transition", client1, "otherRoom", Constants.FIRST_ROOM, false);
             Assert.fail("Expected concurrent modification exception");
         } catch(ConcurrentModificationException ex) {
             //YAY!!
@@ -681,6 +685,7 @@ public class MediatorNexusTest {
         MediatorNexus nexus = new MediatorNexus();
         nexus.events = events;
         nexus.setBuilder(builder);
+        Deencapsulation.setField(nexus,playerClient);
 
         // put client1 AND client1a in room1
         nexus.join(client1, null, "previous");
@@ -708,6 +713,8 @@ public class MediatorNexusTest {
             Assert.assertEquals("goodbye user = " + goodbye , "client1", goodbye.getUserId());
 
             builder.findMediatorForExit((ClientMediatorPod) any, room1, "N"); times = 1;
+            
+            playerClient.updatePlayerLocation("client1",(String)any,Constants.FIRST_ROOM,roomId); times = 1;
 
             UserView hello;
             room2.hello(hello = withCapture(), false); times = 1;
@@ -845,6 +852,56 @@ public class MediatorNexusTest {
             room1.hello((UserView) any, anyBoolean); times = 0;  // should not see hello!
             room1.goodbye((UserView) any); times = 0;  // should not see goodbye!
             room1.part((UserView) any); times = 0;  // should not see part!
+        }};
+    }
+    
+    @Test
+    public void testLocationCallback(@Mocked ClientMediator client1,
+            @Mocked RoomMediator room1,
+            @Mocked RoomMediator room2){
+        String userid = "client1";
+        
+        new Expectations() {{
+            client1.getUserId(); result = userid;
+            room1.getId(); result = roomId;
+            room1.getName(); result = roomName;
+            room1.getFullName(); result = roomFullName;
+            room1.listExits(); result = roomExits;
+            events.subscribeToPlayerEvents((String)any, (PlayerEventHandler)any);
+
+            builder.findMediatorForRoom((ClientMediatorPod) any, roomId); result = room1;
+        }};
+
+        MediatorNexus nexus = new MediatorNexus();
+        nexus.events = events;
+        nexus.setBuilder(builder);
+
+        //start by placing user in a room, to prime the mediator pod.
+        nexus.join(client1, roomId, "previous");
+
+        new Verifications() {{
+            //capture the callback..
+            PlayerEventHandler peh;
+            events.subscribeToPlayerEvents(userid, peh = withCapture());
+            
+            new Expectations() {{
+                room1.getId(); result = roomId;
+                room1.getName(); result = roomName;
+                room2.getId(); result = Constants.FIRST_ROOM;
+                room2.getName(); result = Constants.FIRST_ROOM;
+                room2.getFullName(); result = FirstRoom.FIRST_ROOM_FULL;
+                builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); result = room2;
+            }};
+            
+            //join complete, trigger the callback..
+            //we'll claim the user has moved to first room. 
+            //the expectations block above preps builder to 
+            //return room2 for that id.
+            peh.locationUpdated(userid, Constants.FIRST_ROOM);
+            
+            //check we are now in room2.
+            RoomMediator result = client1.getRoomMediator();
+            Assert.assertEquals(room2, result);
         }};
     }
 
