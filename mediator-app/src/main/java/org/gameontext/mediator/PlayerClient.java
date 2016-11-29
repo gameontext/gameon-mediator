@@ -104,7 +104,7 @@ public class PlayerClient {
                                      .build();
 
         client.register(JsonProvider.class);
-        
+
         this.root = client.target(playerLocation);
 
         Log.log(Level.FINER, this, "Player client initialized with {0}", playerLocation);
@@ -124,8 +124,8 @@ public class PlayerClient {
      * @param newRoomId
      *            The new room's id
      * @return The id of the selected new room, taking contention into account.
-     * @throws IOException 
-     * @throws JsonProcessingException 
+     * @throws IOException
+     * @throws JsonProcessingException
      */
     public String updatePlayerLocation(String playerId, String jwt, String oldRoomId, String newRoomId) {
         WebTarget target = this.root.path("{playerId}/location").resolveTemplate("playerId", playerId).queryParam("jwt",
@@ -140,13 +140,13 @@ public class PlayerClient {
             // string containing JSON
             String resultString = target.request(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
                     .header("Content-type", "application/json").put(Entity.json(parameter), String.class);
-            
+
             Log.log(Level.INFO, this, "response was {0}", resultString);
-            
+
             JsonReader r = Json.createReader(new StringReader(resultString));
             JsonObject result = r.readObject();
             String location = result.getString("location");
-            
+
             Log.log(Level.INFO, this, "response location {0}", location);
             //location should match the 'newRoomId' unless we didn't win the race to change the location.
             return location;
@@ -159,7 +159,6 @@ public class PlayerClient {
             Log.log(Level.WARNING, this, "Exception changing player location", rpe);
         } catch (ProcessingException | WebApplicationException ex) {
             Log.log(Level.WARNING, this, "Exception changing player location (" + target.getUri().toString() + ")", ex);
-            ex.printStackTrace();
         }
 
         // Sadly, badness happened while trying to set the new room location
