@@ -21,7 +21,7 @@ RUN /opt/ibm/wlp/bin/installUtility install  --acceptLicense \
     ssl-1.0 \
     websocket-1.1
 
-RUN wget -qO- https://github.com/amalgam8/amalgam8/releases/download/v0.3.0/a8sidecar.sh | sh
+RUN wget -qO- https://github.com/amalgam8/amalgam8/releases/download/v0.4.2/a8sidecar.sh | sh
 
 ENV SERVERDIRNAME mediator
 
