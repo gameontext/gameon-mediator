@@ -77,5 +77,6 @@ if [ "$ETCDCTL_ENDPOINT" != "" ]; then
     exec a8sidecar --proxy --register /opt/ibm/wlp/bin/server run defaultServer
   fi
 else
-  exec a8sidecar --log --proxy --register --supervise /opt/ibm/wlp/bin/server run defaultServer
+  echo running non etcd environment.. 
+  exec a8sidecar --proxy --register --supervise /opt/ibm/wlp/bin/server run defaultServer
 fi
