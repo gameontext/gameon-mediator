@@ -27,12 +27,12 @@ import javax.websocket.WebSocketContainer;
 import org.gameontext.mediator.Drain;
 import org.gameontext.mediator.Log;
 import org.gameontext.mediator.MediatorNexus;
+import org.gameontext.mediator.MediatorNexus.View;
 import org.gameontext.mediator.RoutedMessage;
+import org.gameontext.mediator.RoutedMessage.FlowTarget;
 import org.gameontext.mediator.RoutedMessageDecoder;
 import org.gameontext.mediator.RoutedMessageEncoder;
 import org.gameontext.mediator.WSUtils;
-import org.gameontext.mediator.MediatorNexus.View;
-import org.gameontext.mediator.RoutedMessage.FlowTarget;
 import org.gameontext.mediator.models.ConnectionDetails;
 import org.gameontext.mediator.models.RoomInfo;
 import org.gameontext.mediator.models.Site;
@@ -40,10 +40,12 @@ import org.gameontext.signed.SignedRequestHmac;
 import org.gameontext.signed.SignedRequestMap;
 
 class WebSocketClientConnection extends Endpoint implements RemoteRoom.Connection {
+    final static long MAX_PROTOCOL_VERSION = 2;
+    
     /**
      * The WebSocket protocol version.
      */
-    private final long protocolVersion = Long.valueOf(1);
+    private long protocolVersion = 1;
 
     final RemoteRoomProxy proxy;
     final String id;
@@ -154,20 +156,14 @@ class WebSocketClientConnection extends Endpoint implements RemoteRoom.Connectio
     private void handleAck(RoutedMessage ackack){
         JsonObject ackackobject = ackack.getParsedBody();
         JsonArray versions = ackackobject.getJsonArray("version");
-        boolean foundMatch = false;
 
         for(JsonValue version : versions){
             if(JsonValue.ValueType.NUMBER.equals(version.getValueType())){
-                JsonNumber potentialVersion = (JsonNumber)version;
-                if(protocolVersion == potentialVersion.longValue()){
-                    foundMatch = true;
-                    break;
+                long value = ((JsonNumber) version).longValue();
+                if ( value > protocolVersion && value <= MAX_PROTOCOL_VERSION ) {
+                    protocolVersion = value;
                 }
             }
-        }
-
-        if(!foundMatch){
-            throw new IllegalStateException("No matching websocket protocol version found when talking with room "+info.getName()+" "+id+" got ack : "+ackack.toString());
         }
     }
 
