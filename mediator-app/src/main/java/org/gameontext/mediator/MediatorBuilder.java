@@ -15,6 +15,7 @@
  *******************************************************************************/
 package org.gameontext.mediator;
 
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import javax.annotation.PostConstruct;
@@ -87,7 +88,12 @@ public class MediatorBuilder {
     public ClientMediator buildClientMediator(String userId, Session session, String serverJwt) {
         WSDrain drain = new WSDrain(userId, session);
         drain.setThread(threadFactory.newThread(drain));
-        
+
+        // Send a keep-alive to the client.
+        drain.setFuture(scheduledExecutor.scheduleAtFixedRate(() -> {
+            drain.send(RoutedMessage.PING_MSG);
+        }, 50, 2, TimeUnit.SECONDS));
+
         ClientMediator clientMediator = new ClientMediator(nexus, drain, userId, serverJwt);
         return clientMediator;
     }

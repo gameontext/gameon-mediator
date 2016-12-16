@@ -16,6 +16,7 @@
 package org.gameontext.mediator;
 
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ScheduledFuture;
 import java.util.logging.Level;
 
 import javax.websocket.CloseReason;
@@ -29,6 +30,7 @@ import javax.websocket.Session;
 class WSDrain implements Runnable, Drain {
     private final String id;
     private Thread thread;
+    private ScheduledFuture<?> pingFuture;
     private Session targetSession;
     boolean wsToRoom;
 
@@ -53,13 +55,13 @@ class WSDrain implements Runnable, Drain {
     public WSDrain(String id, Session targetSession) {
         this.id = id;
         this.targetSession = targetSession;
-        this.pendingMessages = new LinkedBlockingDeque<RoutedMessage>();
+        this.pendingMessages = new LinkedBlockingDeque<>();
         this.wsToRoom = false; // outbound client connection
     }
 
     public WSDrain(String id) {
         this.id = id;
-        this.pendingMessages = new LinkedBlockingDeque<RoutedMessage>();
+        this.pendingMessages = new LinkedBlockingDeque<>();
         this.wsToRoom = true; // incoming server connection
     }
 
@@ -138,9 +140,16 @@ class WSDrain implements Runnable, Drain {
         if (thread != null) {
             thread.interrupt();
         }
+        if ( pingFuture != null ) {
+            pingFuture.cancel(true);
+        }
     }
 
     public void setThread(Thread t) {
         this.thread = t;
+    }
+
+    public void setFuture(ScheduledFuture<?> pingFuture) {
+        this.pingFuture = pingFuture;
     }
 }
