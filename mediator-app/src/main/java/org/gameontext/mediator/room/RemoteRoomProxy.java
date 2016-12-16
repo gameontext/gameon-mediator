@@ -178,8 +178,8 @@ public class RemoteRoomProxy implements RoomMediator {
     }
 
     @Override
-    public void hello(MediatorNexus.UserView user, boolean recovery) {
-        delegate.hello(user, false);
+    public void hello(MediatorNexus.UserView user) {
+        delegate.hello(user);
     }
 
     @Override

@@ -137,7 +137,7 @@ public abstract class AbstractRoomMediator implements RoomMediator {
     }
 
     @Override
-    public void hello(MediatorNexus.UserView user, boolean recovery) {
+    public void hello(MediatorNexus.UserView user) {
         // Say hello to..
         sendToClients(RoutedMessage.createMessage(FlowTarget.player, "*",
                 String.format(Constants.EVENT_HELLO, user.getUserName(), user.getUserId(), helloMessage(), bookmark.incrementAndGet())));

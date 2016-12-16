@@ -53,7 +53,7 @@ public interface RoomMediator {
 
     Exit getEmergencyReturnExit();
 
-    void hello(MediatorNexus.UserView user, boolean recovery);
+    void hello(MediatorNexus.UserView user);
 
     void goodbye(MediatorNexus.UserView user);
 

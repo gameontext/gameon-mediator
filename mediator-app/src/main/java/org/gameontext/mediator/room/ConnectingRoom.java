@@ -65,7 +65,7 @@ public class ConnectingRoom extends AbstractRoomMediator {
     }
 
     @Override
-    public void hello(MediatorNexus.UserView user, boolean recovery) {
+    public void hello(MediatorNexus.UserView user) {
         // there might be a few instances of the player around..
         // they should all have moved together, so we use the broadcast flag to send
         // to all of them.

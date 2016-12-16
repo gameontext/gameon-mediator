@@ -38,10 +38,10 @@ import org.gameontext.mediator.room.FirstRoom;
 import org.gameontext.mediator.room.RemoteRoom;
 import org.gameontext.mediator.room.RemoteRoomProxy;
 import org.gameontext.mediator.room.RoomMediator;
+import org.gameontext.mediator.room.RoomMediator.Type;
 import org.gameontext.mediator.room.RoomUtils;
 import org.gameontext.mediator.room.SickRoom;
 import org.gameontext.mediator.room.UnknownRoom;
-import org.gameontext.mediator.room.RoomMediator.Type;
 
 @ApplicationScoped
 public class MediatorBuilder {
@@ -87,7 +87,7 @@ public class MediatorBuilder {
     public ClientMediator buildClientMediator(String userId, Session session, String serverJwt) {
         WSDrain drain = new WSDrain(userId, session);
         drain.setThread(threadFactory.newThread(drain));
-
+        
         ClientMediator clientMediator = new ClientMediator(nexus, drain, userId, serverJwt);
         return clientMediator;
     }
@@ -265,13 +265,13 @@ public class MediatorBuilder {
             RemoteRoom room = new RemoteRoom(proxy, mapClient, scheduledExecutor, site, drain, nexus.getSingleUserView(roomId, user));
             switch(updateType) {
                 case HELLO:
-                    room.hello(user,false);
+                    room.hello(user);
                     break;
                 case JOIN:
                     room.join(user);
                     break;
                 case RECONNECT:
-                    room.hello(user, true);
+                    room.hello(user);
                     break;
             }
 
@@ -300,7 +300,7 @@ public class MediatorBuilder {
             mediator = new SickRoom(proxy, mapClient, scheduledExecutor, site, user.getUserId(),
                                 nexus.getFilteredMultiUserView(site.getId(), RoomMediator.Type.SICK));
         }
-        mediator.hello(user, false);
+        mediator.hello(user);
         return mediator;
     }
 

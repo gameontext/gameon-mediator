@@ -78,7 +78,7 @@ public class RemoteRoom extends AbstractRoomMediator {
     }
 
     @Override
-    public void hello(MediatorNexus.UserView user, boolean recovery) {
+    public void hello(MediatorNexus.UserView user) {
         // Say hello to the new room!
         Log.log(Level.FINER, this, "REMOTE HELLO {0}", getId());
 
@@ -99,11 +99,9 @@ public class RemoteRoom extends AbstractRoomMediator {
         if ( connection.version() > 1) {
             // Say hello to the new room!
             Log.log(Level.FINER, this, "REMOTE JOIN {0}", getId());
-
             connection.sendToRoom(RoutedMessage.createJoin(connection.version(), roomId, user));
         } else {
-            // strip remove bookmark from v1 sessions, as they were ints instead of strings
-            hello(user, false);
+            hello(user);
         }
     }
 
