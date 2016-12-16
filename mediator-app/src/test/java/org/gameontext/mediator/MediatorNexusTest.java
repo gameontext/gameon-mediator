@@ -241,7 +241,7 @@ public class MediatorNexusTest {
             Assert.assertEquals("join user = " + join , "client1", join.getUserId());
             client1.setRoomMediator(room1, false); times = 2; // both calls to join
 
-            room1.hello((UserView) any, anyBoolean); times = 0;  // should not see hello!
+            room1.hello((UserView) any); times = 0;  // should not see hello!
             room1.goodbye((UserView) any); times = 0;  // should not see goodbye!
             room1.part((UserView) any); times = 0;  // should not see part!
         }};
@@ -273,7 +273,7 @@ public class MediatorNexusTest {
             builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); times = 1;
 
             UserView hello;
-            room1.hello(hello = withCapture(), false); times = 1;
+            room1.hello(hello = withCapture()); times = 1;
             Assert.assertEquals("join user = " + hello , "client1", hello.getUserId());
 
             client1.setRoomMediator(room1, false); times = 1;
@@ -309,7 +309,7 @@ public class MediatorNexusTest {
             builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); times = 1;
 
             UserView hello;
-            room1.hello(hello = withCapture(), false); times = 1;
+            room1.hello(hello = withCapture()); times = 1;
             Assert.assertEquals("join user = " + hello , "client1", hello.getUserId());
 
             client1.setRoomMediator(room1, false); times = 1;
@@ -345,7 +345,7 @@ public class MediatorNexusTest {
             builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); times = 1;
 
             UserView hello;
-            room1.hello(hello = withCapture(), false); times = 1;
+            room1.hello(hello = withCapture()); times = 1;
             Assert.assertEquals("join user = " + hello , "client1", hello.getUserId());
 
             client1.setRoomMediator(room1, false); times = 1;
@@ -387,7 +387,7 @@ public class MediatorNexusTest {
             client1.setRoomMediator(room1, false); times = 1; // initial call
             client1.setRoomMediator(room1, true); times = 1; // splinch repair
 
-            room1.hello((UserView) any, anyBoolean); times = 0;  // should not see hello!
+            room1.hello((UserView) any); times = 0;  // should not see hello!
             room1.goodbye((UserView) any); times = 0;  // should not see goodbye!
             room1.part((UserView) any); times = 0;  // should not see part!
         }};
@@ -418,7 +418,7 @@ public class MediatorNexusTest {
             builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); times = 1;
 
             UserView hello;
-            room1.hello(hello = withCapture(), false); times = 1;
+            room1.hello(hello = withCapture()); times = 1;
             Assert.assertEquals("join user = " + hello , "client1", hello.getUserId());
 
             client1.setRoomMediator(room1, false); times = 1;
@@ -454,7 +454,7 @@ public class MediatorNexusTest {
             builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); times = 1;
 
             UserView hello;
-            room1.hello(hello = withCapture(), false); times = 1;
+            room1.hello(hello = withCapture()); times = 1;
             Assert.assertEquals("hello user = " + hello , "client1", hello.getUserId());
 
             client1.setRoomMediator(room1, false); times = 1;
@@ -499,7 +499,7 @@ public class MediatorNexusTest {
 
             client1.setRoomMediator(room1, false); times = 1;
 
-            room1.hello((UserView) any, anyBoolean); times = 0;  // should not see join!
+            room1.hello((UserView) any); times = 0;  // should not see join!
             room1.goodbye((UserView) any); times = 0;  // should not see goodbye!
             room1.part((UserView) any); times = 0;  // should not see part!
         }};
@@ -537,7 +537,7 @@ public class MediatorNexusTest {
 
             client1.setRoomMediator(room1, false); times = 1;
 
-            room1.hello((UserView) any, anyBoolean); times = 0;  // should not see hello!
+            room1.hello((UserView) any); times = 0;  // should not see hello!
             room1.goodbye((UserView) any); times = 0;  // should not see goodbye!
             room1.part((UserView) any); times = 0;  // should not see part!
         }};
@@ -597,10 +597,10 @@ public class MediatorNexusTest {
             playerClient.updatePlayerLocation("client1",(String)any,roomId,roomId2); times = 1;
 
             UserView hello;
-            room2.hello(hello = withCapture(), false); times = 1;
+            room2.hello(hello = withCapture()); times = 1;
             Assert.assertEquals("hello user = " + hello , "client1", hello.getUserId());
 
-            room1.hello((UserView) any, anyBoolean); times = 0;  // should not see hello!
+            room1.hello((UserView) any); times = 0;  // should not see hello!
             room1.part((UserView) any); times = 0;  // should not see part!
 
             room2.join((UserView) any); times = 0;  // should not see join!
@@ -651,7 +651,7 @@ public class MediatorNexusTest {
             client1.setRoomMediator(room1, false); times = 1; // initial call
             client1.setRoomMediator(room1, true); times = 1; // splinch repair
 
-            room1.hello((UserView) any, anyBoolean); times = 0;  // should not see hello!
+            room1.hello((UserView) any); times = 0;  // should not see hello!
             room1.goodbye((UserView) any); times = 0;  // should not see goodbye!
             room1.part((UserView) any); times = 0;  // should not see part!
         }};
@@ -717,14 +717,14 @@ public class MediatorNexusTest {
             playerClient.updatePlayerLocation("client1",(String)any,Constants.FIRST_ROOM,roomId); times = 1;
 
             UserView hello;
-            room2.hello(hello = withCapture(), false); times = 1;
+            room2.hello(hello = withCapture()); times = 1;
             Assert.assertEquals("hello user = " + hello , "client1", hello.getUserId());
 
             // Both mediators should have new room mediator set
             client1.setRoomMediator(room2, false); times = 1;
             client1a.setRoomMediator(room2, false); times = 1;
 
-            room1.hello((UserView) any, anyBoolean); times = 0;  // should not see hello!
+            room1.hello((UserView) any); times = 0;  // should not see hello!
             room1.part((UserView) any); times = 0;  // should not see part!
 
             room2.join((UserView) any); times = 0;  // should not see join!
@@ -759,7 +759,7 @@ public class MediatorNexusTest {
             builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); times = 1;
 
             UserView hello;
-            room1.hello(hello = withCapture(), false); times = 1;
+            room1.hello(hello = withCapture()); times = 1;
             Assert.assertEquals("join user = " + hello , "client1", hello.getUserId());
 
             client1.setRoomMediator(room1, false); times = 1;
@@ -796,7 +796,7 @@ public class MediatorNexusTest {
             builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); times = 1;
 
             UserView hello;
-            room1.hello(hello = withCapture(), false); times = 1;
+            room1.hello(hello = withCapture()); times = 1;
             Assert.assertEquals("join user = " + hello , "client1", hello.getUserId());
 
             client1.setRoomMediator(room1, false); times = 1;
@@ -849,7 +849,7 @@ public class MediatorNexusTest {
             client1.setRoomMediator(room1, false); times = 1; // initial call
             client1.setRoomMediator(room1, true); times = 1; // splinch repair
 
-            room1.hello((UserView) any, anyBoolean); times = 0;  // should not see hello!
+            room1.hello((UserView) any); times = 0;  // should not see hello!
             room1.goodbye((UserView) any); times = 0;  // should not see goodbye!
             room1.part((UserView) any); times = 0;  // should not see part!
         }};

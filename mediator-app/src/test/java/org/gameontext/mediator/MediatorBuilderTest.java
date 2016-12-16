@@ -338,7 +338,7 @@ public class MediatorBuilderTest {
         Assert.assertEquals(Type.CONNECTING, proxy.getType()); // proxy type should reflect the guts!
 
         // Attempt connection with bad type
-        proxy.hello(pod1, false);
+        proxy.hello(pod1);
 
         Assert.assertFalse("Updating flag should be reset to false", updating.get());
         Assert.assertEquals(Type.SICK, proxy.getType()); // proxy type should reflect the guts!

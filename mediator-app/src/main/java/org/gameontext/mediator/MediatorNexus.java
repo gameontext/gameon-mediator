@@ -310,7 +310,7 @@ public class MediatorNexus  {
             // Specific to the joining session:
             if ( helloInstead ) {
                 Log.log(Level.FINER, playerSession.getSource(), "HELLO {0} {1}", userId, room.getId());
-                room.hello(this, false);
+                room.hello(this);
             } else if ( joinRoom ) {
                 Log.log(Level.FINER, playerSession.getSource(), "JOIN {0} {1}", userId, room.getId());
                 room.join(this);
@@ -446,7 +446,7 @@ public class MediatorNexus  {
                 }
 
                 // say hello to the room
-                newRoom.hello(this, false);
+                newRoom.hello(this);
             }
         }
 

@@ -71,9 +71,8 @@ public class RoutedMessage {
     public static final String READY = "ready";
 
     public static final String MSG_HELLO_JOIN = "{\"version\": %d,\"userId\": \"%s\",\"username\": \"%s\"}";
-    public static final String MSG_RECOVERY_HELLO = "{\"version\": %d,\"userId\": \"%s\",\"username\": \"%s\",\"recovery\": true}";
     public static final String MSG_PROTOCOL = "{\"userId\": \"%s\",\"username\": \"%s\"}";
-
+    
     public enum FlowTarget {
         ack(RoutedMessage.ACK),
         ready(RoutedMessage.READY),
@@ -154,21 +153,11 @@ public class RoutedMessage {
                 String.format(MSG_HELLO_JOIN, version, user.getUserId(), user.getUserName()));
     }
 
-    public static RoutedMessage createRecoveryHello(long version, String roomId, MediatorNexus.UserView user) {
-        return new RoutedMessage(FlowTarget.roomHello, roomId,
-                String.format(MSG_RECOVERY_HELLO, version, user.getUserId(), user.getUserName()));
-    }
-
     public static RoutedMessage createGoodbye(String roomId, MediatorNexus.UserView user) {
         return new RoutedMessage(FlowTarget.roomGoodbye, roomId,
                 String.format(MSG_PROTOCOL, user.getUserId(), user.getUserName()));
     }
 
-    /**
-     * Only use the bookmark with v2 join messages: it is noted as a String.
-     * @param version
-     * @return
-     */
     public static RoutedMessage createJoin(long version, String roomId, MediatorNexus.UserView user) {
         return new RoutedMessage(FlowTarget.roomJoin, roomId,
                 String.format(MSG_HELLO_JOIN, version, user.getUserId(), user.getUserName()));
@@ -178,7 +167,7 @@ public class RoutedMessage {
         return new RoutedMessage(FlowTarget.roomPart, roomId,
                 String.format(MSG_PROTOCOL, user.getUserId(), user.getUserName()));
     }
-
+    
     /**
      * For pass-through messages, keep the original value to resend.
      */
@@ -504,4 +493,5 @@ public class RoutedMessage {
         wholeMessage = result.toString();
         return wholeMessage;
     }
+
 }
