@@ -69,10 +69,13 @@ public class RoutedMessage {
     public static final String SOS = "sos";
     public static final String ACK = "ack";
     public static final String READY = "ready";
+    public static final String PING = "ping";
 
     public static final String MSG_HELLO_JOIN = "{\"version\": %d,\"userId\": \"%s\",\"username\": \"%s\"}";
     public static final String MSG_PROTOCOL = "{\"userId\": \"%s\",\"username\": \"%s\"}";
     
+    public static final RoutedMessage PING_MSG = new RoutedMessage(FlowTarget.ping, "*", "{}");
+
     public enum FlowTarget {
         ack(RoutedMessage.ACK),
         ready(RoutedMessage.READY),
@@ -83,7 +86,8 @@ public class RoutedMessage {
         roomGoodbye(RoutedMessage.ROOM_GOODBYE),
         roomJoin(RoutedMessage.ROOM_JOIN),
         roomPart(RoutedMessage.ROOM_PART),
-        sos(RoutedMessage.SOS);
+        sos(RoutedMessage.SOS),
+        ping(RoutedMessage.PING);
 
         private final String name;
 
