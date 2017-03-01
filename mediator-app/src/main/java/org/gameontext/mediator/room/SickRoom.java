@@ -53,6 +53,7 @@ public class SickRoom extends AbstractRoomMediator {
 
     final RemoteRoomProxy proxy;
     final ScheduledExecutorService scheduledExecutor;
+    final String SYSTEM_ID;
 
     /** Associated user id (if not a multiplexed/shared connection) */
     final String targetUser;
@@ -63,14 +64,28 @@ public class SickRoom extends AbstractRoomMediator {
     volatile boolean connected = true;
     volatile boolean characterMessages = true;
     volatile long retryInterval = 2;
+    volatile String reason;
 
-    public SickRoom(RemoteRoomProxy proxy, MapClient mapClient, ScheduledExecutorService scheduledExecutor, Site site, String userId, MediatorNexus.View nexus) {
+    public SickRoom(RemoteRoomProxy proxy, 
+            MapClient mapClient, 
+            ScheduledExecutorService scheduledExecutor, 
+            Site site, 
+            String userId, 
+            String systemId, 
+            MediatorNexus.View nexus,
+            String reason) {
         super(nexus, mapClient, site);
         this.proxy = proxy;
         this.targetUser = userId == null ? "*" : userId;
         this.scheduledExecutor = scheduledExecutor;
-
-        Log.log(Level.FINEST, this, "Created Sick Room for {0} in {1}", targetUser, site.getId());
+        this.SYSTEM_ID = systemId;
+        this.reason = reason;
+        
+        //use game like messages if the user is not the owner,
+        //otherwise default to detailed messages.
+        characterMessages = !userId.equals(proxy.getOwnerId());
+        
+        Log.log(Level.FINEST, this, "Created Sick Room for {0} in {1}", userId, site.getId());
 
         this.updateInformation(site);
     }
@@ -102,6 +117,9 @@ public class SickRoom extends AbstractRoomMediator {
         disconnect();
     }
 
+    public void updateReason(String reason){
+        this.reason = reason;
+    }
 
     /**
      * Called whenever site information has been updated but the delegate stays
@@ -193,10 +211,19 @@ public class SickRoom extends AbstractRoomMediator {
                     contentResponse = RoomUtils.buildContentResponse(userId,
                             "You skim the page. You don't have to be a doctor to tell this room isn't doing so well.");
                 } else {
-                    contentResponse = RoomUtils.buildContentResponse(userId,
-                            "Patient: **" + getFullName() + "**\n\n"
+                    String response = "Patient: **" + getFullName() + "**\n\n"
                             + "* Connection attempts: " + attempts + "\n"
-                            + "* Retry interval: " + retryInterval + " seconds");
+                            + "* Retry interval: " + retryInterval + " seconds";
+                    
+                    //add extra info if the player is the rooms owner.. 
+                    if(userId.equals(getOwnerId()) || getOwnerId().equals(SYSTEM_ID)){
+                        response += "\n"
+                                 + "* Connection details target: "+roomInfo.getConnectionDetails().getTarget()+"\n"
+                                 + "* Connection details hasToken?: "+(roomInfo.getConnectionDetails().getToken()!=null)+"\n"
+                                 + "* Last failure: "+String.valueOf(reason);
+                    }
+                    
+                    contentResponse = RoomUtils.buildContentResponse(userId,response);          
                 }
             } else {
                 contentResponse = RoomUtils.buildContentResponse(userId, "It doesn't look interesting.");

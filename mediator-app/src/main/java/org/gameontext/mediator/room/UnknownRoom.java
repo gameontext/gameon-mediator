@@ -25,6 +25,7 @@ public class UnknownRoom extends AbstractRoomMediator {
     public static final String UNKNOWN_NAME = "unknown";
     public static final String UNKNOWN_FULLNAME = "Unknown site";
     public static final String UNKNOWN_DESCRIPTION = "Operator here: We're sorry, but we have no idea where you are. `/sos` is your best option";
+    public static final String UNKNOWN_OWNER = "unknown";
 
     public UnknownRoom(MapClient mapClient, String id, MediatorNexus.View nexus) {
         super(nexus, mapClient, new Site(id));
@@ -48,6 +49,11 @@ public class UnknownRoom extends AbstractRoomMediator {
     @Override
     public Type getType() {
         return Type.UNKNOWN;
+    }
+    
+    @Override
+    public String getOwnerId() {
+        return UNKNOWN_OWNER;
     }
 
     @Override

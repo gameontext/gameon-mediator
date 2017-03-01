@@ -44,6 +44,8 @@ public interface RoomMediator {
     String getFullName();
 
     String getDescription();
+    
+    String getOwnerId();
 
     Exits getExits();
 
