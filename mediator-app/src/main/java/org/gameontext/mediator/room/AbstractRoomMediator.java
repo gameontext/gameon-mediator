@@ -52,6 +52,7 @@ public abstract class AbstractRoomMediator implements RoomMediator {
 
 
     final String roomId;
+    final String ownerId;
     final MediatorNexus.View nexusView;
     final MapClient mapClient;
 
@@ -65,6 +66,7 @@ public abstract class AbstractRoomMediator implements RoomMediator {
         this.mapClient = mapClient;
         this.exits = site.getExits();
         this.roomInfo = site.getInfo();
+        this.ownerId = site.getOwner();
     }
 
     @Override
@@ -92,6 +94,11 @@ public abstract class AbstractRoomMediator implements RoomMediator {
     @Override
     public JsonObject listExits() {
         return exits.toSimpleJsonList();
+    }
+    
+    @Override
+    public String getOwnerId(){
+        return ownerId;
     }
 
     @Override

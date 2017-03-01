@@ -15,6 +15,7 @@
  *******************************************************************************/
 package org.gameontext.mediator;
 
+import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
@@ -70,6 +71,9 @@ public class MediatorBuilder {
 
     @Resource
     ManagedScheduledExecutorService scheduledExecutor;
+      
+    @Resource(lookup = "systemId")
+    String SYSTEM_ID;
 
     @PostConstruct
     public void postConstruct() {
@@ -252,7 +256,7 @@ public class MediatorBuilder {
                     return currentDelegate;
             }
         } else if ( localInfo == null ) {
-            return createUpdateLocalDelegate(Type.EMPTY, proxy, currentDelegate, targetSite, user);
+            return createUpdateLocalDelegate(Type.EMPTY, proxy, currentDelegate, targetSite, user, null);
         } else {
             // try connecting to the remote room
             return tryRemoteDelegate(updateType, proxy, currentDelegate, targetSite, user);
@@ -266,6 +270,8 @@ public class MediatorBuilder {
         String roomId = site.getId();
         WSDrain drain = new WSDrain(roomId);
         drain.setThread(threadFactory.newThread(drain));
+        
+        String reason = null;
 
         try {
             RemoteRoom room = new RemoteRoom(proxy, mapClient, scheduledExecutor, site, drain, nexus.getSingleUserView(roomId, user));
@@ -285,17 +291,22 @@ public class MediatorBuilder {
         } catch(Exception e) {
             Log.log(Level.FINEST, this, "tryRemoteDelegate FAILED: proxy={0}, userId={1}, exception={2}",
                     Log.getHexHash(proxy), user, e);
+            
+            reason = Instant.now().toString()+" "+e.getMessage();
         }
 
-        return createUpdateLocalDelegate(Type.SICK, proxy, currentDelegate, site, user);
+        return createUpdateLocalDelegate(Type.SICK, proxy, currentDelegate, site, user, reason);
     }
 
-    private RoomMediator createUpdateLocalDelegate(Type type, RemoteRoomProxy proxy, RoomMediator currentDelegate, Site site, UserView user) {
+    private RoomMediator createUpdateLocalDelegate(Type type, RemoteRoomProxy proxy, RoomMediator currentDelegate, Site site, UserView user, String reason) {
         Log.log(Level.FINEST, this, "createUpdateLocalDelegate: proxy={0}, newType={1}, delegate={2}/{3}, site={4}, userId={5}",
                 Log.getHexHash(proxy), type, Log.getHexHash(currentDelegate), currentDelegate.getType(), site, user);
 
         if ( currentDelegate.getType() == type ) {
             currentDelegate.updateInformation(site);
+            if( type == Type.SICK){
+                ((SickRoom)currentDelegate).updateReason(reason);
+            }
             return currentDelegate;
         }
 
@@ -303,8 +314,8 @@ public class MediatorBuilder {
         if ( type == Type.EMPTY ) {
             mediator = new EmptyRoom(mapClient, site, user.getUserId(), nexus.getMultiUserView(site.getId()));
         } else {
-            mediator = new SickRoom(proxy, mapClient, scheduledExecutor, site, user.getUserId(),
-                                nexus.getFilteredMultiUserView(site.getId(), RoomMediator.Type.SICK));
+            mediator = new SickRoom(proxy, mapClient, scheduledExecutor, site, user.getUserId(), SYSTEM_ID,
+                                nexus.getFilteredMultiUserView(site.getId(), RoomMediator.Type.SICK), reason);
         }
         mediator.hello(user);
         return mediator;

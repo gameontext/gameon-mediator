@@ -93,6 +93,11 @@ public class RemoteRoomProxy implements RoomMediator {
     public Exits getExits() {
         return delegate.getExits();
     }
+    
+    @Override
+    public String getOwnerId() {
+        return delegate.getOwnerId();
+    }
 
     /**
      * Update the delegate based on new/refreshed site information.

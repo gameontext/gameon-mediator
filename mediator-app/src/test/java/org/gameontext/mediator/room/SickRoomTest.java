@@ -59,9 +59,10 @@ public class SickRoomTest {
             site.getInfo(); returns(info);
             info.getName(); returns(name);
             info.getFullName(); returns(fullName);
+            proxy.getOwnerId(); returns("userid");
          }};
 
-         SickRoom sickRoom = new SickRoom(proxy, mapClient, exec, site, null, nexus);
+         SickRoom sickRoom = new SickRoom(proxy, mapClient, exec, site, "userid", "SYSTEM_ID", nexus, null);
 
         Assert.assertEquals(Type.SICK, sickRoom.getType());
         Assert.assertEquals(name, sickRoom.getName());

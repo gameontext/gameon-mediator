@@ -58,6 +58,8 @@ public class MediatorBuilderTest {
 
     @Injectable ManagedThreadFactory threadFactory;
     @Injectable ManagedScheduledExecutorService scheduledExecutor;
+    
+    @Injectable String systemId;
 
     static final String signedJwt = "testJwt";
     static final String userId = "dummy.DevUser";
