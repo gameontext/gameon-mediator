@@ -24,7 +24,7 @@ public class FirstRoom extends AbstractRoomMediator {
 
     public static final String FIRST_ROOM_FULL = "The First Room";
     static final String FIRST_ROOM_DESC = "You've entered a vaguely squarish room, with walls of an indeterminate color. A note is pinned to the wall.";
-    static final String FIRST_ROOM_EXTENDED = "\n\nTL;DR README (The extended edition is [here](https://book.game-on.org/)): \n\n"
+    static final String FIRST_ROOM_EXTENDED = "\n\nTL;DR README (The extended edition is [here](https://book.gameontext.org/)): \n\n"
             + "* Commands start with '/'.\n"
             + "* Use `/help` to list all available commands. The list will change from room to room.\n"
             + "* Use `/exits` to list all available exits.\n"
