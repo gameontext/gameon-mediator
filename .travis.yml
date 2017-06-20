@@ -1,21 +1,18 @@
 sudo: required
-
 branches:
   only:
-    - master
-
+  - master
 services:
-  - docker
-
+- docker
 language: java
-
 jdk:
-  - oraclejdk8
-
+- oraclejdk8
 script:
-  - ./gradlew build
-
+- "./gradlew build"
 after_success:
-  - docker login -e="${DOCKER_EMAIL}" -u="${DOCKER_USERNAME}" -p="${DOCKER_PASSWORD}"
-  - docker build -t ${DOCKER_REPO}/${DOCKER_IMAGE} ${DOCKER_BUILDDIR}
-  - docker push ${DOCKER_REPO}/${DOCKER_IMAGE}
+- docker login -e="${DOCKER_EMAIL}" -u="${DOCKER_USERNAME}" -p="${DOCKER_PASSWORD}"
+- docker build -t ${DOCKER_REPO}/${DOCKER_IMAGE} ${DOCKER_BUILDDIR}
+- docker push ${DOCKER_REPO}/${DOCKER_IMAGE}
+notifications:
+  slack:
+    secure: ymN54lciKX+c+QnvBvMfse8XFrU/1l0/Dg5oPhY3MOgSpwNMHFbsqLNvCE4DXWYf0bU2ilXy1JAjilG7bzY0KWkDiY+eaEa9jN+klyP52GarndPtaZycn2gKTF80yDNlvS+De4nj7t0uUfmt0lQ2HCEZiTsWezI6DY2IOXX6socF3Emk9gZgcAJQeQul8TEpRFSF7w7O04DEiXjiYXehFdLQ+ZHbbfe9wYxb3GqaxtovbZVsuAA5CncUenIblVyvQzBPAIyuaWU0RZzpylkw6IvB9SK6GIaU218zjpoUw7aNthEO1UYThu3AMbf9zM4oY/EPoJS9wC2Qcxuk+M2R+ooSJYhRmwtMwdUzT1OmD10dCWQ93iSWIYi73x/aZ4uwfuCZUXNEbPR04pD7yOa0+mq3onyThdMIMoVkzvzLhAuqz1LK47bUjGrvYa9urY8t0vJ4SF6b0V20u/aGuVSOspELHfisDTkIPX6g/bKM/QNHNEobANhtmoLV7yxO1tKFrZmfGEpGQLcogUf4OclL77d+6R3+oQjPTEFUU9JeFZuO+Op+TYndCeNT1gcPRR5KE7Lybd4GtalLSKxXDeSMjxxRFuJmsI8NC8RVuRlzwVtOCc+bajQqK1ZBNZ8gJtRe3xDeW/BgsBocVeq2/VKhh/Q6EdhMdgQujD/nkFv1Xgc=
