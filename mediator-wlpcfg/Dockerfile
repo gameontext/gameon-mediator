@@ -29,3 +29,8 @@ COPY ./startup.sh /opt/startup.sh
 ADD ./servers/gameon-mediator /opt/ibm/wlp/usr/servers/defaultServer/
 
 CMD ["/opt/startup.sh"]
+
+HEALTHCHECK \
+  --timeout=10s \
+  --start-period=40s \
+  CMD wget -q -O /dev/null --no-check-certificate https://localhost:9443/mediator/
