@@ -12,7 +12,7 @@
     <feature>concurrent-1.0</feature>
   </featureManager>
 
-  <keyStore id="defaultKeyStore" password="testOnlyKeystore"/>
+  <keyStore id="defaultKeyStore" location="key.jks"  password="testOnlyKeystore"/>
   <keyStore id="defaultTrustStore" location="truststore.jks" password="truststore"/>
 
   <sslDefault sslRef="DefaultSSLSettings"/>
