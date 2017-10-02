@@ -16,13 +16,14 @@
 package org.gameontext.mediator.room;
 
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import org.gameontext.mediator.Drain;
 import org.gameontext.mediator.Log;
 import org.gameontext.mediator.MapClient;
 import org.gameontext.mediator.MediatorNexus;
 import org.gameontext.mediator.RoutedMessage;
+import org.gameontext.mediator.WSDrain;
 import org.gameontext.mediator.models.ConnectionDetails;
 import org.gameontext.mediator.models.Site;
 
@@ -39,7 +40,7 @@ public class RemoteRoom extends AbstractRoomMediator {
     final RemoteRoomProxy proxy;
     final ScheduledExecutorService scheduledExecutor;
 
-    public RemoteRoom(RemoteRoomProxy proxy, MapClient mapClient, ScheduledExecutorService scheduledExecutor, Site site, Drain drain, MediatorNexus.View nexusView) throws Exception {
+    public RemoteRoom(RemoteRoomProxy proxy, MapClient mapClient, ScheduledExecutorService scheduledExecutor, Site site, WSDrain drain, MediatorNexus.View nexusView) throws Exception {
         super(nexusView, mapClient, site);
         this.proxy = proxy;
         this.scheduledExecutor = scheduledExecutor;
@@ -50,6 +51,9 @@ public class RemoteRoom extends AbstractRoomMediator {
         ConnectionDetails details = site.getInfo().getConnectionDetails();
         if ( "websocket".equals(details.getType())) {
             connection = new WebSocketClientConnection(proxy, nexusView, drain, site);
+            drain.setFuture(scheduledExecutor.scheduleAtFixedRate(() -> {
+                ((WebSocketClientConnection) connection).keepAlive();
+            }, 50, 2, TimeUnit.SECONDS));
         } else {
             throw new UnsupportedOperationException(details.getType() + " is not a supported transport type");
         }

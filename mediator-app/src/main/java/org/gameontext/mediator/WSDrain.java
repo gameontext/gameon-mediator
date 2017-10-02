@@ -27,7 +27,7 @@ import javax.websocket.Session;
  * a dedicated thread that will drain the queue as messages arrive.
  *
  */
-class WSDrain implements Runnable, Drain {
+public class WSDrain implements Runnable, Drain {
     private final String id;
     private Thread thread;
     private ScheduledFuture<?> pingFuture;
