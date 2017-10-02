@@ -277,6 +277,14 @@ public class MediatorNexus  {
             if ( room == null ) {
                 // create new room mediator: we're the first in
                 room = mediatorBuilder.findMediatorForRoom(this, targetId);
+                
+                if ( !room.getId().equals(targetId) ) {
+                    Log.log(Level.FINER, playerSession.getSource(), "{0}: pre-join -- deleted room recovery for {1}, room={2} ({3}, {4}): {5}",
+                            Log.getHexHash(this), userId, room.getId(), joinRoom, helloInstead, clientMediators);
+                    
+                    //update the location in the db.
+                    playerClient.updatePlayerLocation(userId, getUserJwt(), targetId, room.getId());
+                }
                 playerSession.setRoomMediator(room, false);
                 playerSession.sendToClient(clientAck());
             } else if ( targetId.equals(room.getId())) {
@@ -351,7 +359,7 @@ public class MediatorNexus  {
                         Constants.EVENTMSG_ALREADY_THERE));
             } else if ( currentId.equals(fromRoomId) ) {
                 RoomMediator newRoom = mediatorBuilder.findMediatorForRoom(this, toRoomId);
-                performSwitch(newRoom,updatePlayerLocation);
+                performSwitch(newRoom, !newRoom.getId().equals(toRoomId) || updatePlayerLocation);
             } else  {
                 Log.log(Level.WARNING, playerSession.getSource(), "{0}: {1} could not be moved from pod={2}, expected={3}, new={4}. Connected: {5}",
                         Log.getHexHash(this), userId, currentId, fromRoomId, toRoomId, clientMediators);
