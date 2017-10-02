@@ -2,6 +2,7 @@ package org.gameontext.mediator.room;
 
 import java.io.IOException;
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +42,7 @@ import org.gameontext.signed.SignedRequestMap;
 
 class WebSocketClientConnection extends Endpoint implements RemoteRoom.Connection {
     final static long MAX_PROTOCOL_VERSION = 2;
-    
+
     /**
      * The WebSocket protocol version.
      */
@@ -52,6 +53,8 @@ class WebSocketClientConnection extends Endpoint implements RemoteRoom.Connectio
     final RoomInfo info;
     final Drain drain;
     final MediatorNexus.View nexus;
+    
+    final ByteBuffer pingData = ByteBuffer.wrap("ping".getBytes());
 
     GameOnHeaderAuthConfigurator authConfigurator;
     Session session;
@@ -84,6 +87,14 @@ class WebSocketClientConnection extends Endpoint implements RemoteRoom.Connectio
     @Override
     public void sendToRoom(RoutedMessage message) {
         drain.send(message);
+    }
+
+    public void keepAlive() {
+        try {
+            this.session.getBasicRemote().sendPing(pingData);
+        } catch (IllegalArgumentException | IOException e) {
+            Log.log(Level.WARNING, session, "Exception handling keep alive", e);
+        }
     }
 
     @Override
