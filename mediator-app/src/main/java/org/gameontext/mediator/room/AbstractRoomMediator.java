@@ -93,7 +93,11 @@ public abstract class AbstractRoomMediator implements RoomMediator {
 
     @Override
     public JsonObject listExits() {
-        return exits.toSimpleJsonList();
+        if ( exits != null ) {
+            return exits.toSimpleJsonList();
+        } else {
+            return Json.createObjectBuilder().build();
+        }
     }
     
     @Override

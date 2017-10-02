@@ -787,6 +787,7 @@ public class MediatorNexusTest {
         MediatorNexus nexus = new MediatorNexus();
         nexus.events = events;
         nexus.setBuilder(builder);
+        Deencapsulation.setField(nexus,playerClient);
 
         // This is effectively a join.
         nexus.transitionViaExit(client1, "N");
@@ -794,6 +795,7 @@ public class MediatorNexusTest {
         new Verifications() {{
             // mediators created only once per client
             builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); times = 1;
+            playerClient.updatePlayerLocation("client1",(String)any,Constants.FIRST_ROOM,roomId); 
 
             UserView hello;
             room1.hello(hello = withCapture()); times = 1;
