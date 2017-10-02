@@ -277,7 +277,6 @@ public class MediatorNexus  {
             if ( room == null ) {
                 // create new room mediator: we're the first in
                 room = mediatorBuilder.findMediatorForRoom(this, targetId);
-                System.out.println(targetId + " " + room.getId());
                 
                 if ( !room.getId().equals(targetId) ) {
                     Log.log(Level.FINER, playerSession.getSource(), "{0}: pre-join -- deleted room recovery for {1}, room={2} ({3}, {4}): {5}",
