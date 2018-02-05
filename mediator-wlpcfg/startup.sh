@@ -7,7 +7,7 @@ fi
 
 export CONTAINER_NAME=mediator
 
-SERVER_PATH=/opt/ibm/wlp/usr/servers/defaultServer
+SERVER_PATH=/opt/ol/wlp/usr/servers/defaultServer
 
 if [ "$ETCDCTL_ENDPOINT" != "" ]; then
   echo Setting up etcd...
@@ -72,4 +72,4 @@ if [ -f /etc/cert/cert.pem ]; then
   cd ${SERVER_PATH}
 fi
 
-exec /opt/ibm/wlp/bin/server run defaultServer
+exec /opt/ol/wlp/bin/server run defaultServer
