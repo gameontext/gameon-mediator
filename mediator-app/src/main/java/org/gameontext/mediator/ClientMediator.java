@@ -165,8 +165,8 @@ public class ClientMediator implements UserView {
                 if (roomMediator.getType() == Type.FIRST_ROOM) {
                     teleport = message.getBoolean(FirstRoom.TELEPORT, false);
                 }else{
-                    // Not first room, but requesting teleport?
-                    if (message.getBoolean(FirstRoom.TELEPORT,false)) {
+                    // Not first room, but requesting teleport to non-null destination?
+                    if (exitId != null && message.getBoolean(FirstRoom.TELEPORT,false) ) {
                         // If the destination room has the same owner as the current room, allow teleport.
                         String srcOwnerId = roomMediator.getOwnerId();
                         String dstOwnerId = mapClient.getOwnerId(exitId);
