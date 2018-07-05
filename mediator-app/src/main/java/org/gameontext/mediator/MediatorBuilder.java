@@ -71,7 +71,7 @@ public class MediatorBuilder {
 
     @Resource
     ManagedScheduledExecutorService scheduledExecutor;
-      
+
     @Resource(lookup = "systemId")
     String SYSTEM_ID;
 
@@ -98,7 +98,7 @@ public class MediatorBuilder {
             drain.send(RoutedMessage.PING_MSG);
         }, 50, 2, TimeUnit.SECONDS));
 
-        ClientMediator clientMediator = new ClientMediator(nexus, drain, userId, serverJwt);
+        ClientMediator clientMediator = new ClientMediator(nexus, drain, userId, serverJwt, mapClient);
         return clientMediator;
     }
 
@@ -270,7 +270,7 @@ public class MediatorBuilder {
         String roomId = site.getId();
         WSDrain drain = new WSDrain(roomId);
         drain.setThread(threadFactory.newThread(drain));
-        
+
         String reason = null;
 
         try {
@@ -291,7 +291,7 @@ public class MediatorBuilder {
         } catch(Exception e) {
             Log.log(Level.FINEST, this, "tryRemoteDelegate FAILED: proxy={0}, userId={1}, exception={2}",
                     Log.getHexHash(proxy), user, e);
-            
+
             reason = Instant.now().toString()+" "+e.getMessage();
         }
 
