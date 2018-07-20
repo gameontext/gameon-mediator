@@ -7,3 +7,7 @@ allprojects {
         maven { url "https://jitpack.io" }
     }
 }
+
+task image(type:Exec) {
+  commandLine 'docker', 'build', '-t', 'gameontext/gameon-mediator', 'mediator-wlpcfg'
+}
