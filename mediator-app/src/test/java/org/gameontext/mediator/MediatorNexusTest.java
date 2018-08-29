@@ -15,6 +15,8 @@
  *******************************************************************************/
 package org.gameontext.mediator;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
@@ -35,6 +37,7 @@ import org.gameontext.mediator.room.FirstRoom;
 import org.gameontext.mediator.room.RoomMediator;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -69,6 +72,19 @@ public class MediatorNexusTest {
 
     @Rule
     public TestName testName = new TestName();
+
+    static Method transition;
+    static Method transitionViaExit;
+
+    @BeforeClass
+    public static void getMethods() throws Exception {
+        transition = ClientMediatorPod.class.getDeclaredMethod("transition", ClientMediator.class, String.class, String.class, boolean.class );
+        transition.setAccessible(true);
+
+        transitionViaExit = ClientMediatorPod.class.getDeclaredMethod("transitionViaExit", ClientMediator.class, String.class, String.class);
+        transitionViaExit.setAccessible(true);
+
+    }
 
     @Before
     public void before() {
@@ -612,7 +628,7 @@ public class MediatorNexusTest {
 
     @Test
     public void testTransitionToRoomConflict(@Mocked ClientMediator client1,
-                                             @Mocked RoomMediator room1) {
+                                             @Mocked RoomMediator room1) throws Throwable {
 
         new Expectations() {{
             client1.getUserId(); result = "client1";
@@ -637,9 +653,15 @@ public class MediatorNexusTest {
         Assert.assertNotNull(pod);
 
         // CHEATING: call nested inner directly
+        // private synchronized void transition(ClientMediator playerSession, String fromRoomId, String targetRoomId, boolean updatePlayerLocation) 
         try {
-            Deencapsulation.invoke(pod, "transition", client1, "otherRoom", Constants.FIRST_ROOM, false);
+            transition.invoke(pod, client1, "otherRoom", Constants.FIRST_ROOM, false);
             Assert.fail("Expected concurrent modification exception");
+        } catch(InvocationTargetException e) {
+            if ( ! (e.getCause() instanceof ConcurrentModificationException) ) {
+                throw e.getCause();
+            }
+            // Yay!
         } catch(ConcurrentModificationException ex) {
             //YAY!!
         }
@@ -812,7 +834,7 @@ public class MediatorNexusTest {
 
     @Test
     public void testTransitionViaExitConflict(@Mocked ClientMediator client1,
-                                             @Mocked RoomMediator room1) {
+                                             @Mocked RoomMediator room1) throws Throwable {
 
         new Expectations() {{
             client1.getUserId(); result = "client1";
@@ -837,9 +859,15 @@ public class MediatorNexusTest {
         Assert.assertNotNull(pod);
 
         // CHEATING: call nested inner directly
+        // private synchronized void transitionViaExit(ClientMediator playerSession, String fromRoomId, String direction)
         try {
-            Deencapsulation.invoke(pod, "transitionViaExit", client1, "otherRoom", "N");
+            transitionViaExit.invoke(pod, client1, "otherRoom", "N");
             Assert.fail("Expected concurrent modification exception");
+        } catch(InvocationTargetException e) {
+            if ( ! (e.getCause() instanceof ConcurrentModificationException) ) {
+                throw e.getCause();
+            }
+            // YAY!
         } catch(ConcurrentModificationException ex) {
             //YAY!!
         }

@@ -52,9 +52,9 @@ public class ConnectingRoomTest {
                            @Mocked JsonObjectBuilder builder) {
 
         new Expectations() {{
-            site.getInfo(); returns(info);
-            info.getName(); returns(name);
-            info.getFullName(); returns(fullName);
+            site.getInfo(); result = info;
+            info.getName(); result = name;
+            info.getFullName(); result = fullName;
          }};
 
         ConnectingRoom delegate = new ConnectingRoom(proxy, mapClient, site, null, nexus);

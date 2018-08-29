@@ -56,10 +56,10 @@ public class SickRoomTest {
 
 
         new Expectations() {{
-            site.getInfo(); returns(info);
-            info.getName(); returns(name);
-            info.getFullName(); returns(fullName);
-            proxy.getOwnerId(); returns("userid");
+            site.getInfo(); result = info;
+            info.getName(); result = name;
+            info.getFullName(); result = fullName;
+            proxy.getOwnerId(); result = "userid";
          }};
 
          SickRoom sickRoom = new SickRoom(proxy, mapClient, exec, site, "userid", "SYSTEM_ID", nexus, null);

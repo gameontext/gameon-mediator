@@ -89,7 +89,7 @@ public class FirstRoomTest {
                            @Mocked JsonObjectBuilder builder) {
 
         new Expectations() {{
-            site.getInfo(); returns(info);
+            site.getInfo(); result = info;
         }};
 
         FirstRoom firstRoom = new FirstRoom(nexus, playerJwt, playerClient, mapClient, site, true);
@@ -124,8 +124,8 @@ public class FirstRoomTest {
     public void testTeleportNoRooms(@Mocked Site site) {
 
         new Expectations() {{
-            mapClient.getSite("steve"); returns(null);
-            mapClient.getRoomsByRoomName("steve"); returns(Collections.emptyList());
+            mapClient.getSite("steve"); result = null;
+            mapClient.getRoomsByRoomName("steve"); result = Collections.emptyList();
         }};
 
         FirstRoom firstRoom = new FirstRoom(nexus, playerJwt, playerClient, mapClient, site);
@@ -151,8 +151,8 @@ public class FirstRoomTest {
     public void testTeleportOneRoom(@Mocked Site site, @Mocked Site site1) {
 
         new Expectations() {{
-            mapClient.getSite("steve"); returns(null);
-            mapClient.getRoomsByRoomName("steve"); returns(Arrays.asList(site1));
+            mapClient.getSite("steve"); result = null;
+            mapClient.getRoomsByRoomName("steve"); result = Arrays.asList(site1);
             site1.getId(); result = "steve";
         }};
 
@@ -181,8 +181,8 @@ public class FirstRoomTest {
     public void testTeleportById(@Mocked Site site, @Mocked Site site1) {
 
         new Expectations() {{
-            mapClient.getSite("steve"); returns(site1);
-            site1.getId(); returns("steve");
+            mapClient.getSite("steve"); result = site1;
+            site1.getId(); result = "steve";
         }};
 
         FirstRoom firstRoom = new FirstRoom(nexus, playerJwt, playerClient, mapClient, site);
@@ -215,8 +215,8 @@ public class FirstRoomTest {
         new Expectations() {{
             site1.getId(); result = "siteIdForRoom1";
             site2.getId(); result = "siteIdForRoom2";
-            mapClient.getSite("steve"); returns(null);
-            mapClient.getRoomsByRoomName("steve"); returns(Arrays.asList(site1, site2));
+            mapClient.getSite("steve"); result = null;
+            mapClient.getRoomsByRoomName("steve"); result = Arrays.asList(site1, site2);
         }};
 
         FirstRoom firstRoom = new FirstRoom(nexus, playerJwt, playerClient, mapClient, site);

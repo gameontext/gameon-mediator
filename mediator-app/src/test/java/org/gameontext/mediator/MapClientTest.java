@@ -71,10 +71,10 @@ public class MapClientTest {
         };
 
         new Expectations() {{
-            target.request(new String[] {MediaType.APPLICATION_JSON}); returns(builder);
-            builder.accept(MediaType.APPLICATION_JSON); returns(builder);
-            builder.get(); returns(response);
-            response.getStatusInfo(); returns(statusInfo);
+            target.request(new String[] {MediaType.APPLICATION_JSON}); result = builder;
+            builder.accept(MediaType.APPLICATION_JSON); result = builder;
+            builder.get(); result = response;
+            response.getStatusInfo(); result = statusInfo;
         }};
     }
 
@@ -82,7 +82,7 @@ public class MapClientTest {
     public void test204() {
 
         new Expectations() {{
-            statusInfo.getStatusCode(); returns(204);
+            statusInfo.getStatusCode(); result = 204;
         }};
 
         List<Site> sites = mapClient.getSites(target);
@@ -95,8 +95,8 @@ public class MapClientTest {
         List<Site> returnedSiteList = new ArrayList<Site>();
 
         new Expectations() {{
-            statusInfo.getStatusCode(); returns(200);
-            response.readEntity(new GenericType<List<Site>>() {}); returns (returnedSiteList);
+            statusInfo.getStatusCode(); result = 200;
+            response.readEntity(new GenericType<List<Site>>() {}); result = returnedSiteList;
         }};
 
         List<Site> sites = mapClient.getSites(target);
@@ -111,8 +111,8 @@ public class MapClientTest {
         returnedSiteList.add(site1);
 
         new Expectations() {{
-            statusInfo.getStatusCode(); returns(200);
-            response.readEntity(new GenericType<List<Site>>() {}); returns (returnedSiteList);
+            statusInfo.getStatusCode(); result = 200;
+            response.readEntity(new GenericType<List<Site>>() {}); result = returnedSiteList;
         }};
 
         List<Site> sites = mapClient.getSites(target);
@@ -125,8 +125,8 @@ public class MapClientTest {
 
         MapClient mapClient = new MapClient();
         new Expectations() {{
-            statusInfo.getStatusCode(); returns(200);
-            response.readEntity(new GenericType<List<Site>>() {}); returns (null);
+            statusInfo.getStatusCode(); result = 200;
+            response.readEntity(new GenericType<List<Site>>() {}); result = null;
         }};
 
         List<Site> sites = mapClient.getSites(target);
