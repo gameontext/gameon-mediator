@@ -52,7 +52,7 @@ public class ListMyRoomsTest {
         String playerJwt = "testUser";
 
         new Expectations() {{
-            mapClient.getRoomsByOwner(playerJwt); returns(Collections.emptyList());
+            mapClient.getRoomsByOwner(playerJwt); result = Collections.emptyList();
         }};
 
         FirstRoom firstRoom = new FirstRoom(nexusView, playerJwt, playerClient, mapClient, site);
@@ -94,7 +94,7 @@ public class ListMyRoomsTest {
         returnedSites.add(singleReturnedRoom);
 
         new Expectations() {{
-            mapClient.getRoomsByOwner(playerJwt); returns(returnedSites);
+            mapClient.getRoomsByOwner(playerJwt); result = returnedSites;
         }};
 
         FirstRoom firstRoom = new FirstRoom(nexusView, playerJwt, playerClient, mapClient, site);
@@ -149,7 +149,7 @@ public class ListMyRoomsTest {
         returnedSites.add(room2);
 
         new Expectations() {{
-            mapClient.getRoomsByOwner(playerJwt); returns(returnedSites);
+            mapClient.getRoomsByOwner(playerJwt); result = returnedSites;
         }};
 
         FirstRoom firstRoom = new FirstRoom(nexusView, playerJwt, playerClient, mapClient, site);

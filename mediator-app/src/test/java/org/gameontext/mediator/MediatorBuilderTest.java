@@ -2,11 +2,20 @@ package org.gameontext.mediator;
 
 import java.lang.reflect.Field;
 import java.text.MessageFormat;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
 import javax.enterprise.concurrent.ManagedScheduledExecutorService;
 import javax.enterprise.concurrent.ManagedThreadFactory;
+import javax.enterprise.concurrent.Trigger;
 import javax.websocket.Session;
 
 import org.gameontext.mediator.ClientMediator;
@@ -311,17 +320,9 @@ public class MediatorBuilderTest {
                                    @Mocked RoomInfo info,
                                    @Mocked ClientMediatorPod pod1) throws Exception {
 
+
         // Special mock of sched exec to run immediately
-        ManagedScheduledExecutorService executor = new MockUp<ManagedScheduledExecutorService>() {
-            @Mock
-            public void execute(Runnable command) {
-                System.out.println("HEY!!!");
-                command.run();
-            }
-        }.getMockInstance();
-
-        builder.scheduledExecutor = executor;
-
+        builder.scheduledExecutor = new FakeExecutor();
 
         new Expectations() {{
             site1.getId(); result = roomId;
@@ -374,4 +375,102 @@ public class MediatorBuilderTest {
         // Attept connection
     }
 
+    final class FakeExecutor implements ManagedScheduledExecutorService {
+        public void execute(Runnable command) {
+            System.out.println("HEY!!!");
+            command.run();
+        }
+
+		@Override
+		public boolean awaitTermination(long arg0, TimeUnit arg1) throws InterruptedException {
+			return false;
+		}
+
+		@Override
+		public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> arg0) throws InterruptedException {
+			return null;
+		}
+
+		@Override
+		public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> arg0, long arg1, TimeUnit arg2)
+				throws InterruptedException {
+			return null;
+		}
+
+		@Override
+		public <T> T invokeAny(Collection<? extends Callable<T>> arg0) throws InterruptedException, ExecutionException {
+			return null;
+		}
+
+		@Override
+		public <T> T invokeAny(Collection<? extends Callable<T>> arg0, long arg1, TimeUnit arg2)
+				throws InterruptedException, ExecutionException, TimeoutException {
+			return null;
+		}
+
+		@Override
+		public boolean isShutdown() {
+			return false;
+		}
+
+		@Override
+		public boolean isTerminated() {
+			return false;
+		}
+
+		@Override
+		public void shutdown() {
+			
+		}
+
+		@Override
+		public List<Runnable> shutdownNow() {
+			return null;
+		}
+
+		@Override
+		public <T> Future<T> submit(Callable<T> arg0) {
+			return null;
+		}
+
+		@Override
+		public Future<?> submit(Runnable arg0) {
+			return null;
+		}
+
+		@Override
+		public <T> Future<T> submit(Runnable arg0, T arg1) {
+			return null;
+		}
+
+		@Override
+		public ScheduledFuture<?> schedule(Runnable arg0, long arg1, TimeUnit arg2) {
+			return null;
+		}
+
+		@Override
+		public <V> ScheduledFuture<V> schedule(Callable<V> arg0, long arg1, TimeUnit arg2) {
+			return null;
+		}
+
+		@Override
+		public ScheduledFuture<?> scheduleAtFixedRate(Runnable arg0, long arg1, long arg2, TimeUnit arg3) {
+			return null;
+		}
+
+		@Override
+		public ScheduledFuture<?> scheduleWithFixedDelay(Runnable arg0, long arg1, long arg2, TimeUnit arg3) {
+			return null;
+		}
+
+		@Override
+		public ScheduledFuture<?> schedule(Runnable command, Trigger trigger) {
+			return null;
+		}
+
+		@Override
+		public <V> ScheduledFuture<V> schedule(Callable<V> callable, Trigger trigger) {
+			return null;
+		}
+    }
 }

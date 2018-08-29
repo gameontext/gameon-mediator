@@ -44,7 +44,7 @@ public class EmptyRoomTest {
                            @Mocked JsonObjectBuilder builder) {
 
         new Expectations() {{
-            site.getInfo(); returns(null);
+            site.getInfo(); result = null;
          }};
 
         EmptyRoom emptyRoom = new EmptyRoom(mapClient, site, null, nexus);
