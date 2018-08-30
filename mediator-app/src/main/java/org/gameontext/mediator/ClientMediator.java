@@ -56,11 +56,17 @@ public class ClientMediator implements UserView {
     /** The mediator for the connected room */
     private volatile RoomMediator roomMediator = null;
 
-    public ClientMediator(MediatorNexus nexus, Drain drain, String userId, String signedJwt) {
+    /**
+     * Client to query map service for room owners during teleport tests.
+     */
+    private MapClient mapClient;
+
+    public ClientMediator(MediatorNexus nexus, Drain drain, String userId, String signedJwt, MapClient client) {
         this.nexus = nexus;
         this.userId = userId;
         this.toClient = drain;
         this.signedJwt = signedJwt;
+        this.mapClient = client;
 
         toClient.start();
     }
@@ -158,6 +164,14 @@ public class ClientMediator implements UserView {
                 // (moving to a room directly without looking up an exit)
                 if (roomMediator.getType() == Type.FIRST_ROOM) {
                     teleport = message.getBoolean(FirstRoom.TELEPORT, false);
+                }else{
+                    // Not first room, but requesting teleport to non-null destination?
+                    if (exitId != null && message.getBoolean(FirstRoom.TELEPORT,false) ) {
+                        // If the destination room has the same owner as the current room, allow teleport.
+                        String srcOwnerId = roomMediator.getOwnerId();
+                        String dstOwnerId = mapClient.getOwnerId(exitId);
+                        teleport = srcOwnerId.equals(dstOwnerId);
+                    }
                 }
 
                 if (teleport) {

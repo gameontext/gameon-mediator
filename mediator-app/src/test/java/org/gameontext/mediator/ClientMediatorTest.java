@@ -94,7 +94,7 @@ public class ClientMediatorTest {
     @Test
     public void testReadyNoSavedRoom(@Mocked RoomMediator room) throws DecodeException {
 
-        ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt);
+        ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt, mapClient);
 
         String msgTxt = "ready,{}";
         RoutedMessage message = new RoutedMessage(msgTxt);
@@ -115,7 +115,7 @@ public class ClientMediatorTest {
     @Test
     public void testReadyUserName(@Mocked RoomMediator room) throws DecodeException {
 
-        ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt);
+        ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt, mapClient);
 
         String msgTxt = "ready,{\"username\":\"TinyJamFilledMuffin\"}";
         RoutedMessage message = new RoutedMessage(msgTxt);
@@ -137,7 +137,7 @@ public class ClientMediatorTest {
     @Test
     public void testReadyZeroBookmark(@Mocked RoomMediator room) throws DecodeException {
 
-        ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt);
+        ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt, mapClient);
 
         String msgTxt = "ready,{\"bookmark\":0}";
         RoutedMessage message = new RoutedMessage(msgTxt);
@@ -159,7 +159,7 @@ public class ClientMediatorTest {
     @Test
     public void testReadySavedRoom(@Mocked RoomMediator room) throws DecodeException {
 
-        ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt);
+        ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt, mapClient);
 
         String msgTxt = "ready,{\"roomId\": \"roomId\",\"bookmark\": \"id\"}";
         RoutedMessage message = new RoutedMessage(msgTxt);
@@ -184,7 +184,7 @@ public class ClientMediatorTest {
       Field field_roomMediator = ClientMediator.class.getDeclaredField("roomMediator");
       field_roomMediator.setAccessible(true);
 
-      ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt);
+      ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt, mapClient);
       field_roomMediator.set(mediator, room1);
 
         String msgTxt = "playerLocation,dummy.DevUser,{"
@@ -214,7 +214,7 @@ public class ClientMediatorTest {
         Field field_roomMediator = ClientMediator.class.getDeclaredField("roomMediator");
         field_roomMediator.setAccessible(true);
 
-        ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt);
+        ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt, mapClient);
         field_roomMediator.set(mediator, room1);
 
         String msgTxt = "sos,{}";
@@ -250,7 +250,7 @@ public class ClientMediatorTest {
         Field field_roomMediator = ClientMediator.class.getDeclaredField("roomMediator");
         field_roomMediator.setAccessible(true);
 
-        ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt);
+        ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt, mapClient);
         field_roomMediator.set(mediator, room1);
 
         String msgTxt = "playerLocation,dummy.DevUser,{"
@@ -278,7 +278,7 @@ public class ClientMediatorTest {
         Field field_roomMediator = ClientMediator.class.getDeclaredField("roomMediator");
         field_roomMediator.setAccessible(true);
 
-        ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt);
+        ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt, mapClient);
         field_roomMediator.set(mediator, firstRoom);
 
         String msgTxt = "playerLocation,dummy.DevUser,{"
@@ -300,6 +300,80 @@ public class ClientMediatorTest {
 
         new Verifications() {{
             nexus.transition(mediator, roomId); times = 1;
+            drain.send((RoutedMessage) any); times = 0;
+        }};
+    }
+
+
+    @Test
+    public void testSwitchTeleportSameOwner(@Mocked RoomMediator srcRoom) throws Exception {
+
+        Field field_roomMediator = ClientMediator.class.getDeclaredField("roomMediator");
+        field_roomMediator.setAccessible(true);
+
+        ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt, mapClient);
+        field_roomMediator.set(mediator, srcRoom);
+
+        String msgTxt = "playerLocation,dummy.DevUser,{"
+                + "\"type\": \"exit\","
+                + "\"teleport\": true,"
+                + "\"exitId\": \"roomId\","
+                + "\"content\": \"You exit through door xyz... \"}";
+
+        RoutedMessage origMessage = new RoutedMessage(msgTxt);
+        System.out.println(origMessage);
+
+        String srcOwner = "fish";
+        String dstOwner = "fish";
+
+        new Expectations() {{
+            mapClient.getOwnerId("roomId"); result = dstOwner;
+            srcRoom.getType(); result = Type.REMOTE;
+            srcRoom.getOwnerId(); result = srcOwner;
+            nexus.transition(mediator, roomId);
+        }};
+
+        mediator.switchRooms(origMessage); // called on _a_ mediator by nexus
+
+        new Verifications() {{
+            nexus.transition(mediator, roomId); times = 1;
+            drain.send((RoutedMessage) any); times = 0;
+        }};
+    }
+
+
+    @Test
+    public void testSwitchTeleportNotSameOwner(@Mocked RoomMediator srcRoom) throws Exception {
+
+        Field field_roomMediator = ClientMediator.class.getDeclaredField("roomMediator");
+        field_roomMediator.setAccessible(true);
+
+        ClientMediator mediator = new ClientMediator(nexus, drain, userId, signedJwt, mapClient);
+        field_roomMediator.set(mediator, srcRoom);
+
+        String msgTxt = "playerLocation,dummy.DevUser,{"
+                + "\"type\": \"exit\","
+                + "\"teleport\": true,"
+                + "\"exitId\": \"roomId\","
+                + "\"content\": \"You exit through door xyz... \"}";
+
+        RoutedMessage origMessage = new RoutedMessage(msgTxt);
+        System.out.println(origMessage);
+
+        String srcOwner = "fish";
+        String dstOwner = "notfish";
+
+        new Expectations() {{
+            mapClient.getOwnerId("roomId"); result = dstOwner;
+            srcRoom.getType(); result = Type.REMOTE;
+            srcRoom.getOwnerId(); result = srcOwner;
+            nexus.transitionViaExit(mediator, roomId);
+        }};
+
+        mediator.switchRooms(origMessage); // called on _a_ mediator by nexus
+
+        new Verifications() {{
+            nexus.transitionViaExit(mediator, roomId); times = 1;
             drain.send((RoutedMessage) any); times = 0;
         }};
     }

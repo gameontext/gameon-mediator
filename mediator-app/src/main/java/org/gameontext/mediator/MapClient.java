@@ -162,6 +162,19 @@ public class MapClient {
     }
 
     /**
+     * Obtain owner id for a given roomID.
+     * @return ownerId if site is found, null otherwise.
+     */
+    public String getOwnerId(String roomId){
+        Site site = getSite(roomId);
+        if(site==null){
+            return null;
+        }else{
+            return site.getOwner();
+        }
+    }
+
+    /**
      * Construct an outbound {@code WebTarget} that builds on the root
      * {@code WebTarget#path(String)} to add the path segment required to
      * request the Site for a given room (<code>{roomId}</code>).
