@@ -68,13 +68,21 @@ public class PlayerClient {
     String playerLocation;
 
     /**
+     * The uuid of the server.
+     *
+     * @see {@code serverUuid} in
+     *      {@code /mediator-wlpcfg/servers/gameon-mediator/server.xml}
+     */
+    @Resource(lookup = "serverUuid")
+    String SERVER_UUID;
+
+    /**
      * The root target used to define the root path and common query parameters
      * for all outbound requests to the player service.
      *
      * @see WebTarget
      */
     WebTarget root;
-
 
     public class TheNotVerySensibleHostnameVerifier implements HostnameVerifier {
         @Override
@@ -128,18 +136,23 @@ public class PlayerClient {
      * @throws JsonProcessingException
      */
     public String updatePlayerLocation(String playerId, String jwt, String oldRoomId, String newRoomId) {
-        WebTarget target = this.root.path("{playerId}/location").resolveTemplate("playerId", playerId).queryParam("jwt",
-                jwt);
+        WebTarget target = this.root.path("{playerId}/location").resolveTemplate("playerId", playerId).queryParam("jwt", jwt);
 
-        JsonObject parameter = Json.createObjectBuilder().add("oldLocation", oldRoomId).add("newLocation", newRoomId).build();
+        JsonObject parameter = Json.createObjectBuilder()
+            .add("oldLocation", oldRoomId)
+            .add("newLocation", newRoomId)
+            .add("origin", SERVER_UUID)
+            .build();
 
         Log.log(Level.INFO, this, "updating location using {0} with putdata {1}", target.getUri().toString(), parameter.toString());
 
         try {
-            // Make PUT request using the specified target, get result as a
-            // string containing JSON
-            String resultString = target.request(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
-                    .header("Content-type", "application/json").put(Entity.json(parameter), String.class);
+            // Make PUT request using the specified target, get result as a string containing JSON
+            String resultString = target
+                .request(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
+                .header("Content-type", "application/json")
+                .put(Entity.json(parameter), String.class);
 
             Log.log(Level.INFO, this, "response was {0}", resultString);
 
@@ -148,6 +161,7 @@ public class PlayerClient {
             String location = result.getString("location");
 
             Log.log(Level.INFO, this, "response location {0}", location);
+
             //location should match the 'newRoomId' unless we didn't win the race to change the location.
             return location;
         } catch (ResponseProcessingException rpe) {
@@ -161,8 +175,7 @@ public class PlayerClient {
             Log.log(Level.WARNING, this, "Exception changing player location (" + target.getUri().toString() + ")", ex);
         }
 
-        // Sadly, badness happened while trying to set the new room location
-        // return to old room
+        // Sadly, badness happened while trying to set the new room location return to old room
         return oldRoomId;
     }
 

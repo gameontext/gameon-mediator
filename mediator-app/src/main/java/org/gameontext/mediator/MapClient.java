@@ -65,9 +65,9 @@ public class MapClient {
     String mapLocation;
 
     /**
-     * The concierge API key injected from JNDI via CDI.
+     * The map API key injected from JNDI via CDI.
      *
-     * @see {@code conciergeQueryApiKey} in
+     * @see {@code mapApiKey} in
      *      {@code /mediator-wlpcfg/servers/gameon-mediator/server.xml}
      */
     @Resource(lookup = "mapApiKey")

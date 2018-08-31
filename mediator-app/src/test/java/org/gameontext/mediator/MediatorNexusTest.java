@@ -580,6 +580,8 @@ public class MediatorNexusTest {
             room2.getFullName(); result = roomFullName;
             room2.listExits(); result = roomExits;
 
+            playerClient.updatePlayerLocation("client1",(String)any,roomId,roomId2); result = roomId2;
+
             builder.findMediatorForRoom((ClientMediatorPod) any, roomId); result = room1;
             builder.findMediatorForRoom((ClientMediatorPod) any, roomId2); result = room2;
         }};
@@ -654,17 +656,7 @@ public class MediatorNexusTest {
 
         // CHEATING: call nested inner directly
         // private synchronized void transition(ClientMediator playerSession, String fromRoomId, String targetRoomId, boolean updatePlayerLocation) 
-        try {
-            transition.invoke(pod, client1, "otherRoom", Constants.FIRST_ROOM, false);
-            Assert.fail("Expected concurrent modification exception");
-        } catch(InvocationTargetException e) {
-            if ( ! (e.getCause() instanceof ConcurrentModificationException) ) {
-                throw e.getCause();
-            }
-            // Yay!
-        } catch(ConcurrentModificationException ex) {
-            //YAY!!
-        }
+        transition.invoke(pod, client1, "otherRoom", Constants.FIRST_ROOM, false);
 
         new Verifications() {{
             UserView join;
@@ -699,6 +691,8 @@ public class MediatorNexusTest {
             room2.getName(); result = roomName;
             room2.getFullName(); result = roomFullName;
             room2.listExits(); result = roomExits;
+
+            playerClient.updatePlayerLocation("client1",(String)any,Constants.FIRST_ROOM,roomId); result = roomId;
 
             builder.findMediatorForRoom((ClientMediatorPod) any, Constants.FIRST_ROOM); result = room1;
             builder.findMediatorForExit((ClientMediatorPod) any, room1, "N"); result = room2;
@@ -860,17 +854,7 @@ public class MediatorNexusTest {
 
         // CHEATING: call nested inner directly
         // private synchronized void transitionViaExit(ClientMediator playerSession, String fromRoomId, String direction)
-        try {
-            transitionViaExit.invoke(pod, client1, "otherRoom", "N");
-            Assert.fail("Expected concurrent modification exception");
-        } catch(InvocationTargetException e) {
-            if ( ! (e.getCause() instanceof ConcurrentModificationException) ) {
-                throw e.getCause();
-            }
-            // YAY!
-        } catch(ConcurrentModificationException ex) {
-            //YAY!!
-        }
+        transitionViaExit.invoke(pod, client1, "otherRoom", "N");
 
         new Verifications() {{
             UserView join;

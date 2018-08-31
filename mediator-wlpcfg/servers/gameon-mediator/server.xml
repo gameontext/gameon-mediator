@@ -25,6 +25,8 @@
     </accessLogging>
   </httpEndpoint>
 
+  <jndiEntry jndiName="serverUuid" value="${wlp.server.uuid}" />
+
   <!-- Signed JWT keystore info -->
   <jndiEntry jndiName="jwtKeyStore" value="${server.config.dir}/resources/security/key.jks"/>
   <jndiEntry jndiName="jwtKeyStorePassword" value="testOnlyKeystore"/>
