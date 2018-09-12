@@ -18,14 +18,15 @@ package org.gameontext.mediator.events;
 import java.io.IOException;
 import java.util.logging.Level;
 
+import javax.annotation.Resource;
 import javax.inject.Inject;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.gameontext.mediator.Log;
 import org.gameontext.mediator.kafka.GameOnEvent;
 import org.gameontext.mediator.kafka.KafkaRxJavaObservable;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import rx.Subscription;
 
@@ -37,6 +38,15 @@ public class MediatorEvents {
         public void locationUpdated(String userId, String newLocation);
         // add additional methods as required for other event types...
     }
+
+    /**
+     * The uuid of the server.
+     *
+     * @see {@code serverUuid} in
+     *      {@code /mediator-wlpcfg/servers/gameon-mediator/server.xml}
+     */
+    @Resource(lookup = "serverUuid")
+    String SERVER_UUID;
 
     @Inject
     KafkaRxJavaObservable kafka;
@@ -82,6 +92,15 @@ public class MediatorEvents {
             case "UPDATE_LOCATION": {
                 JsonNode player = tree.get("player");
                 String location = player.get("location").asText();
+
+                if ( tree.has("origin") ){
+                    String origin = tree.get("origin").asText();
+                    if ( SERVER_UUID.equals(origin) ) {
+                        Log.log(Level.FINER, this, "Skipping location change event", goe);
+                        break; // skip location change events we sent
+                    }
+                }
+
                 peh.locationUpdated(goe.getKey(), location);
                 break;
             }

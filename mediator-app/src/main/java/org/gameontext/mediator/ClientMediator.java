@@ -142,42 +142,36 @@ public class ClientMediator implements UserView {
         boolean teleport = false;
         String exitId = null;
 
-        try {
-            if ( message.isSOS() ) {
-                // we don't look for an exitId in the case of an SOS.
-                sendToClient(RoutedMessage.createMessage(FlowTarget.player, userId, Constants.EXIT_ELECTRIC_THUMB));
+        if ( message.isSOS() ) {
+            // we don't look for an exitId in the case of an SOS.
+            sendToClient(RoutedMessage.createMessage(FlowTarget.player, userId, Constants.EXIT_ELECTRIC_THUMB));
 
+            // coordinate across instances of player, call #setRoomMediator
+            nexus.transition(this, Constants.FIRST_ROOM);
+        } else {
+            // If we are properly exiting a room, we have the direction we should
+            // go (or the room id for teleport) in the payload of the playerLocation message
+            exitId = message.getString("exitId");
+
+            // If the room is firstRoomInfo.. we might be teleporting..
+            // (moving to a room directly without looking up an exit)
+            if (roomMediator.getType() == Type.FIRST_ROOM) {
+                teleport = message.getBoolean(FirstRoom.TELEPORT, false);
+            }
+
+            if (teleport) {
+                // when we are teleporting, the exitId is the destination room id.
                 // coordinate across instances of player, call #setRoomMediator
-                nexus.transition(this, Constants.FIRST_ROOM);
+                nexus.transition(this, exitId);
             } else {
-                // If we are properly exiting a room, we have the direction we should
-                // go (or the room id for teleport) in the payload of the playerLocation message
-                exitId = message.getString("exitId");
-
-                // If the room is firstRoomInfo.. we might be teleporting..
-                // (moving to a room directly without looking up an exit)
-                if (roomMediator.getType() == Type.FIRST_ROOM) {
-                    teleport = message.getBoolean(FirstRoom.TELEPORT, false);
-                }
-
-                if (teleport) {
-                    // when we are teleporting, the exitId is the destination room id.
+                if (exitId == null) {
                     // coordinate across instances of player, call #setRoomMediator
-                    nexus.transition(this, exitId);
+                    nexus.transition(this, Constants.FIRST_ROOM);
                 } else {
-                    if (exitId == null) {
-                        // coordinate across instances of player, call #setRoomMediator
-                        nexus.transition(this, Constants.FIRST_ROOM);
-                    } else {
-                        // coordinate across instances of player, call #setRoomMediator
-                        nexus.transitionViaExit(this, exitId);
-                    }
+                    // coordinate across instances of player, call #setRoomMediator
+                    nexus.transitionViaExit(this, exitId);
                 }
             }
-        } catch(ConcurrentModificationException cem) {
-            // hmm ... we tried to move, but something/someone else moved us first
-            toClient.send(RoutedMessage.createSimpleEventMessage(FlowTarget.player, userId,
-                    Constants.EVENTMSG_MOVING));
         }
     }
 

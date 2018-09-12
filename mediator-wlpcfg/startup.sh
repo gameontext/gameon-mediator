@@ -48,8 +48,6 @@ if [ "$ETCDCTL_ENDPOINT" != "" ]; then
   #from github, and have to use an extra config snippet to enable it.
   export MESSAGEHUB_USER=$(etcdctl get /kafka/user)
   export MESSAGEHUB_PASSWORD=$(etcdctl get /passwords/kafka)
-  cd ${SERVER_PATH}
-  wget https://github.com/ibm-messaging/message-hub-samples/raw/master/kafka-0.9/message-hub-login-library/messagehub.login-1.0.0.jar
 fi
 
 if [ -f /etc/cert/cert.pem ]; then
@@ -59,7 +57,7 @@ if [ -f /etc/cert/cert.pem ]; then
   echo "-cd dir"
   cd ${SERVER_PATH}/resources/
   echo "-importing jvm truststore to server truststore"
-  keytool -importkeystore -srckeystore $JAVA_HOME/lib/security/cacerts -destkeystore security/truststore.jks -srcstorepass changeit -deststorepass truststore  
+  keytool -importkeystore -srckeystore $JAVA_HOME/lib/security/cacerts -destkeystore security/truststore.jks -srcstorepass changeit -deststorepass truststore
   echo "-converting pem to pkcs12"
   openssl pkcs12 -passin pass:keystore -passout pass:keystore -export -out cert.pkcs12 -in /etc/cert/cert.pem
   echo "-importing pem to truststore.jks"
