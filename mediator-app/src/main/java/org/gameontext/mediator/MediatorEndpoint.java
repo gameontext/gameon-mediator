@@ -38,6 +38,7 @@ import org.gameontext.signed.SignedRequestMap;
 
 import org.eclipse.microprofile.metrics.annotation.Counted;
 import org.eclipse.microprofile.metrics.annotation.Timed;
+import org.eclipse.microprofile.opentracing.Traced;
 
 /**
  * Server-side endpoint for the Player Client (phone/browser).
@@ -68,6 +69,7 @@ public class MediatorEndpoint {
     @OnOpen
     @Timed(name = "onOpen_timer", absolute = true, description = "Time needed to run the onOpen sequence when websocket connection is opened.")
     @Counted(name = "onOpen_count", absolute = true, monotonic = true, description = "Number of times websocket connection is opened.")
+    @Traced(value = true, operationName = "MediatorEndpoint.onOpen")
     public void onOpen(@PathParam("userId") String userId, Session session, EndpointConfig ec) {
         Log.log(Level.FINER, session, "client open - {0} {1} {2} {3}", userId, session.getQueryString(),
                 session.getUserProperties(), clientMediator);
@@ -105,6 +107,7 @@ public class MediatorEndpoint {
     @OnClose
     @Timed(name = "onClose_timer", absolute = true, description = "Time needed to close the websocket connection.")
     @Counted(name = "onClose_count", absolute = true, monotonic = true, description = "Number of times websocket connection is closed.")
+    @Traced(value = true, operationName = "MediatorEndpoint.onClose")
     public void onClose(@PathParam("userId") String userId, Session session, CloseReason reason) {
         Log.log(Level.FINER, session, "client session closed - {0}: {1}", userId, reason);
 
@@ -123,6 +126,7 @@ public class MediatorEndpoint {
     @OnMessage
     @Timed(name = "onMessage_timer", absolute = true, description = "Time needed to receive and handle message from the JS client.")
     @Counted(name = "onMessage_count", absolute = true, monotonic = true, description = "Number of times a message is sent")
+    @Traced(value = true, operationName = "MediatorEndpoint.onMessage")
     public void onMessage(@PathParam("userId") String userId, RoutedMessage message, Session session)
             throws IOException {
         Log.log(Level.FINEST, this, "C -> M    R : {0}", message);
@@ -149,6 +153,7 @@ public class MediatorEndpoint {
     @OnError
     @Timed(name = "onError_timer", absolute = true, description = "Time needed to process error for mediator endpoint.")
     @Counted(name = "onError_count", absolute = true, monotonic = true, description = "Number of times errored in mediator endpoint.")
+    @Traced(value = true, operationName = "MediatorEndpoint.onError")
     public void onError(@PathParam("userId") String userId, Session session, Throwable t) {
         Log.log(Level.FINER, session, "oops for client " + userId + " connection", t);
 

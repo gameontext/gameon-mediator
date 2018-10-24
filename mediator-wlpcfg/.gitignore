@@ -11,6 +11,7 @@ dockerrc
 /servers/*/lib
 /servers/.pid
 /build/
+/lib
 /servers/.classCache
 /servers/gameon-mediator/configDropins
 /servers/gameon-mediator/defaultServer
