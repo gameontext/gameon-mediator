@@ -11,6 +11,19 @@ To build this project:
     ./gradlew build
     docker build -t gameontext/gameon-mediator mediator-wlpcfg
 
+## [MicroProfile](https://microprofile.io/)
+MicroProfile is an open platform that optimizes the Enterprise Java for microservices architecture. In this application, we are using [**MicroProfile 1.3**](https://github.com/eclipse/microprofile-bom).
+
+### Features
+1. [MicroProfile Metrics](https://github.com/eclipse/microprofile-metrics) - This feature allows us to expose telemetry data. Using this, developers can monitor their services with the help of metrics.
+
+    The application uses the `Timed` and `Counted` metrics. To access these metrics, go to https://localhost:9446/metrics.
+    The Metrics feature is configured with SSL and can only be accessed through https. You will need to login using the username and password configured in the server.xml. The default values are `admin` and `admin`.
+
+2. [MicroProfile Open Tracing](https://github.com/eclipse/microprofile-opentracing) -  This feature enables distributed tracing. It analyzes the transaction flow and allows for custom tracing of JAX-RS and non-JAX-RS methods.
+
+    We are using [Zipkin](https://zipkin.io/) as the distributed tracing system. It is setup to run through the root project's Docker Compose, and can be accessed at https://localhost:9411.
+
 ## Contributing
 
 Want to help! Pile On! 
