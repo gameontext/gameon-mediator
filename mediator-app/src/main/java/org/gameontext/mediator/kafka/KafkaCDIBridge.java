@@ -89,4 +89,7 @@ public class KafkaCDIBridge {
         consumer.close();
     }
 
+    public boolean isHealthy() {
+        return consumer != null;
+    }
 }
