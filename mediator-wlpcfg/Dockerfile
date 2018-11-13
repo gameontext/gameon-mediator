@@ -11,4 +11,4 @@ CMD ["/opt/startup.sh"]
 HEALTHCHECK \
   --timeout=10s \
   --start-period=40s \
-  CMD wget -q -O /dev/null  http://localhost:9080/mediator/
+  CMD wget -q -O /dev/null  http://localhost:9080/mediator/health

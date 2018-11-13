@@ -129,6 +129,10 @@ public class MapClient {
         Log.log(Level.FINER, this, "Map client initialized with url {0}, system-id {1}", mapLocation, SYSTEM_ID);
     }
 
+    public boolean isHealthy() {
+        return queryRoot != null;
+    }
+
     public List<Site> getSystemRooms() {
         WebTarget target = this.queryRoot.queryParam("owner", SYSTEM_ID);
         return getSites(target);
