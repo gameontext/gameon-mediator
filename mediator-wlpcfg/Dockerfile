@@ -4,7 +4,6 @@ ENV SERVERDIRNAME mediator
 
 COPY ./startup.sh /opt/startup.sh
 COPY ./servers/gameon-mediator /opt/ol/wlp/usr/servers/defaultServer/
-COPY ./lib/features/ /opt/ol/wlp/usr/
 
 CMD ["/opt/startup.sh"]
 
