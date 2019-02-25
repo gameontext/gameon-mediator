@@ -4,29 +4,13 @@ buildscript {
 	}
 }
 
-plugins {
-    id "de.undercouch.download" version "3.4.3"
-}
- apply plugin: 'eclipse'
-task downloadFile(type: Download) {
-    src 'https://github.com/WASdev/sample.opentracing.zipkintracer/releases/download/1.1/liberty-opentracing-zipkintracer-1.1-sample.zip'
-    dest "lib/features/liberty-opentracing-zipkintracer-1.1-sample.zip"
-}
- task unzipFile(type: Copy) {
-    dependsOn 'downloadFile'
-    def zipFile = file("lib/features/liberty-opentracing-zipkintracer-1.1-sample.zip")
-    def outputDir = file("lib/features/")
-    from zipTree(zipFile)
-    into outputDir
-}
-
 task copyWAR(type: Copy) {
     from '../mediator-app/build/libs/mediator-app-1.0.war'
     into 'servers/gameon-mediator/apps/'
     rename("mediator-app-1.0.war", "mediator-app.war")
 }
 
-task build(dependsOn: ['copyWAR', 'unzipFile']){
+task build(dependsOn: ['copyWAR']){
 }
 
 task clean {
@@ -34,6 +18,5 @@ task clean {
     delete "servers/gameon-mediator/lib"
     delete "servers/gameon-mediator/logs"
     delete "servers/gameon-mediator/workarea"
-    delete "lib"
 }
 
