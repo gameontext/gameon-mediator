@@ -66,10 +66,6 @@ public class Exit {
             if ( this.door == null )
                 this.door = "A door";
 
-            // This won't be the prettiest. ew.
-            if ( this.fullName == null )
-                this.fullName = this.name;
-
         } else {
             // Empty/placeholder room. Still navigable if very unclear.
             this.name = "Nether space";
@@ -97,7 +93,11 @@ public class Exit {
     }
 
     public String getFullName() {
-        return fullName;
+        if(fullName!=null){
+            return fullName;
+        }else{
+            return this.name;
+        }
     }
 
     public void setFullName(String fullName) {
