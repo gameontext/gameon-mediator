@@ -1,4 +1,4 @@
-FROM gameontext/docker-liberty-custom:master-14
+FROM gameontext/docker-liberty-custom:master-29
 
 ENV SERVERDIRNAME mediator
 
