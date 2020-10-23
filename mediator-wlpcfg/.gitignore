@@ -5,7 +5,7 @@ oauth-credentials.xml
 dockerrc
 /servers/*/apps
 /servers/*/logs
-/servers/*/resources/security/key.jks
+/servers/*/resources/security/key.pkcs12
 /servers/*/resources/security/ltpa.keys
 /servers/*/workarea
 /servers/*/lib

@@ -1,0 +1,2 @@
+-Djavax.net.ssl.trustStore=/opt/ol/wlp/usr/servers/defaultServer/resources/security/truststore.jks
+-Djavax.net.ssl.trustStorePassword=gameontext-trust

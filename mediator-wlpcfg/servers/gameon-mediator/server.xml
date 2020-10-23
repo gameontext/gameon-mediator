@@ -17,8 +17,8 @@
   <mpMetrics authentication="false"/>
   <webApplication location="microprofile-metrics.war" contextRoot="/"/>
 
-  <keyStore id="defaultKeyStore" location="key.jks"  password="testOnlyKeystore"/>
-  <keyStore id="defaultTrustStore" location="truststore.jks" password="truststore"/>
+  <keyStore id="defaultKeyStore" location="key.pkcs12"  password="gameontext-keys"/>
+  <keyStore id="defaultTrustStore" location="truststore.jks" password="gameontext-trust"/>
 
   <sslDefault sslRef="DefaultSSLSettings"/>
   <ssl id="DefaultSSLSettings" keyStoreRef="defaultKeyStore" trustStoreRef="defaultTrustStore"/>
@@ -35,8 +35,8 @@
   <jndiEntry jndiName="serverUuid" value="${wlp.server.uuid}" />
 
   <!-- Signed JWT keystore info -->
-  <jndiEntry jndiName="jwtKeyStore" value="${server.config.dir}/resources/security/key.jks"/>
-  <jndiEntry jndiName="jwtKeyStorePassword" value="testOnlyKeystore"/>
+  <jndiEntry jndiName="jwtKeyStore" value="${server.config.dir}/resources/security/key.pkcs12"/>
+  <jndiEntry jndiName="jwtKeyStorePassword" value="gameontext-keys"/>
   <jndiEntry jndiName="jwtKeyStoreAlias" value="default"/>
 
   <jndiEntry jndiName="playerUrl" value="${env.PLAYER_SERVICE_URL}"/>
