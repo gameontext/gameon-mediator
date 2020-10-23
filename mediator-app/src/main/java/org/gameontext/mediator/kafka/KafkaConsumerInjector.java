@@ -56,24 +56,6 @@ public class KafkaConsumerInjector {
         consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
                 "org.apache.kafka.common.serialization.StringDeserializer");
 
-        // this is a cheat, we need to enable ssl when talking to message
-        // hub, and not to kafka locally. The easiest way to know which we are
-        // running on, is to check how many hosts are in kafkaUrl.
-        // Locally for kafka there'll only ever be one, and messagehub gives
-        // us a whole bunch..
-        boolean multipleHosts = kafkaUrl.indexOf(",") != -1;
-        if (multipleHosts) {
-        	Log.log(Level.FINEST, this, "Building SSL Consumer.");
-            consumerProps.put("security.protocol", "SASL_SSL");
-            consumerProps.put("ssl.protocol", "TLSv1.2");
-            consumerProps.put("ssl.enabled.protocols", "TLSv1.2");
-            Path p = Paths.get(System.getProperty("java.home"), "lib", "security", "cacerts");
-            consumerProps.put("ssl.truststore.location", p.toString());
-            consumerProps.put("ssl.truststore.password", "changeit");
-            consumerProps.put("ssl.truststore.type", "JKS");
-            consumerProps.put("ssl.endpoint.identification.algorithm", "HTTPS");
-        }
-
         return new KafkaConsumer<String, String>(consumerProps);
     }
 }
