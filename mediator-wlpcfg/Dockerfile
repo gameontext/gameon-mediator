@@ -5,6 +5,8 @@ ENV SERVERDIRNAME mediator
 COPY ./startup.sh /opt/startup.sh
 COPY ./servers/gameon-mediator /opt/ol/wlp/usr/servers/defaultServer/
 
+RUN mkdir -p /opt/ol/wlp/usr/servers/defaultServer/resources/security
+
 CMD ["/opt/startup.sh"]
 
 # Generous start time for constrained systems
