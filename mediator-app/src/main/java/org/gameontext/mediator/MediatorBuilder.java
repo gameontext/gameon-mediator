@@ -171,7 +171,7 @@ public class MediatorBuilder {
             site = FirstRoom.getFallbackSite();
         }
         
-        String playerMode = "full";
+        String playerMode = "default";
         String targetId = null;
         
         SignedJWT clientJwt = pod.getParsedClientJwt();
