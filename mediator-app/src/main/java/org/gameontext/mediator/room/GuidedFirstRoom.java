@@ -1,7 +1,5 @@
 package org.gameontext.mediator.room;
 
-import java.util.List;
-
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
@@ -20,11 +18,9 @@ public class GuidedFirstRoom extends AbstractRoomMediator {
 
     public static final String FIRST_ROOM_FULL = "The Guided First Room";
     static final String FIRST_ROOM_DESC = "You've entered a vaguely squarish room, with walls of an indeterminate color. There is a single exit to the North.";
-    static final String FIRST_ROOM_EXTENDED = "\n\nWelcome to Game On!\n\n"
-            + "* Commands start with '/'.\n"
+    static final String FIRST_ROOM_EXTENDED = "\n\nWelcome to Game On!\n\n" + "* Commands start with '/'.\n"
             + "* Use `/help` to list all available commands. The list will change from room to room.\n"
-            + "* Use `/exits` to list all available exits.\n"
-            + "* Use `/go north` to begin your adventure.\n"
+            + "* Use `/exits` to list all available exits.\n" + "* Use `/go north` to begin your adventure.\n"
             + "* Rooms might try to fool you, but these three commands will always work.";
 
     public static Site getFallbackSite() {
@@ -45,7 +41,8 @@ public class GuidedFirstRoom extends AbstractRoomMediator {
     final MapClient mapClient;
     final String targetId;
 
-    public GuidedFirstRoom(MediatorNexus.View nexus, String playerJwt, PlayerClient playerClient, MapClient mapClient, Site site, String targetId ) {
+    public GuidedFirstRoom(MediatorNexus.View nexus, String playerJwt, PlayerClient playerClient, MapClient mapClient,
+            Site site, String targetId) {
         super(nexus, mapClient, site);
         this.playerJwt = playerJwt;
         this.playerClient = playerClient;
@@ -75,10 +72,11 @@ public class GuidedFirstRoom extends AbstractRoomMediator {
 
     /** Process the text of a command */
     @Override
-    protected String parseCommand(String userId, String userName, JsonObject sourceMessage, JsonObjectBuilder responseBuilder) {
+    protected String parseCommand(String userId, String userName, JsonObject sourceMessage,
+            JsonObjectBuilder responseBuilder) {
         String content = sourceMessage.getString(RoomUtils.CONTENT);
         String contentToLower = content.toLowerCase();
-        
+
         if (contentToLower.startsWith("/")) {
             responseBuilder.add(RoomUtils.TYPE, RoomUtils.EVENT).add(RoomUtils.CONTENT,
                     RoomUtils.buildContentResponse("This room is a basic model. It doesn't understand that command."));
@@ -90,9 +88,9 @@ public class GuidedFirstRoom extends AbstractRoomMediator {
     @Override
     protected void buildLocationResponse(JsonObjectBuilder responseBuilder) {
         super.buildLocationResponse(responseBuilder);
-            responseBuilder.add(RoomUtils.DESCRIPTION, FIRST_ROOM_DESC + FIRST_ROOM_EXTENDED);
+        responseBuilder.add(RoomUtils.DESCRIPTION, FIRST_ROOM_DESC + FIRST_ROOM_EXTENDED);
     }
-    
+
     @Override
     protected void addCommands(JsonObjectBuilder responseBuilder) {
         JsonObjectBuilder content = Json.createObjectBuilder();
@@ -107,22 +105,24 @@ public class GuidedFirstRoom extends AbstractRoomMediator {
 
     @Override
     public Exits getExits() {
-      Exits e = new Exits();
-      
-      //resolve the story id to a room. 
-      List<Site> s = mapClient.getRoomsByRoomName(this.targetId);
-      if(s!=null && !s.isEmpty()) {
-          //if there are multiple with the same id, accept the first (for now). 
-          String siteId = s.get(0).getId();
-          Exit n = new Exit();
-          n.setId(siteId);
-          n.setName("Your Story");
-          n.setFullName("A door leading to adventure!");
-          e.setN(n);
-      }
-     
-      return e;
-    }
+        Exits e = new Exits();
 
+        // lookup the site id & check it exists.
+        Site site = mapClient.getSite(this.targetId);
+        if (site != null) {
+            Exit n = new Exit();
+            n.setId(site.getId());
+            if (site.getInfo() != null) {
+                n.setName(site.getInfo().getName());
+                n.setFullName(site.getInfo().getFullName());
+            } else {
+                n.setName("Adventure");
+                n.setFullName("Somewhere, out there, a long time ago, in a place under the sea...");
+            }
+            e.setN(n);
+        }
+
+        return e;
+    }
 
 }
