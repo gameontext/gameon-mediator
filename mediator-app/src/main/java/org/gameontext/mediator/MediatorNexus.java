@@ -32,6 +32,7 @@ import org.gameontext.mediator.events.MediatorEvents;
 import org.gameontext.mediator.events.MediatorEvents.PlayerEventHandler;
 import org.gameontext.mediator.room.RoomMediator;
 import org.gameontext.mediator.room.RoomMediator.Type;
+import org.gameontext.signed.SignedJWT;
 
 /**
  * Clients (Players) subscribed to listen to messages for
@@ -218,12 +219,18 @@ public class MediatorNexus  {
             return userName;
         }
 
-        public String getUserJwt() {
+        public String getEncodedServerJwt() {
             ClientMediator m = clientMediators.iterator().next();
             //TODO: if jwt expired, try jwt from next clientMediator instead.. etc.
-            return m.getUserJwt();
+            return m.getEncodedServerJwt();
         }
 
+        public SignedJWT getParsedClientJwt() {
+            ClientMediator m = clientMediators.iterator().next();
+            //TODO: if jwt expired, try jwt from next clientMediator instead.. etc.
+            return m.getParsedClientJwt();
+        }
+        
         /**
          * Send message to all connected client mediators
          * @param message
@@ -284,7 +291,7 @@ public class MediatorNexus  {
                             Log.getHexHash(this), userId, room.getId(), joinRoom, helloInstead, clientMediators);
 
                     //update the location in the db.
-                    playerClient.updatePlayerLocation(userId, getUserJwt(), targetId, room.getId());
+                    playerClient.updatePlayerLocation(userId, getEncodedServerJwt(), targetId, room.getId());
                 }
                 playerSession.setRoomMediator(room, false);
                 playerSession.sendToClient(clientAck());
@@ -422,7 +429,7 @@ public class MediatorNexus  {
 
             if (withUpdate) {
                 // Update the location in the db.
-                String resultId = playerClient.updatePlayerLocation(getUserId(), getUserJwt(), oldRoom.getId(), target.getId());
+                String resultId = playerClient.updatePlayerLocation(getUserId(), getEncodedServerJwt(), oldRoom.getId(), target.getId());
 
                 // If there was a confict and we landed in the old room, do nothing else.
                 if ( resultId.equals(oldRoom.getId()) ) {

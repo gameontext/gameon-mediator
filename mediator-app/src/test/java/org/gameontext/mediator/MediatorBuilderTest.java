@@ -129,7 +129,7 @@ public class MediatorBuilderTest {
             new WSDrain(userId, session); result = drain;
         }};
 
-        ClientMediator client = builder.buildClientMediator(userId, session, signedJwt);
+        ClientMediator client = builder.buildClientMediator(userId, session, null, signedJwt);
         Assert.assertEquals(userId, client.getUserId());
 
         new Verifications() {{

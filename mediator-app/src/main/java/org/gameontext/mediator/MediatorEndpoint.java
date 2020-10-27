@@ -83,7 +83,7 @@ public class MediatorEndpoint {
             SignedJWT clientJWT = validator.getJWT(jwtParam);
             if (clientJWT.isValid()) {
                 String serverJwt = validator.clientToServer(clientJWT);
-                clientMediator = mediatorBuilder.buildClientMediator(userId, session, serverJwt);
+                clientMediator = mediatorBuilder.buildClientMediator(userId, session, clientJWT, serverJwt);
             } else {
                 WSUtils.sendMessage(session, RoutedMessage.createSimpleEventMessage(FlowTarget.player, userId, Constants.EVENTMSG_INVALID_JWT));
 
