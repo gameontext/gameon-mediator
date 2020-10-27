@@ -37,6 +37,7 @@ import org.gameontext.mediator.models.Site;
 import org.gameontext.mediator.room.ConnectingRoom;
 import org.gameontext.mediator.room.EmptyRoom;
 import org.gameontext.mediator.room.FirstRoom;
+import org.gameontext.mediator.room.GuidedFirstRoom;
 import org.gameontext.mediator.room.RemoteRoom;
 import org.gameontext.mediator.room.RemoteRoomProxy;
 import org.gameontext.mediator.room.RoomMediator;
@@ -44,6 +45,9 @@ import org.gameontext.mediator.room.RoomMediator.Type;
 import org.gameontext.mediator.room.RoomUtils;
 import org.gameontext.mediator.room.SickRoom;
 import org.gameontext.mediator.room.UnknownRoom;
+import org.gameontext.signed.SignedJWT;
+
+import io.jsonwebtoken.Claims;
 
 @ApplicationScoped
 public class MediatorBuilder {
@@ -89,7 +93,7 @@ public class MediatorBuilder {
      * @param serverJwt
      * @return
      */
-    public ClientMediator buildClientMediator(String userId, Session session, String serverJwt) {
+    public ClientMediator buildClientMediator(String userId, Session session, SignedJWT clientJwt, String serverJwt) {
         WSDrain drain = new WSDrain(userId, session);
         drain.setThread(threadFactory.newThread(drain));
 
@@ -98,7 +102,7 @@ public class MediatorBuilder {
             drain.send(RoutedMessage.PING_MSG);
         }, 50, 2, TimeUnit.SECONDS));
 
-        ClientMediator clientMediator = new ClientMediator(nexus, drain, userId, serverJwt);
+        ClientMediator clientMediator = new ClientMediator(nexus, drain, userId, clientJwt, serverJwt);
         return clientMediator;
     }
 
@@ -166,13 +170,34 @@ public class MediatorBuilder {
         if ( site == null ) {
             site = FirstRoom.getFallbackSite();
         }
-
-        return new FirstRoom(nexus.getMultiUserView(Constants.FIRST_ROOM),
-                pod.getUserJwt(),
-                playerClient,
-                mapClient,
-                site,
-                newbie);
+        
+        String playerMode = "full";
+        String targetId = null;
+        
+        SignedJWT clientJwt = pod.getParsedClientJwt();
+        if(clientJwt!=null) {
+            Claims c = clientJwt.getClaims();
+            if(c.containsKey("playerMode")) {
+                playerMode = c.get("playerMode", String.class);
+                targetId = c.get("story", String.class);
+            }
+        }
+        
+        if("guided".equals(playerMode)) {
+          return new GuidedFirstRoom(nexus.getMultiUserView(Constants.FIRST_ROOM),
+              pod.getEncodedServerJwt(),
+              playerClient,
+              mapClient,
+              site,
+              targetId);
+        } else {
+          return new FirstRoom(nexus.getMultiUserView(Constants.FIRST_ROOM),
+              pod.getEncodedServerJwt(),
+              playerClient,
+              mapClient,
+              site,
+              newbie);
+        }
     }
 
     /**

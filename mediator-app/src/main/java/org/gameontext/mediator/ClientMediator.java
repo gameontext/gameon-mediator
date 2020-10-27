@@ -15,7 +15,6 @@
  *******************************************************************************/
 package org.gameontext.mediator;
 
-import java.util.ConcurrentModificationException;
 import java.util.logging.Level;
 
 import org.gameontext.mediator.MediatorNexus.UserView;
@@ -23,6 +22,7 @@ import org.gameontext.mediator.RoutedMessage.FlowTarget;
 import org.gameontext.mediator.room.FirstRoom;
 import org.gameontext.mediator.room.RoomMediator;
 import org.gameontext.mediator.room.RoomMediator.Type;
+import org.gameontext.signed.SignedJWT;
 
 /**
  * The ClientMediator: mediates the inbound connection from the client device. Handles
@@ -45,8 +45,11 @@ public class ClientMediator implements UserView {
     private final Drain toClient;
 
     /** Signed JWT for outbound requests on behalf of this session */
-    private String signedJwt;
+    private String serverJwt;
 
+    /** (parsed, verified) Signed JWT representing the client */
+    private SignedJWT clientJwt;
+    
     /**
      * The player's username. Sent to the room with playerHello and
      * playerGoodbye (which are mediator-initiated messages).
@@ -56,12 +59,13 @@ public class ClientMediator implements UserView {
     /** The mediator for the connected room */
     private volatile RoomMediator roomMediator = null;
 
-    public ClientMediator(MediatorNexus nexus, Drain drain, String userId, String signedJwt) {
+    public ClientMediator(MediatorNexus nexus, Drain drain, String userId, SignedJWT clientJwt, String serverJwt) {
         this.nexus = nexus;
         this.userId = userId;
         this.toClient = drain;
-        this.signedJwt = signedJwt;
-
+        this.serverJwt = serverJwt;
+        this.clientJwt = clientJwt;
+        
         toClient.start();
     }
 
@@ -75,8 +79,12 @@ public class ClientMediator implements UserView {
         return userName;
     }
 
-    public String getUserJwt() {
-        return signedJwt;
+    public String getEncodedServerJwt() {
+        return serverJwt;
+    }
+    
+    public SignedJWT getParsedClientJwt() {
+        return clientJwt;
     }
 
     public RoomMediator getRoomMediator() {
